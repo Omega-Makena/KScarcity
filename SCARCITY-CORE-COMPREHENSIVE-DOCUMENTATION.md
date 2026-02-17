@@ -36,7 +36,7 @@ SCARCITY is an online-first framework for scarcity-aware deep learning that prov
 ### Version Information
 
 - **Version**: 1.0.0
-- **Author**: Omega Makena
+- **Author**: Omega Labs
 - **License**: See LICENSE file
 
 ---

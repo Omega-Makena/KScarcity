@@ -233,7 +233,7 @@ SENTINEL enables agencies to collaborate on threat models **without ever sharing
 
 ```bash
 # Clone the repository
-git clone https://github.com/Omega-Makena/scarcity.git
+git clone https://github.com/Omega-Labs/scarcity.git
 cd scarcity
 
 # Create virtual environment
@@ -394,7 +394,9 @@ This project is licensed under the Apache License 2.0 - see the [LICENSE](LICENS
 
 ##  Team
 
-**Omega Makena** — Lead Developer
+**Omega Labs** — Lead Developer
+
+🌐 [omegamakena.co.ke](https://omegamakena.co.ke/)
 
 ---
 
