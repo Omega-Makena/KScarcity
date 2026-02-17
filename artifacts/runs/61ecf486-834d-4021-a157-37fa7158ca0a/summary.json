@@ -1,0 +1,63 @@
+{
+  "summary": {
+    "run_id": "61ecf486-834d-4021-a157-37fa7158ca0a",
+    "total_specs": 1,
+    "succeeded": 0,
+    "failed": 1,
+    "started_at": "2026-02-02T08:28:00.595838",
+    "finished_at": "2026-02-02T08:28:00.671263",
+    "duration_sec": 0.075425,
+    "status": "failed",
+    "fail_policy": "continue",
+    "parallelism": "none"
+  },
+  "metadata": {
+    "run_id": "61ecf486-834d-4021-a157-37fa7158ca0a",
+    "runtime": {
+      "refute_random_common_cause": true,
+      "refute_placebo_treatment": true,
+      "refute_data_subset": true,
+      "refutation_simulations": 2,
+      "n_jobs": 1,
+      "seed": 123,
+      "confidence_level": 0.95,
+      "estimator_method": null,
+      "estimator_params": {},
+      "parallelism": "none",
+      "fail_policy": "continue",
+      "chunk_size": 1,
+      "time_series_policy": "none",
+      "blas_thread_policy": {
+        "OMP_NUM_THREADS": 1,
+        "MKL_NUM_THREADS": 1,
+        "OPENBLAS_NUM_THREADS": 1,
+        "NUMEXPR_NUM_THREADS": 1,
+        "VECLIB_MAXIMUM_THREADS": 1
+      },
+      "dot_path": null,
+      "artifact_root": "artifacts",
+      "run_id": "61ecf486-834d-4021-a157-37fa7158ca0a",
+      "export_graphs": true
+    },
+    "python_version": "3.11.9",
+    "platform": "Windows-10-10.0.26100-SP0",
+    "dowhy_version": "0.14",
+    "econml_version": "0.16.0",
+    "data_signature": {
+      "rows": 500,
+      "columns": [
+        "W0",
+        "W1",
+        "v0",
+        "y"
+      ],
+      "dtypes": {
+        "W0": "float64",
+        "W1": "float64",
+        "v0": "bool",
+        "y": "float64"
+      },
+      "hash": "ec05313c7fd4c54e8a07d14887fc2a631965a85fb23fe36522e9a3e192a1e0c6"
+    }
+  }
+}

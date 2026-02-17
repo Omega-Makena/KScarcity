@@ -1,0 +1,62 @@
+[build-system]
+requires = ["setuptools>=69", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "scarcity"
+version = "1.0.0"
+description = "SCARCITY core simulation, federation, and governance library."
+readme = "README.md"
+license = "Apache-2.0"
+authors = [{ name = "Omega Makena" }]
+requires-python = ">=3.9"
+dependencies = [
+  "numpy>=1.24"
+]
+license-files = ["LICENSE"]
+
+[project.optional-dependencies]
+# Streaming, sharding, and async file replay
+stream = [
+  "pandas>=2.0",
+  "aiofiles>=23.2",
+  "websockets>=11.0",
+  "scikit-learn>=1.3"
+]
+# Dashboard and API surface
+dashboard = [
+  "fastapi>=0.110",
+  "uvicorn[standard]>=0.27",
+  "python-multipart>=0.0.9",
+  "pydantic>=2.6"
+]
+# GPU telemetry, rendering, and heavy ops
+gpu = [
+  "torch>=2.1",
+  "pytorch3d>=0.7",
+  "pynvml>=11.0"
+]
+# System metrics and resource governance
+governor = [
+  "psutil>=5.9"
+]
+# Federation/Meta interface utilities
+fmi = [
+  "pyyaml>=6.0",
+  "zstandard>=0.22"
+]
+
+[project.urls]
+Homepage = "https://example.com/scarcity"
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["scarcity*"]
+exclude = [
+  "backend*",
+  "ui*",
+  "docs*",
+  "documentation*",
+  "scarcity-deep-dive*",
+  "tests*"
+]

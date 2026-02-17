@@ -1,0 +1,77 @@
+======================================================================
+   SFC SIMULATION ENGINE — BENCHMARK REPORT
+======================================================================
+  Data:     C:\Users\omegam\OneDrive - Innova Limited\scace4\data\simulation\API_KEN_DS2_en_csv_v2_14659.csv
+  Started:  2026-02-15T22:55:42.566718
+  Finished: 2026-02-15T22:55:48.066814
+  Results:  17/19 passed (94.9% overall score)
+======================================================================
+
+  [PASS] Calibration: integrity                        score=1.00  (120ms)
+         10 params derived, 9 from data, confidence=45.1%
+
+  [PASS] Scenario: oil_crisis                          score=1.00  (52ms)
+         Oil Price Spike (+30%) (Supply) — clean
+
+  [PASS] Scenario: drought                             score=1.00  (60ms)
+         Severe Drought (-20% Agriculture) (Supply) — clean
+
+  [PASS] Scenario: food_price_surge                    score=1.00  (63ms)
+         Food Price Surge (+25%) (Supply) — clean
+
+  [PASS] Scenario: kes_depreciation                    score=1.00  (60ms)
+         Shilling Depreciation (-15%) (External) — clean
+
+  [PASS] Scenario: global_recession                    score=1.00  (49ms)
+         Global Recession (External) — clean
+
+  [PASS] Scenario: aid_reduction                       score=1.00  (42ms)
+         Foreign Aid Reduction (-30%) (External) — clean
+
+  [PASS] Scenario: debt_crisis                         score=1.00  (53ms)
+         Sovereign Debt Crisis (Fiscal) — clean
+
+  [PASS] Scenario: perfect_storm                       score=1.00  (50ms)
+         Perfect Storm (Drought + Oil + FX) (Combined) — clean
+
+  [PASS] Scenario: stimulus_boom                       score=1.00  (49ms)
+         Government Stimulus Boom (Fiscal) — clean
+
+  [PASS] Sanity: Supply shock → inflation rises        score=1.00  (50ms)
+         pre=0.0998 -> post=0.5000 (d=+0.4002, expected UP)
+
+  [PASS] Sanity: Demand contraction → GDP falls        score=1.00  (43ms)
+         pre=0.0037 -> post=-0.0020 (d=-0.0057, expected DOWN)
+
+  [PASS] Sanity: Fiscal expansion → GDP rises          score=1.00  (57ms)
+         pre=0.0037 -> post=0.0136 (d=+0.0099, expected UP)
+
+  [PASS] Sanity: FX shock → inflation rises            score=1.00  (53ms)
+         pre=0.0998 -> post=0.5000 (d=+0.4002, expected UP)
+
+  [PASS] Accounting: balance sheet identity            score=1.00  (57ms)
+         0 violations across 50 steps × 4 sectors
+
+  [FAIL] Stability: perfect_storm stress test          score=0.98  (67ms)
+         100 steps: NaN=0, Inf=0, bound_violations=1
+
+  [FAIL] Trajectory: calibrated run                    score=0.75  (53ms)
+         20 steps: GDP=-0.0028, Inflation=0.5000, Unemployment=0.1438
+         Issues: Inflation too high at end: 50.0%
+
+  [PASS] Agent-Graph: smoke test                       score=1.00  (57ms)
+         10 steps with 3 nodes, 6 edges — clean
+
+  [PASS] Historical: episode validation                score=0.31  (667ms)
+         Episodes detected: 41
+         Episodes scored:   41
+         Direction score:   51.2%
+         Magnitude score:   0.3%
+         Overall score:     30.8%
+           1965 monetary shock (moderate inflation, growth): infl_dir=✗ gdp_dir=✓ (sim_infl=-0.1, actual=3.6)
+           1972 monetary shock (moderate inflation, growth): infl_dir=✗ gdp_dir=✓ (sim_infl=3.8, actual=5.8)
+           1974 supply shock (high inflation, growth): infl_dir=✓ gdp_dir=✓ (sim_infl=9.3, actual=17.8)
+           1982 supply shock (high inflation, slowdown): infl_dir=✗ gdp_dir=✓ (sim_infl=11.6, actual=20.7)
+           1986 combined shock (moderate inflation, growth): infl_dir=✓ gdp_dir=✓ (sim_infl=13.0, actual=2.5)
+
+======================================================================

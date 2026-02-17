@@ -1,0 +1,11 @@
+digraph LearnedGraph {
+  rankdir=LR;
+  "Access to clean fuels and technologies for cooking (% of population)" -> "Consumer price index (2010 = 100)";
+  "Access to clean fuels and technologies for cooking (% of population)" -> "Agriculture, forestry, and fishing, value added (constant 2015 US$)";
+  "Control of Corruption: Percentile Rank, Upper Bound of 90% Confidence Interval" -> "Consumer price index (2010 = 100)";
+  "Control of Corruption: Percentile Rank, Upper Bound of 90% Confidence Interval" -> "Agriculture, forestry, and fishing, value added (constant 2015 US$)";
+  "Control of Corruption: Percentile Rank, Lower Bound of 90% Confidence Interval" -> "Consumer price index (2010 = 100)";
+  "Control of Corruption: Percentile Rank, Lower Bound of 90% Confidence Interval" -> "Agriculture, forestry, and fishing, value added (constant 2015 US$)";
+  "Consumer price index (2010 = 100)" -> "Agriculture, forestry, and fishing, value added (constant 2015 US$)";
+  "Consumer price index (2010 = 100)" -> "Control of Corruption: Percentile Rank, Upper Bound of 90% Confidence Interval";
+}

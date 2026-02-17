@@ -1,0 +1,11 @@
+digraph LearnedGraph {
+  rankdir=LR;
+  "Commercial bank branches (per 100,000 adults)" -> "CPIA business regulatory environment rating (1=low to 6=high)";
+  "Commercial bank branches (per 100,000 adults)" -> "Adjusted net national income (annual % growth)";
+  "GDP per capita (current US$)" -> "CPIA business regulatory environment rating (1=low to 6=high)";
+  "GDP per capita (current US$)" -> "Adjusted net national income (annual % growth)";
+  "Fuel exports (% of merchandise exports)" -> "CPIA business regulatory environment rating (1=low to 6=high)";
+  "Fuel exports (% of merchandise exports)" -> "Adjusted net national income (annual % growth)";
+  "CPIA business regulatory environment rating (1=low to 6=high)" -> "Adjusted net national income (annual % growth)";
+  "CPIA business regulatory environment rating (1=low to 6=high)" -> "Fuel exports (% of merchandise exports)";
+}

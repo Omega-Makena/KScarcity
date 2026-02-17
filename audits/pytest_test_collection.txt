@@ -1,0 +1,559 @@
+============================= test session starts =============================
+platform win32 -- Python 3.11.9, pytest-8.4.2, pluggy-1.6.0 -- C:\Program Files\Python311\python.exe
+cachedir: .pytest_cache
+rootdir: C:\Users\omegam\OneDrive - Innova Limited\scace4
+configfile: pyproject.toml
+plugins: anyio-4.11.0, asyncio-1.2.0
+asyncio: mode=Mode.STRICT, debug=False, asyncio_default_fixture_loop_scope=None, asyncio_default_test_loop_scope=function
+collecting ... collected 116 items / 6 errors
+
+<Dir scace4>
+  <Dir backend>
+    <Dir tests>
+      <Module test_api_endpoints.py>
+        Test v2 API endpoints with actual HTTP requests.
+        <Function test_endpoints>
+          Test all v2 API endpoints.
+      <Module test_v2_endpoints.py>
+        Simple validation script to test v2 API endpoints.
+        <Function test_scarcity_manager>
+          Test ScarcityCoreManager initialization and startup.
+  <Package scarcity>
+    <Package tests>
+      <Module test_audit_federation_aggregation.py>
+        <Function test_federated_aggregation_weighted>
+      <Module test_audit_fmi_aggregation.py>
+        <Function test_fmi_aggregation_applies_dp_noise>
+      <Module test_audit_fmi_emitter.py>
+        <Function test_fmi_emitter_bridges_meta_prior>
+      <Module test_audit_fmi_validator.py>
+        <Function test_fmi_validator_requires_dp_when_configured>
+      <Module test_audit_granger.py>
+        <Function test_granger_step_bounds>
+      <Module test_audit_hypotheses_types.py>
+        <Function test_engine_v2_initializes_all_hypothesis_types>
+      <Module test_audit_meta_update.py>
+        <Function test_meta_prior_update_applies_policy>
+      <Module test_audit_online_algorithms.py>
+        <Function test_rls_kalman_updates_finite>
+      <Module test_audit_privacy_guard.py>
+        <Function test_privacy_guard_noise_applied>
+      <Module test_audit_secure_agg.py>
+        <Function test_secure_aggregation_dropout_unmask>
+      <Module test_audit_smoke.py>
+        <Function test_audit_engine_v2_smoke>
+        <Function test_audit_store_roundtrip>
+      <Module test_audit_telemetry.py>
+        <Function test_telemetry_snapshot_has_aliases>
+      <Module test_audit_transport.py>
+        <Function test_build_transport_selects_protocol>
+      <Module test_audit_winsorizer.py>
+        <Function test_evaluate_does_not_update_winsorizer>
+      <Module test_causal_pipeline.py>
+        Tests for the Causal Pipeline.
+        <Function test_run_causal_end_to_end_ate>
+          Verifies that the pipeline can recover a known effect in a simple linear system.
+          True Effect = 10.
+        <Function test_config_validation>
+          Ensure invalid specs raise errors.
+      <Module test_engine_integration.py>
+        Test: OnlineDiscoveryEngine with New Hypothesis Classes
+        
+        Validates that the V2 initialization works and processes data correctly.
+        <Class TestEngineV2Integration>
+          <Function test_initialize_v2_creates_hypotheses>
+            initialize_v2 should populate the hypothesis pool.
+          <Function test_process_rows_updates_hypotheses>
+            process_row should update hypothesis metrics.
+          <Function test_get_knowledge_graph>
+            Should return learned relationships.
+      <Module test_federation.py>
+        Test: Federation Layer
+        
+        Validates Byzantine-robust aggregation methods work correctly.
+        <Class TestFederatedAggregatorTrimmedMean>
+          <Function test_rejects_outliers>
+            Trimmed mean should ignore outlier updates.
+        <Class TestFederatedAggregatorKrum>
+          <Function test_krum_selects_honest>
+            Krum should select the honest client closest to majority.
+        <Class TestFederatedAggregatorBulyan>
+          <Function test_bulyan_robust>
+            Bulyan combines Krum selection with trimmed mean.
+        <Class TestDetectOutliers>
+          <Function test_identifies_outliers>
+            detect_outliers should flag divergent updates.
+        <Class TestFederationVarianceReduction>
+          <Function test_aggregation_reduces_variance>
+            Aggregation should produce lower variance than individual clients.
+      <Module test_hierarchical_federation.py>
+        Test: Hierarchical Federation
+        
+        Validates the hierarchical federated learning implementation including:
+        - Domain basket management
+        - Gossip protocol with local DP
+        - Memory buffer with staleness handling
+        - Two-layer aggregation with secure agg + central DP
+        - End-to-end integration
+        <Class TestBasketManager>
+          Tests for domain basket management.
+          <Function test_register_client_creates_basket>
+            Registering a client should create a basket for the domain.
+          <Function test_same_domain_same_basket>
+            Clients in the same domain should be in the same basket.
+          <Function test_different_domain_different_basket>
+            Clients in different domains should be in different baskets.
+          <Function test_basket_status_forming_until_min_size>
+            Basket should be FORMING until it reaches minimum size.
+          <Function test_get_basket_peers>
+            Should return all clients in a basket.
+          <Function test_unregister_client>
+            Should remove client from basket.
+        <Class TestLocalDPMechanism>
+          Tests for local differential privacy.
+          <Function test_noise_is_added>
+            Noise should be added to vectors.
+          <Function test_clip_enforces_norm>
+            Clipping should enforce L2 norm bound.
+          <Function test_higher_epsilon_less_noise>
+            Higher epsilon should mean less noise (lower sigma).
+        <Class TestGossipProtocol>
+          Tests for gossip protocol.
+          <Function test_create_message_applies_dp>
+            Created messages should have DP noise applied.
+          <Function test_message_budget_enforced>
+            Message count per day should be limited.
+          <Function test_pull_round_samples_peers>
+            Pull round should sample k peers from basket.
+        <Class TestMaterialityDetector>
+          Tests for materiality detection.
+          <Function test_first_update_is_material>
+            First update should always be material.
+          <Function test_small_change_not_material>
+            Small changes should not trigger push.
+          <Function test_large_change_is_material>
+            Large changes should trigger push.
+        <Class TestUpdateBuffer>
+          Tests for update buffer.
+          <Function test_add_update>
+            Should store updates.
+          <Function test_replay_detection>
+            Should reject replay attacks.
+          <Function test_weighted_aggregate>
+            Should compute decay-weighted aggregate.
+        <Class TestPrivacyAccountant>
+          Tests for privacy budget tracking.
+          <Function test_spend_budget>
+            Should track spent budget.
+          <Function test_budget_exhaustion>
+            Should reject when budget exhausted.
+          <Function test_can_release>
+            Should check if release is allowed.
+        <Class TestTriggerEngine>
+          Tests for aggregation triggers.
+          <Function test_count_trigger>
+            Should trigger after count threshold.
+          <Function test_time_trigger>
+            Should trigger after time interval.
+        <Class TestLayerAggregation>
+          Tests for two-layer aggregation.
+          <Function test_layer1_aggregates_basket>
+            Layer 1 should aggregate within a basket.
+          <Function test_layer2_bounded_influence>
+            Layer 2 should clip basket contributions.
+          <Function test_layer2_minimum_support>
+            Layer 2 should require minimum basket support.
+        <Class TestSecureAggregator>
+          Tests for secure aggregation.
+          <Function test_requires_min_participants>
+            Should require minimum participants.
+          <Function test_computes_sum>
+            Should compute sum of shares.
+        <Class TestHierarchicalFederation>
+          End-to-end tests for hierarchical federation.
+          <Function test_register_and_submit>
+            Should allow registering clients and submitting updates.
+          <Function test_multiple_baskets>
+            Should handle multiple domain baskets.
+          <Function test_end_to_end_aggregation>
+            Should aggregate updates through both layers.
+          <Function test_privacy_budget_tracking>
+            Should track privacy budget across rounds.
+        <Class TestConvergence>
+          Tests for learning convergence.
+          <Function test_gossip_converges_within_basket>
+            Gossip should lead to convergence within a basket.
+      <Module test_meta.py>
+        Test: Meta-Learning Layer
+        
+        Validates cross-domain transfer and meta-update generation.
+        <Class TestDomainMetaLearner>
+          <Function test_observe_generates_update>
+            observe() should generate a meta-update.
+          <Function test_confidence_increases_with_good_performance>
+            Confidence should increase with consistent improvements.
+          <Function test_state_persistence>
+            State should persist across observations.
+        <Class TestCrossDomainTransfer>
+          <Function test_multiple_domains_tracked>
+            Learner should track multiple domains independently.
+          <Function test_domain_updates_independent>
+            Domain updates should be independent.
+        <Class TestMetaLearningAdaptation>
+          <Function test_adaptive_learning_rate>
+            Meta learning rate should adapt based on confidence.
+      <Module test_online_learning.py>
+        Test: Online Learning and Real-time Updates
+        
+        Validates that the engine converges on streaming data and detects regime changes.
+        <Class TestOnlineLearningConvergence>
+          Test that online learning converges on stationary data.
+          <Function test_mse_decreases_over_time>
+            Prediction error should decrease as more data is seen.
+          <Function test_convergence_on_functional_relationship>
+            Functional hypothesis should converge to true coefficients.
+        <Class TestRegimeChangeDetection>
+          Test detection of regime changes in data.
+          <Function test_equilibrium_detects_mean_shift>
+            EquilibriumHypothesis should detect when mean shifts.
+        <Class TestLatencyRequirements>
+          Test that processing is fast enough for real-time.
+          <Function test_process_row_under_50ms>
+            Each row should process in under 50ms.
+        <Class TestIncrementalUpdates>
+          Test that model updates are truly incremental.
+          <Function test_bounded_memory>
+            Memory should not grow unboundedly with more data.
+          <Function test_incremental_update>
+            Each fit_step should be O(1), not O(n).
+      <Module test_relationships.py>
+        Test: Relationship Hypothesis Classes
+        
+        Tests that each hypothesis type correctly identifies its relationship type
+        using the synthetic data generators.
+        <Class TestCausalHypothesis>
+          <Function test_detects_causal_relationship>
+            Should detect X \u2192 Y causality.
+        <Class TestCorrelationalHypothesis>
+          <Function test_detects_correlation>
+            Should detect correlation.
+        <Class TestTemporalHypothesis>
+          <Function test_detects_autocorrelation>
+            Should detect autoregressive structure.
+        <Class TestFunctionalHypothesis>
+          <Function test_detects_functional_relationship>
+            Should detect deterministic Y = f(X).
+        <Class TestEquilibriumHypothesis>
+          <Function test_detects_mean_reversion>
+            Should detect mean-reverting process.
+        <Class TestCompositionalHypothesis>
+          <Function test_detects_sum_constraint>
+            Should detect A + B + C = Total.
+        <Class TestCompetitiveHypothesis>
+          <Function test_detects_trade_off>
+            Should detect X + Y = constant.
+        <Class TestSynergisticHypothesis>
+          <Function test_detects_interaction>
+            Should detect significant X1*X2 interaction.
+        <Class TestProbabilisticHypothesis>
+          <Function test_detects_distribution_shift>
+            Should detect X shifts distribution of Y.
+        <Class TestStructuralHypothesis>
+          <Function test_detects_hierarchy>
+            Should detect group structure.
+        <Class TestMediatingHypothesis>
+          <Function test_detects_mediation>
+            Should detect X \u2192 M \u2192 Y path.
+        <Class TestModeratingHypothesis>
+          <Function test_detects_moderation>
+            Should detect Z moderates X\u2192Y.
+        <Class TestGraphHypothesis>
+          <Function test_detects_graph_structure>
+            Should track graph edges.
+        <Class TestSimilarityHypothesis>
+          <Function test_detects_clusters>
+            Should detect cluster structure.
+        <Class TestLogicalHypothesis>
+          <Function test_detects_boolean_rule>
+            Should detect Z = X AND Y.
+      <Module test_sfc.py>
+        Test: Stock-Flow Consistent Economic Simulation
+        
+        Validates SFC economy maintains consistency and produces sensible dynamics.
+        <Class TestSectorBalanceSheet>
+          <Function test_balance_sheet_identity>
+            Assets = Liabilities + Net Worth.
+          <Function test_net_lending>
+            Net lending = Income - Expenses.
+        <Class TestSFCEconomyInitialization>
+          <Function test_initialize_creates_consistent_state>
+            Initialization should create internally consistent state.
+        <Class TestSFCEconomyDynamics>
+          <Function test_gdp_follows_demand>
+            GDP should adjust toward aggregate demand.
+          <Function test_taylor_rule_responds_to_inflation>
+            Interest rate should be higher with higher inflation.
+          <Function test_unemployment_follows_okun>
+            Unemployment should fall when GDP grows.
+          <Function test_fiscal_deficit_increases_debt>
+            Government deficit should increase debt.
+        <Class TestSFCShocks>
+          <Function test_demand_shock>
+            Demand shock should increase GDP.
+          <Function test_monetary_shock>
+            Monetary shock should change interest rate.
+        <Class TestSFCConsistency>
+          <Function test_validate_sfc_economy>
+            Full validation should pass.
+          <Function test_history_recorded>
+            History should be recorded at each step.
+          <Function test_no_explosive_behavior>
+            Economy should not explode over reasonable horizon.
+      <Module test_synthetic.py>
+        Test: Synthetic Data Generators
+        
+        Validates that all 15 synthetic data generators produce valid data.
+        <Class TestCausalGenerator>
+          <Function test_creates_valid_data>
+          <Function test_lag_relationship>
+        <Class TestCorrelationalGenerator>
+          <Function test_creates_spurious_correlation>
+        <Class TestStructuralGenerator>
+          <Function test_creates_hierarchical_data>
+        <Class TestTemporalGenerator>
+          <Function test_creates_ar_process>
+        <Class TestFunctionalGenerator>
+          <Function test_exact_relationship>
+        <Class TestProbabilisticGenerator>
+          <Function test_distribution_shift>
+        <Class TestCompositionalGenerator>
+          <Function test_sum_constraint>
+        <Class TestCompetitiveGenerator>
+          <Function test_zero_sum>
+        <Class TestSynergisticGenerator>
+          <Function test_interaction_term>
+        <Class TestMediatingGenerator>
+          <Function test_mediation_path>
+        <Class TestModeratingGenerator>
+          <Function test_conditional_effect>
+        <Class TestGraphGenerator>
+          <Function test_creates_edges>
+        <Class TestSimilarityGenerator>
+          <Function test_creates_clusters>
+        <Class TestEquilibriumGenerator>
+          <Function test_mean_reversion>
+        <Class TestLogicalGenerator>
+          <Function test_boolean_rule>
+        <Class TestGenerateAll>
+          <Function test_generates_all_15>
+
+=================================== ERRORS ====================================
+______________ ERROR collecting kshiked/tests/test_ingestion.py _______________
+..\..\AppData\Roaming\Python\Python311\site-packages\_pytest\python.py:498: in importtestmodule
+    mod = import_path(
+..\..\AppData\Roaming\Python\Python311\site-packages\_pytest\pathlib.py:587: in import_path
+    importlib.import_module(module_name)
+C:\Program Files\Python311\Lib\importlib\__init__.py:126: in import_module
+    return _bootstrap._gcd_import(name[level:], package, level)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+<frozen importlib._bootstrap>:1204: in _gcd_import
+    ???
+<frozen importlib._bootstrap>:1176: in _find_and_load
+    ???
+<frozen importlib._bootstrap>:1126: in _find_and_load_unlocked
+    ???
+<frozen importlib._bootstrap>:241: in _call_with_frames_removed
+    ???
+<frozen importlib._bootstrap>:1204: in _gcd_import
+    ???
+<frozen importlib._bootstrap>:1176: in _find_and_load
+    ???
+<frozen importlib._bootstrap>:1126: in _find_and_load_unlocked
+    ???
+<frozen importlib._bootstrap>:241: in _call_with_frames_removed
+    ???
+<frozen importlib._bootstrap>:1204: in _gcd_import
+    ???
+<frozen importlib._bootstrap>:1176: in _find_and_load
+    ???
+<frozen importlib._bootstrap>:1147: in _find_and_load_unlocked
+    ???
+<frozen importlib._bootstrap>:690: in _load_unlocked
+    ???
+<frozen importlib._bootstrap_external>:940: in exec_module
+    ???
+<frozen importlib._bootstrap>:241: in _call_with_frames_removed
+    ???
+kshiked\__init__.py:8: in <module>
+    from .core.governance import (
+E   SyntaxError: source code string cannot contain null bytes
+_____________ ERROR collecting kshiked/tests/test_integration.py ______________
+..\..\AppData\Roaming\Python\Python311\site-packages\_pytest\python.py:498: in importtestmodule
+    mod = import_path(
+..\..\AppData\Roaming\Python\Python311\site-packages\_pytest\pathlib.py:587: in import_path
+    importlib.import_module(module_name)
+C:\Program Files\Python311\Lib\importlib\__init__.py:126: in import_module
+    return _bootstrap._gcd_import(name[level:], package, level)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+<frozen importlib._bootstrap>:1204: in _gcd_import
+    ???
+<frozen importlib._bootstrap>:1176: in _find_and_load
+    ???
+<frozen importlib._bootstrap>:1126: in _find_and_load_unlocked
+    ???
+<frozen importlib._bootstrap>:241: in _call_with_frames_removed
+    ???
+<frozen importlib._bootstrap>:1204: in _gcd_import
+    ???
+<frozen importlib._bootstrap>:1176: in _find_and_load
+    ???
+<frozen importlib._bootstrap>:1126: in _find_and_load_unlocked
+    ???
+<frozen importlib._bootstrap>:241: in _call_with_frames_removed
+    ???
+<frozen importlib._bootstrap>:1204: in _gcd_import
+    ???
+<frozen importlib._bootstrap>:1176: in _find_and_load
+    ???
+<frozen importlib._bootstrap>:1147: in _find_and_load_unlocked
+    ???
+<frozen importlib._bootstrap>:690: in _load_unlocked
+    ???
+<frozen importlib._bootstrap_external>:940: in exec_module
+    ???
+<frozen importlib._bootstrap>:241: in _call_with_frames_removed
+    ???
+kshiked\__init__.py:8: in <module>
+    from .core.governance import (
+E   SyntaxError: source code string cannot contain null bytes
+________________ ERROR collecting kshiked/tests/test_pulse.py _________________
+..\..\AppData\Roaming\Python\Python311\site-packages\_pytest\python.py:498: in importtestmodule
+    mod = import_path(
+..\..\AppData\Roaming\Python\Python311\site-packages\_pytest\pathlib.py:587: in import_path
+    importlib.import_module(module_name)
+C:\Program Files\Python311\Lib\importlib\__init__.py:126: in import_module
+    return _bootstrap._gcd_import(name[level:], package, level)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+<frozen importlib._bootstrap>:1204: in _gcd_import
+    ???
+<frozen importlib._bootstrap>:1176: in _find_and_load
+    ???
+<frozen importlib._bootstrap>:1126: in _find_and_load_unlocked
+    ???
+<frozen importlib._bootstrap>:241: in _call_with_frames_removed
+    ???
+<frozen importlib._bootstrap>:1204: in _gcd_import
+    ???
+<frozen importlib._bootstrap>:1176: in _find_and_load
+    ???
+<frozen importlib._bootstrap>:1126: in _find_and_load_unlocked
+    ???
+<frozen importlib._bootstrap>:241: in _call_with_frames_removed
+    ???
+<frozen importlib._bootstrap>:1204: in _gcd_import
+    ???
+<frozen importlib._bootstrap>:1176: in _find_and_load
+    ???
+<frozen importlib._bootstrap>:1147: in _find_and_load_unlocked
+    ???
+<frozen importlib._bootstrap>:690: in _load_unlocked
+    ???
+<frozen importlib._bootstrap_external>:940: in exec_module
+    ???
+<frozen importlib._bootstrap>:241: in _call_with_frames_removed
+    ???
+kshiked\__init__.py:8: in <module>
+    from .core.governance import (
+E   SyntaxError: source code string cannot contain null bytes
+_______________ ERROR collecting kshiked/tests/torture_test.py ________________
+..\..\AppData\Roaming\Python\Python311\site-packages\_pytest\python.py:498: in importtestmodule
+    mod = import_path(
+..\..\AppData\Roaming\Python\Python311\site-packages\_pytest\pathlib.py:587: in import_path
+    importlib.import_module(module_name)
+C:\Program Files\Python311\Lib\importlib\__init__.py:126: in import_module
+    return _bootstrap._gcd_import(name[level:], package, level)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+<frozen importlib._bootstrap>:1204: in _gcd_import
+    ???
+<frozen importlib._bootstrap>:1176: in _find_and_load
+    ???
+<frozen importlib._bootstrap>:1126: in _find_and_load_unlocked
+    ???
+<frozen importlib._bootstrap>:241: in _call_with_frames_removed
+    ???
+<frozen importlib._bootstrap>:1204: in _gcd_import
+    ???
+<frozen importlib._bootstrap>:1176: in _find_and_load
+    ???
+<frozen importlib._bootstrap>:1126: in _find_and_load_unlocked
+    ???
+<frozen importlib._bootstrap>:241: in _call_with_frames_removed
+    ???
+<frozen importlib._bootstrap>:1204: in _gcd_import
+    ???
+<frozen importlib._bootstrap>:1176: in _find_and_load
+    ???
+<frozen importlib._bootstrap>:1147: in _find_and_load_unlocked
+    ???
+<frozen importlib._bootstrap>:690: in _load_unlocked
+    ???
+<frozen importlib._bootstrap_external>:940: in exec_module
+    ???
+<frozen importlib._bootstrap>:241: in _call_with_frames_removed
+    ???
+kshiked\__init__.py:8: in <module>
+    from .core.governance import (
+E   SyntaxError: source code string cannot contain null bytes
+______________________ ERROR collecting test_output.txt _______________________
+C:\Program Files\Python311\Lib\pathlib.py:1059: in read_text
+    return f.read()
+           ^^^^^^^^
+<frozen codecs>:322: in decode
+    ???
+E   UnicodeDecodeError: 'utf-8' codec can't decode byte 0xff in position 0: invalid start byte
+_________________ ERROR collecting tests/test_diagnostics.py __________________
+..\..\AppData\Roaming\Python\Python311\site-packages\_pytest\python.py:498: in importtestmodule
+    mod = import_path(
+..\..\AppData\Roaming\Python\Python311\site-packages\_pytest\pathlib.py:587: in import_path
+    importlib.import_module(module_name)
+C:\Program Files\Python311\Lib\importlib\__init__.py:126: in import_module
+    return _bootstrap._gcd_import(name[level:], package, level)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+<frozen importlib._bootstrap>:1204: in _gcd_import
+    ???
+<frozen importlib._bootstrap>:1176: in _find_and_load
+    ???
+<frozen importlib._bootstrap>:1147: in _find_and_load_unlocked
+    ???
+<frozen importlib._bootstrap>:690: in _load_unlocked
+    ???
+..\..\AppData\Roaming\Python\Python311\site-packages\_pytest\assertion\rewrite.py:186: in exec_module
+    exec(co, module.__dict__)
+tests\test_diagnostics.py:12: in <module>
+    from kshiked.core.governance import EconomicGovernor, EconomicGovernorConfig
+kshiked\__init__.py:8: in <module>
+    from .core.governance import (
+E   SyntaxError: source code string cannot contain null bytes
+============================== warnings summary ===============================
+..\..\AppData\Roaming\Python\Python311\site-packages\torch\cuda\__init__.py:61
+  C:\Users\omegam\AppData\Roaming\Python\Python311\site-packages\torch\cuda\__init__.py:61: FutureWarning: The pynvml package is deprecated. Please install nvidia-ml-py instead. If you did not install pynvml directly, please report this to the maintainers of the package that installed pynvml for you.
+    import pynvml  # type: ignore[import]
+
+..\..\AppData\Roaming\Python\Python311\site-packages\numpy\lib\_function_base_impl.py:2628: 100 warnings
+  C:\Users\omegam\AppData\Roaming\Python\Python311\site-packages\numpy\lib\_function_base_impl.py:2628: DeprecationWarning: Conversion of an array with ndim > 0 to a scalar is deprecated, and will error in future. Ensure you extract a single element from your array before performing this operation. (Deprecated NumPy 1.25.)
+    res = asanyarray(outputs, dtype=otypes[0])
+
+scarcity\tests\test_audit_secure_agg.py:7
+  C:\Users\omegam\OneDrive - Innova Limited\scace4\scarcity\tests\test_audit_secure_agg.py:7: PytestUnknownMarkWarning: Unknown pytest.mark.slow - is this a typo?  You can register custom marks to avoid this warning - for details, see https://docs.pytest.org/en/stable/how-to/mark.html
+    @pytest.mark.slow
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+=========================== short test summary info ===========================
+ERROR kshiked/tests/test_ingestion.py
+ERROR kshiked/tests/test_integration.py
+ERROR kshiked/tests/test_pulse.py
+ERROR kshiked/tests/torture_test.py
+ERROR test_output.txt - UnicodeDecodeError: 'utf-8' codec can't decode byte 0xff in position 0: invalid start byte
+ERROR tests/test_diagnostics.py
+!!!!!!!!!!!!!!!!!!! Interrupted: 6 errors during collection !!!!!!!!!!!!!!!!!!!
+=================== 116 tests collected, 6 errors in 52.52s ===================

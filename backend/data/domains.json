@@ -1,0 +1,86 @@
+{
+  "next_id": 4,
+  "available_names": [
+    "Healthcare",
+    "Finance",
+    "Retail",
+    "Economics",
+    "Manufacturing",
+    "Energy",
+    "Technology",
+    "Pharmaceuticals",
+    "Transportation",
+    "Agriculture",
+    "Education",
+    "Telecommunications"
+  ],
+  "domains": [
+    {
+      "id": 0,
+      "name": "Healthcare",
+      "distribution_type": "normal",
+      "distribution_params": {
+        "mean": 0.5,
+        "std": 0.8
+      },
+      "status": "active",
+      "synthetic_enabled": true,
+      "created_at": "2025-11-19T01:21:30.736482",
+      "last_data_at": null,
+      "total_windows": 0,
+      "manual_uploads": 0,
+      "federation_rounds": 0
+    },
+    {
+      "id": 1,
+      "name": "Finance",
+      "distribution_type": "skewed",
+      "distribution_params": {
+        "shape": 1.5,
+        "scale": 1.2
+      },
+      "status": "active",
+      "synthetic_enabled": true,
+      "created_at": "2025-11-19T01:21:30.740948",
+      "last_data_at": null,
+      "total_windows": 0,
+      "manual_uploads": 0,
+      "federation_rounds": 0
+    },
+    {
+      "id": 2,
+      "name": "Retail",
+      "distribution_type": "bimodal",
+      "distribution_params": {
+        "mean1": -0.8,
+        "std1": 0.4,
+        "mean2": 0.8,
+        "std2": 0.4,
+        "weight": 0.6
+      },
+      "status": "active",
+      "synthetic_enabled": true,
+      "created_at": "2025-11-19T01:21:30.744000",
+      "last_data_at": null,
+      "total_windows": 0,
+      "manual_uploads": 0,
+      "federation_rounds": 0
+    },
+    {
+      "id": 3,
+      "name": "Economics",
+      "distribution_type": "normal",
+      "distribution_params": {
+        "mean": -0.3,
+        "std": 1.2
+      },
+      "status": "active",
+      "synthetic_enabled": true,
+      "created_at": "2025-11-19T01:21:30.746532",
+      "last_data_at": null,
+      "total_windows": 0,
+      "manual_uploads": 0,
+      "federation_rounds": 0
+    }
+  ]
+}

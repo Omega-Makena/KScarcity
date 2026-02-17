@@ -1,0 +1,3 @@
+"""
+Scarcity Simulation Framework.
+"""

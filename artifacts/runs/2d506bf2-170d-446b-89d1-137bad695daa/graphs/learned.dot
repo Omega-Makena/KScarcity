@@ -1,0 +1,10 @@
+digraph LearnedGraph {
+  rankdir=LR;
+  "Access to clean fuels and technologies for cooking, urban (% of urban population)" -> "Access to clean fuels and technologies for cooking (% of population)";
+  "Access to clean fuels and technologies for cooking, urban (% of urban population)" -> "Access to clean fuels and technologies for cooking, rural (% of rural population)";
+  "Access to electricity (% of population)" -> "Access to clean fuels and technologies for cooking (% of population)";
+  "Access to electricity (% of population)" -> "Access to clean fuels and technologies for cooking, rural (% of rural population)";
+  "Access to electricity, rural (% of rural population)" -> "Access to clean fuels and technologies for cooking (% of population)";
+  "Access to electricity, rural (% of rural population)" -> "Access to clean fuels and technologies for cooking, rural (% of rural population)";
+  "Access to clean fuels and technologies for cooking (% of population)" -> "Access to clean fuels and technologies for cooking, rural (% of rural population)";
+}

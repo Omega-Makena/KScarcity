@@ -1,0 +1,67 @@
+{
+  "summary": {
+    "run_id": "b5aa4d70-9fde-4562-9031-cfbcc5207b26",
+    "total_specs": 3,
+    "succeeded": 3,
+    "failed": 0,
+    "started_at": "2026-02-14T09:56:30.365132",
+    "finished_at": "2026-02-14T10:01:43.288415",
+    "duration_sec": 312.923283,
+    "status": "success",
+    "fail_policy": "continue",
+    "parallelism": "thread"
+  },
+  "metadata": {
+    "run_id": "b5aa4d70-9fde-4562-9031-cfbcc5207b26",
+    "runtime": {
+      "refute_random_common_cause": true,
+      "refute_placebo_treatment": true,
+      "refute_data_subset": true,
+      "refutation_simulations": 100,
+      "n_jobs": 2,
+      "seed": 42,
+      "confidence_level": 0.95,
+      "estimator_method": null,
+      "estimator_params": {},
+      "parallelism": "thread",
+      "fail_policy": "continue",
+      "chunk_size": 2,
+      "time_series_policy": "warn",
+      "blas_thread_policy": {
+        "OMP_NUM_THREADS": 1,
+        "MKL_NUM_THREADS": 1,
+        "OPENBLAS_NUM_THREADS": 1,
+        "NUMEXPR_NUM_THREADS": 1,
+        "VECLIB_MAXIMUM_THREADS": 1
+      },
+      "dot_path": null,
+      "artifact_root": "artifacts",
+      "run_id": "b5aa4d70-9fde-4562-9031-cfbcc5207b26",
+      "export_graphs": true
+    },
+    "python_version": "3.11.9",
+    "platform": "Windows-10-10.0.26200-SP0",
+    "dowhy_version": "0.14",
+    "econml_version": "0.16.0",
+    "data_signature": {
+      "rows": 65,
+      "columns": [
+        "CPIA business regulatory environment rating (1=low to 6=high)",
+        "Adjusted net national income (annual % growth)",
+        "Commercial bank branches (per 100,000 adults)",
+        "GDP per capita (current US$)",
+        "Fuel exports (% of merchandise exports)",
+        "Fuel imports (% of merchandise imports)"
+      ],
+      "dtypes": {
+        "CPIA business regulatory environment rating (1=low to 6=high)": "float64",
+        "Adjusted net national income (annual % growth)": "float64",
+        "Commercial bank branches (per 100,000 adults)": "float64",
+        "GDP per capita (current US$)": "float64",
+        "Fuel exports (% of merchandise exports)": "float64",
+        "Fuel imports (% of merchandise imports)": "float64"
+      },
+      "hash": "2cfe3a048c58aba1afe320e2d8469523b3c873899946bc1958f004b72a997748"
+    }
+  }
+}

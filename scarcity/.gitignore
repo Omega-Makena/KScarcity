@@ -1,0 +1,4 @@
+ui-venv-build/
+__pycache__/
+*.pyc
+.env

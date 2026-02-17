@@ -1,0 +1,45 @@
+# Scarcity Core Configuration
+# This file contains default configuration for scarcity components
+# Override via environment variables prefixed with SCARCE_
+
+# Component Enablement
+components:
+  mpie: true
+  drg: true
+  federation: false  # TODO: Not yet implemented
+  meta: true
+  simulation: false  # TODO: Not yet implemented
+
+# MPIE Configuration
+mpie:
+  max_candidates: 200
+  resamples: 1000
+  gain_min: 0.1
+  stability_min: 0.3
+
+# DRG Configuration
+drg:
+  control_interval: 0.5  # seconds
+  thresholds:
+    cpu: 90.0  # percent
+    memory: 85.0  # percent
+    gpu: 90.0  # percent
+    vram: 85.0  # percent
+
+# Meta Learning Configuration
+meta:
+  update_interval: 10  # windows
+  beta: 0.15  # meta learning rate
+  rollback_threshold: 0.1
+
+# Federation Configuration (TODO)
+federation:
+  max_peers: 50
+  trust_decay: 0.95
+  privacy_epsilon: 1.0
+
+# Simulation Configuration (TODO)
+simulation:
+  dt: 0.1
+  damping: 0.95
+  noise_stddev: 0.01

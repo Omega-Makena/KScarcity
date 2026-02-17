@@ -1,0 +1,378 @@
+.....F......Created 39 hypotheses
+.After 100 steps: {'step': 100, 'active_hypotheses': 1, 'total_hypotheses': 5, 'meta_summary': {'active': 1, 'tentative': 4, 'decaying': 0, 'dead': 18}, 'groups': 2}
+.Knowledge graph has 4 relationships
+  ['Y']: N/A (fit=0.000)
+  ['X']: N/A (fit=0.000)
+  ['X', 'Y']: N/A (fit=0.000)
+  ['054a1e91-6aa9-42cb-be4c-516d37d2e8eb', '33516d94-0838-4b33-b0b7-38b5b131e96a']: N/A (fit=0.000)
+.Trimmed mean result: [1.    1.    1.025], meta: {'method': 'trimmed_mean', 'participants': 5, 'trim_alpha': 0.2}
+.Krum result: [1. 1.], selected: [0]
+.Bulyan result: [1.   1.   0.95]
+.Detected outliers: [3]
+.Aggregated error: 2.087, Avg individual: 3.057
+..................................Update: DomainMetaUpdate(domain_id='healthcare', vector=array([0.0062 , 0.00062], dtype=float32), keys=['alpha', 'lr'], confidence=0.07999999999999999, timestamp=1769711324.4878519, score_delta=0.7)
+.Confidence progression: [0.07999999999999999, 0.20199999999999996, 0.3117999999999999, 0.41061999999999993, 0.4995579999999999, 0.5796022, 0.65164198, 0.716477782, 0.7748300038, 0.82734700342]
+.State: DomainMetaState(last_score=0.6, ema_score=0.53, last_timestamp=1769711324.49895, history=[0.5, 0.09999999999999998], confidence=0.069, parameters={'x': 1.5})
+.Healthcare: 0.3
+Finance: 0.7
+.Domain A keys: ['x', 'y']
+Domain B keys: ['z']
+..Final R²: 0.496
+.Learned coefficients: [5.009028797823703, 2.003411506349772] (true: [5, 2])
+.Final equilibrium: 9.62
+.Avg latency: 3.46ms, P99: 11.42ms
+.Buffer size after 1000 rows: 100
+.Avg update time: 0.0149ms
+...................GDP: 100.00 → 94.27
+.Low inflation (2%) → Rate: 0.200
+High inflation (15%) → Rate: 0.200
+.........................
+=================================== FAILURES ===================================
+____________________ test_meta_prior_update_applies_policy _____________________
+
+    def test_meta_prior_update_applies_policy():
+>       orch = MPIEOrchestrator()
+               ^^^^^^^^^^^^^^^^^^
+
+scarcity/tests/test_audit_meta_update.py:7: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+self = <scarcity.engine.engine.MPIEOrchestrator object at 0x7851f4b4e0c0>
+bus = None
+
+    def __init__(self, bus: Optional[EventBus] = None):
+        """
+        Initializes the MPIE orchestrator and its constituent subsystems.
+    
+        This constructor sets up the entire online inference pipeline including the
+        BanditRouter for path proposals, Encoder for feature extraction, Evaluator
+        for statistical validation, HypergraphStore for graph persistence, and
+        Exporter for insight broadcasting.
+    
+        It also initializes rolling statistics trackers for latency and acceptance
+        rates, and sets the initial resource profile using the default system
+        configuration.
+    
+        Args:
+            bus: An optional EventBus instance. If not provided, the global
+                singleton event bus is retrieved via `get_bus()`. This bus is
+                used for all asynchronous communication between components.
+        """
+        self.bus = bus if bus else get_bus()
+    
+        # Get default resource profile
+        self.last_resource_profile = self._get_default_profile()
+    
+        # Initialize subsystems
+        rng = np.random.default_rng()
+>       self.controller = BanditRouter(drg=self.last_resource_profile, rng=rng)
+                          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       TypeError: BanditRouter.__init__() got an unexpected keyword argument 'drg'
+
+scarcity/engine/engine.py:61: TypeError
+=============================== warnings summary ===============================
+scarcity/tests/test_audit_secure_agg.py:7
+  /mnt/c/Users/omegam/OneDrive - Innova Limited/scace4/scarcity/tests/test_audit_secure_agg.py:7: PytestUnknownMarkWarning: Unknown pytest.mark.slow - is this a typo?  You can register custom marks to avoid this warning - for details, see https://docs.pytest.org/en/stable/how-to/mark.html
+    @pytest.mark.slow
+
+scarcity/tests/test_audit_smoke.py::test_audit_engine_v2_smoke
+scarcity/tests/test_engine_integration.py::TestEngineV2Integration::test_process_rows_updates_hypotheses
+scarcity/tests/test_engine_integration.py::TestEngineV2Integration::test_get_knowledge_graph
+scarcity/tests/test_online_learning.py::TestLatencyRequirements::test_process_row_under_50ms
+  /usr/local/lib/python3.12/dist-packages/numpy/_core/fromnumeric.py:3860: RuntimeWarning: Mean of empty slice.
+    return _methods._mean(a, axis=axis, dtype=dtype,
+
+scarcity/tests/test_audit_smoke.py::test_audit_engine_v2_smoke
+scarcity/tests/test_engine_integration.py::TestEngineV2Integration::test_process_rows_updates_hypotheses
+scarcity/tests/test_engine_integration.py::TestEngineV2Integration::test_get_knowledge_graph
+scarcity/tests/test_online_learning.py::TestLatencyRequirements::test_process_row_under_50ms
+  /usr/local/lib/python3.12/dist-packages/numpy/_core/_methods.py:144: RuntimeWarning: invalid value encountered in scalar divide
+    ret = ret.dtype.type(ret / rcount)
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+=========================== short test summary info ============================
+FAILED scarcity/tests/test_audit_meta_update.py::test_meta_prior_update_applies_policy
+1 failed, 108 passed, 1 skipped, 9 warnings in 6.68s
+............Created 39 hypotheses
+.After 100 steps: {'step': 100, 'active_hypotheses': 1, 'total_hypotheses': 4, 'meta_summary': {'active': 1, 'tentative': 3, 'decaying': 0, 'dead': 10}, 'groups': 2}
+.Knowledge graph has 4 relationships
+  ['Y']: N/A (fit=0.000)
+  ['X']: N/A (fit=0.000)
+  ['X', 'Y']: N/A (fit=0.000)
+  ['a625f9e9-5e45-4d79-9f14-24855bf961bf', 'c9dc06ba-5dbb-4106-bce4-87561984f3a1']: N/A (fit=0.000)
+.Trimmed mean result: [1.    1.    1.025], meta: {'method': 'trimmed_mean', 'participants': 5, 'trim_alpha': 0.2}
+.Krum result: [1. 1.], selected: [0]
+.Bulyan result: [1.   1.   0.95]
+.Detected outliers: [3]
+.Aggregated error: 2.087, Avg individual: 3.057
+..................................Update: DomainMetaUpdate(domain_id='healthcare', vector=array([0.0062 , 0.00062], dtype=float32), keys=['alpha', 'lr'], confidence=0.07999999999999999, timestamp=1769711372.251602, score_delta=0.7)
+.Confidence progression: [0.07999999999999999, 0.20199999999999996, 0.3117999999999999, 0.41061999999999993, 0.4995579999999999, 0.5796022, 0.65164198, 0.716477782, 0.7748300038, 0.82734700342]
+.State: DomainMetaState(last_score=0.6, ema_score=0.53, last_timestamp=1769711372.2603178, history=[0.5, 0.09999999999999998], confidence=0.069, parameters={'x': 1.5})
+.Healthcare: 0.3
+Finance: 0.7
+.Domain A keys: ['x', 'y']
+Domain B keys: ['z']
+..Final R²: 0.496
+.Learned coefficients: [5.009028797823703, 2.003411506349772] (true: [5, 2])
+.Final equilibrium: 9.62
+.Avg latency: 3.24ms, P99: 9.57ms
+.Buffer size after 1000 rows: 100
+.Avg update time: 0.0138ms
+...................GDP: 100.00 → 94.27
+.Low inflation (2%) → Rate: 0.200
+High inflation (15%) → Rate: 0.200
+.........................
+=============================== warnings summary ===============================
+scarcity/tests/test_audit_secure_agg.py:7
+  /mnt/c/Users/omegam/OneDrive - Innova Limited/scace4/scarcity/tests/test_audit_secure_agg.py:7: PytestUnknownMarkWarning: Unknown pytest.mark.slow - is this a typo?  You can register custom marks to avoid this warning - for details, see https://docs.pytest.org/en/stable/how-to/mark.html
+    @pytest.mark.slow
+
+scarcity/tests/test_audit_smoke.py::test_audit_engine_v2_smoke
+scarcity/tests/test_engine_integration.py::TestEngineV2Integration::test_process_rows_updates_hypotheses
+scarcity/tests/test_engine_integration.py::TestEngineV2Integration::test_get_knowledge_graph
+scarcity/tests/test_online_learning.py::TestLatencyRequirements::test_process_row_under_50ms
+  /usr/local/lib/python3.12/dist-packages/numpy/_core/fromnumeric.py:3860: RuntimeWarning: Mean of empty slice.
+    return _methods._mean(a, axis=axis, dtype=dtype,
+
+scarcity/tests/test_audit_smoke.py::test_audit_engine_v2_smoke
+scarcity/tests/test_engine_integration.py::TestEngineV2Integration::test_process_rows_updates_hypotheses
+scarcity/tests/test_engine_integration.py::TestEngineV2Integration::test_get_knowledge_graph
+scarcity/tests/test_online_learning.py::TestLatencyRequirements::test_process_row_under_50ms
+  /usr/local/lib/python3.12/dist-packages/numpy/_core/_methods.py:144: RuntimeWarning: invalid value encountered in scalar divide
+    ret = ret.dtype.type(ret / rcount)
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+109 passed, 1 skipped, 9 warnings in 4.68s
+.
+=============================== warnings summary ===============================
+scarcity/tests/test_audit_secure_agg.py:7
+  /mnt/c/Users/omegam/OneDrive - Innova Limited/scace4/scarcity/tests/test_audit_secure_agg.py:7: PytestUnknownMarkWarning: Unknown pytest.mark.slow - is this a typo?  You can register custom marks to avoid this warning - for details, see https://docs.pytest.org/en/stable/how-to/mark.html
+    @pytest.mark.slow
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+1 passed, 1 skipped, 108 deselected, 1 warning in 2.92s
+.............Created 39 hypotheses
+.After 100 steps: {'step': 100, 'active_hypotheses': 1, 'total_hypotheses': 5, 'meta_summary': {'active': 1, 'tentative': 4, 'decaying': 0, 'dead': 18}, 'groups': 2}
+.Knowledge graph has 5 relationships
+  ['Y']: N/A (fit=0.000)
+  ['X']: N/A (fit=0.000)
+  ['X', 'Y']: N/A (fit=0.000)
+  ['efc1d6cd-ba22-4282-bb1a-dc351d479126', 'e87630e6-4068-499a-8079-a118599dec62']: N/A (fit=0.000)
+  ['efc1d6cd-ba22-4282-bb1a-dc351d479126', 'e87630e6-4068-499a-8079-a118599dec62']: N/A (fit=0.000)
+.Trimmed mean result: [1.    1.    1.025], meta: {'method': 'trimmed_mean', 'participants': 5, 'trim_alpha': 0.2}
+.Krum result: [1. 1.], selected: [0]
+.Bulyan result: [1.   1.   0.95]
+.Detected outliers: [3]
+.Aggregated error: 2.087, Avg individual: 3.057
+..................................Update: DomainMetaUpdate(domain_id='healthcare', vector=array([0.0062 , 0.00062], dtype=float32), keys=['alpha', 'lr'], confidence=0.07999999999999999, timestamp=1769711694.6775298, score_delta=0.7)
+.Confidence progression: [0.07999999999999999, 0.20199999999999996, 0.3117999999999999, 0.41061999999999993, 0.4995579999999999, 0.5796022, 0.65164198, 0.716477782, 0.7748300038, 0.82734700342]
+.State: DomainMetaState(last_score=0.6, ema_score=0.53, last_timestamp=1769711694.6841595, history=[0.5, 0.09999999999999998], confidence=0.069, parameters={'x': 1.5})
+.Healthcare: 0.3
+Finance: 0.7
+.Domain A keys: ['x', 'y']
+Domain B keys: ['z']
+..Final R²: 0.496
+.Learned coefficients: [5.009028797823703, 2.003411506349772] (true: [5, 2])
+.Final equilibrium: 9.62
+.Avg latency: 1.86ms, P99: 4.16ms
+.Buffer size after 1000 rows: 100
+.Avg update time: 0.0108ms
+...................GDP: 100.00 → 94.27
+.Low inflation (2%) → Rate: 0.200
+High inflation (15%) → Rate: 0.200
+.........................
+=============================== warnings summary ===============================
+scarcity/tests/test_audit_secure_agg.py:7
+  /mnt/c/Users/omegam/OneDrive - Innova Limited/scace4/scarcity/tests/test_audit_secure_agg.py:7: PytestUnknownMarkWarning: Unknown pytest.mark.slow - is this a typo?  You can register custom marks to avoid this warning - for details, see https://docs.pytest.org/en/stable/how-to/mark.html
+    @pytest.mark.slow
+
+scarcity/tests/test_audit_smoke.py::test_audit_engine_v2_smoke
+scarcity/tests/test_engine_integration.py::TestEngineV2Integration::test_process_rows_updates_hypotheses
+scarcity/tests/test_engine_integration.py::TestEngineV2Integration::test_get_knowledge_graph
+scarcity/tests/test_online_learning.py::TestLatencyRequirements::test_process_row_under_50ms
+  /usr/local/lib/python3.12/dist-packages/numpy/_core/fromnumeric.py:3860: RuntimeWarning: Mean of empty slice.
+    return _methods._mean(a, axis=axis, dtype=dtype,
+
+scarcity/tests/test_audit_smoke.py::test_audit_engine_v2_smoke
+scarcity/tests/test_engine_integration.py::TestEngineV2Integration::test_process_rows_updates_hypotheses
+scarcity/tests/test_engine_integration.py::TestEngineV2Integration::test_get_knowledge_graph
+scarcity/tests/test_online_learning.py::TestLatencyRequirements::test_process_row_under_50ms
+  /usr/local/lib/python3.12/dist-packages/numpy/_core/_methods.py:144: RuntimeWarning: invalid value encountered in scalar divide
+    ret = ret.dtype.type(ret / rcount)
+
+scarcity/tests/test_audit_telemetry.py::test_telemetry_snapshot_has_aliases
+  /mnt/c/Users/omegam/OneDrive - Innova Limited/scace4/scarcity/runtime/telemetry.py:365: DeprecationWarning: datetime.datetime.utcnow() is deprecated and scheduled for removal in a future version. Use timezone-aware objects to represent datetimes in UTC: datetime.datetime.now(datetime.UTC).
+    'datetime': datetime.utcnow().isoformat(),
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+110 passed, 1 skipped, 10 warnings in 2.94s
+.
+=============================== warnings summary ===============================
+scarcity/tests/test_audit_secure_agg.py:7
+  /mnt/c/Users/omegam/OneDrive - Innova Limited/scace4/scarcity/tests/test_audit_secure_agg.py:7: PytestUnknownMarkWarning: Unknown pytest.mark.slow - is this a typo?  You can register custom marks to avoid this warning - for details, see https://docs.pytest.org/en/stable/how-to/mark.html
+    @pytest.mark.slow
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+1 passed, 1 skipped, 109 deselected, 1 warning in 2.15s
+..............Created 39 hypotheses
+.After 100 steps: {'step': 100, 'active_hypotheses': 1, 'total_hypotheses': 5, 'meta_summary': {'active': 1, 'tentative': 4, 'decaying': 0, 'dead': 18}, 'groups': 2}
+.Knowledge graph has 4 relationships
+  ['Y']: N/A (fit=0.000)
+  ['X']: N/A (fit=0.000)
+  ['X', 'Y']: N/A (fit=0.000)
+  ['0568ec80-e8d7-49c7-8433-ac59bfa3e0df', '50d697b3-0915-4dc5-8cc4-1c2d22c6fc21']: N/A (fit=0.000)
+.Trimmed mean result: [1.    1.    1.025], meta: {'method': 'trimmed_mean', 'participants': 5, 'trim_alpha': 0.2}
+.Krum result: [1. 1.], selected: [0]
+.Bulyan result: [1.   1.   0.95]
+.Detected outliers: [3]
+.Aggregated error: 2.087, Avg individual: 3.057
+..................................Update: DomainMetaUpdate(domain_id='healthcare', vector=array([0.0062 , 0.00062], dtype=float32), keys=['alpha', 'lr'], confidence=0.07999999999999999, timestamp=1769711772.7221737, score_delta=0.7)
+.Confidence progression: [0.07999999999999999, 0.20199999999999996, 0.3117999999999999, 0.41061999999999993, 0.4995579999999999, 0.5796022, 0.65164198, 0.716477782, 0.7748300038, 0.82734700342]
+.State: DomainMetaState(last_score=0.6, ema_score=0.53, last_timestamp=1769711772.7290714, history=[0.5, 0.09999999999999998], confidence=0.069, parameters={'x': 1.5})
+.Healthcare: 0.3
+Finance: 0.7
+.Domain A keys: ['x', 'y']
+Domain B keys: ['z']
+..Final R²: 0.496
+.Learned coefficients: [5.009028797823703, 2.003411506349772] (true: [5, 2])
+.Final equilibrium: 9.62
+.Avg latency: 1.69ms, P99: 4.08ms
+.Buffer size after 1000 rows: 100
+.Avg update time: 0.0101ms
+...................GDP: 100.00 → 94.27
+.Low inflation (2%) → Rate: 0.200
+High inflation (15%) → Rate: 0.200
+.........................
+=============================== warnings summary ===============================
+scarcity/tests/test_audit_secure_agg.py:7
+  /mnt/c/Users/omegam/OneDrive - Innova Limited/scace4/scarcity/tests/test_audit_secure_agg.py:7: PytestUnknownMarkWarning: Unknown pytest.mark.slow - is this a typo?  You can register custom marks to avoid this warning - for details, see https://docs.pytest.org/en/stable/how-to/mark.html
+    @pytest.mark.slow
+
+scarcity/tests/test_audit_smoke.py::test_audit_engine_v2_smoke
+scarcity/tests/test_engine_integration.py::TestEngineV2Integration::test_process_rows_updates_hypotheses
+scarcity/tests/test_engine_integration.py::TestEngineV2Integration::test_get_knowledge_graph
+scarcity/tests/test_online_learning.py::TestLatencyRequirements::test_process_row_under_50ms
+  /usr/local/lib/python3.12/dist-packages/numpy/_core/fromnumeric.py:3860: RuntimeWarning: Mean of empty slice.
+    return _methods._mean(a, axis=axis, dtype=dtype,
+
+scarcity/tests/test_audit_smoke.py::test_audit_engine_v2_smoke
+scarcity/tests/test_engine_integration.py::TestEngineV2Integration::test_process_rows_updates_hypotheses
+scarcity/tests/test_engine_integration.py::TestEngineV2Integration::test_get_knowledge_graph
+scarcity/tests/test_online_learning.py::TestLatencyRequirements::test_process_row_under_50ms
+  /usr/local/lib/python3.12/dist-packages/numpy/_core/_methods.py:144: RuntimeWarning: invalid value encountered in scalar divide
+    ret = ret.dtype.type(ret / rcount)
+
+scarcity/tests/test_audit_telemetry.py::test_telemetry_snapshot_has_aliases
+  /mnt/c/Users/omegam/OneDrive - Innova Limited/scace4/scarcity/runtime/telemetry.py:365: DeprecationWarning: datetime.datetime.utcnow() is deprecated and scheduled for removal in a future version. Use timezone-aware objects to represent datetimes in UTC: datetime.datetime.now(datetime.UTC).
+    'datetime': datetime.utcnow().isoformat(),
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+111 passed, 1 skipped, 10 warnings in 2.89s
+...............Created 39 hypotheses
+.After 100 steps: {'step': 100, 'active_hypotheses': 1, 'total_hypotheses': 5, 'meta_summary': {'active': 1, 'tentative': 4, 'decaying': 0, 'dead': 18}, 'groups': 2}
+.Knowledge graph has 4 relationships
+  ['Y']: N/A (fit=0.000)
+  ['X']: N/A (fit=0.000)
+  ['X', 'Y']: N/A (fit=0.000)
+  ['43c4a3cf-c1a9-4f3d-b3b5-66f0d3ed1fab', 'cbe0c7d5-3ebd-4c6c-a44b-1d53347cbfcb']: N/A (fit=0.000)
+.Trimmed mean result: [1.    1.    1.025], meta: {'method': 'trimmed_mean', 'participants': 5, 'trim_alpha': 0.2}
+.Krum result: [1. 1.], selected: [0]
+.Bulyan result: [1.   1.   0.95]
+.Detected outliers: [3]
+.Aggregated error: 2.087, Avg individual: 3.057
+..................................Update: DomainMetaUpdate(domain_id='healthcare', vector=array([0.0062 , 0.00062], dtype=float32), keys=['alpha', 'lr'], confidence=0.07999999999999999, timestamp=1769711866.209333, score_delta=0.7)
+.Confidence progression: [0.07999999999999999, 0.20199999999999996, 0.3117999999999999, 0.41061999999999993, 0.4995579999999999, 0.5796022, 0.65164198, 0.716477782, 0.7748300038, 0.82734700342]
+.State: DomainMetaState(last_score=0.6, ema_score=0.53, last_timestamp=1769711866.2323945, history=[0.5, 0.09999999999999998], confidence=0.069, parameters={'x': 1.5})
+.Healthcare: 0.3
+Finance: 0.7
+.Domain A keys: ['x', 'y']
+Domain B keys: ['z']
+..Final R²: 0.496
+.Learned coefficients: [5.009028797823703, 2.003411506349772] (true: [5, 2])
+.Final equilibrium: 9.62
+.Avg latency: 6.73ms, P99: 13.66ms
+.Buffer size after 1000 rows: 100
+.Avg update time: 0.1142ms
+...................GDP: 100.00 → 94.27
+.Low inflation (2%) → Rate: 0.200
+High inflation (15%) → Rate: 0.200
+.........................
+=============================== warnings summary ===============================
+scarcity/tests/test_audit_secure_agg.py:7
+  /mnt/c/Users/omegam/OneDrive - Innova Limited/scace4/scarcity/tests/test_audit_secure_agg.py:7: PytestUnknownMarkWarning: Unknown pytest.mark.slow - is this a typo?  You can register custom marks to avoid this warning - for details, see https://docs.pytest.org/en/stable/how-to/mark.html
+    @pytest.mark.slow
+
+scarcity/tests/test_audit_smoke.py::test_audit_engine_v2_smoke
+scarcity/tests/test_engine_integration.py::TestEngineV2Integration::test_process_rows_updates_hypotheses
+scarcity/tests/test_engine_integration.py::TestEngineV2Integration::test_get_knowledge_graph
+scarcity/tests/test_online_learning.py::TestLatencyRequirements::test_process_row_under_50ms
+  /usr/local/lib/python3.12/dist-packages/numpy/_core/fromnumeric.py:3860: RuntimeWarning: Mean of empty slice.
+    return _methods._mean(a, axis=axis, dtype=dtype,
+
+scarcity/tests/test_audit_smoke.py::test_audit_engine_v2_smoke
+scarcity/tests/test_engine_integration.py::TestEngineV2Integration::test_process_rows_updates_hypotheses
+scarcity/tests/test_engine_integration.py::TestEngineV2Integration::test_get_knowledge_graph
+scarcity/tests/test_online_learning.py::TestLatencyRequirements::test_process_row_under_50ms
+  /usr/local/lib/python3.12/dist-packages/numpy/_core/_methods.py:144: RuntimeWarning: invalid value encountered in scalar divide
+    ret = ret.dtype.type(ret / rcount)
+
+scarcity/tests/test_audit_telemetry.py::test_telemetry_snapshot_has_aliases
+  /mnt/c/Users/omegam/OneDrive - Innova Limited/scace4/scarcity/runtime/telemetry.py:365: DeprecationWarning: datetime.datetime.utcnow() is deprecated and scheduled for removal in a future version. Use timezone-aware objects to represent datetimes in UTC: datetime.datetime.now(datetime.UTC).
+    'datetime': datetime.utcnow().isoformat(),
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+112 passed, 1 skipped, 10 warnings in 23.13s
+................Created 39 hypotheses
+.After 100 steps: {'step': 100, 'active_hypotheses': 1, 'total_hypotheses': 4, 'meta_summary': {'active': 1, 'tentative': 3, 'decaying': 0, 'dead': 10}, 'groups': 2}
+.Knowledge graph has 4 relationships
+  ['Y']: N/A (fit=0.000)
+  ['X']: N/A (fit=0.000)
+  ['X', 'Y']: N/A (fit=0.000)
+  ['927b0450-2a6e-4001-95cb-c5d1a9413b43', 'ce0d22f0-2a02-4761-b1cb-2f885c2ad155']: N/A (fit=0.000)
+.Trimmed mean result: [1.    1.    1.025], meta: {'method': 'trimmed_mean', 'participants': 5, 'trim_alpha': 0.2}
+.Krum result: [1. 1.], selected: [0]
+.Bulyan result: [1.   1.   0.95]
+.Detected outliers: [3]
+.Aggregated error: 2.087, Avg individual: 3.057
+..................................Update: DomainMetaUpdate(domain_id='healthcare', vector=array([0.0062 , 0.00062], dtype=float32), keys=['alpha', 'lr'], confidence=0.07999999999999999, timestamp=1769712021.7235022, score_delta=0.7)
+.Confidence progression: [0.07999999999999999, 0.20199999999999996, 0.3117999999999999, 0.41061999999999993, 0.4995579999999999, 0.5796022, 0.65164198, 0.716477782, 0.7748300038, 0.82734700342]
+.State: DomainMetaState(last_score=0.6, ema_score=0.53, last_timestamp=1769712021.7309158, history=[0.5, 0.09999999999999998], confidence=0.069, parameters={'x': 1.5})
+.Healthcare: 0.3
+Finance: 0.7
+.Domain A keys: ['x', 'y']
+Domain B keys: ['z']
+..Final R²: 0.496
+.Learned coefficients: [5.009028797823703, 2.003411506349772] (true: [5, 2])
+.Final equilibrium: 9.62
+.Avg latency: 2.91ms, P99: 12.80ms
+.Buffer size after 1000 rows: 100
+.Avg update time: 0.0112ms
+...................GDP: 100.00 → 94.27
+.Low inflation (2%) → Rate: 0.200
+High inflation (15%) → Rate: 0.200
+.........................
+=============================== warnings summary ===============================
+scarcity/tests/test_audit_secure_agg.py:7
+  /mnt/c/Users/omegam/OneDrive - Innova Limited/scace4/scarcity/tests/test_audit_secure_agg.py:7: PytestUnknownMarkWarning: Unknown pytest.mark.slow - is this a typo?  You can register custom marks to avoid this warning - for details, see https://docs.pytest.org/en/stable/how-to/mark.html
+    @pytest.mark.slow
+
+scarcity/tests/test_audit_smoke.py::test_audit_engine_v2_smoke
+scarcity/tests/test_engine_integration.py::TestEngineV2Integration::test_process_rows_updates_hypotheses
+scarcity/tests/test_engine_integration.py::TestEngineV2Integration::test_get_knowledge_graph
+scarcity/tests/test_online_learning.py::TestLatencyRequirements::test_process_row_under_50ms
+  /usr/local/lib/python3.12/dist-packages/numpy/_core/fromnumeric.py:3860: RuntimeWarning: Mean of empty slice.
+    return _methods._mean(a, axis=axis, dtype=dtype,
+
+scarcity/tests/test_audit_smoke.py::test_audit_engine_v2_smoke
+scarcity/tests/test_engine_integration.py::TestEngineV2Integration::test_process_rows_updates_hypotheses
+scarcity/tests/test_engine_integration.py::TestEngineV2Integration::test_get_knowledge_graph
+scarcity/tests/test_online_learning.py::TestLatencyRequirements::test_process_row_under_50ms
+  /usr/local/lib/python3.12/dist-packages/numpy/_core/_methods.py:144: RuntimeWarning: invalid value encountered in scalar divide
+    ret = ret.dtype.type(ret / rcount)
+
+scarcity/tests/test_audit_telemetry.py::test_telemetry_snapshot_has_aliases
+  /mnt/c/Users/omegam/OneDrive - Innova Limited/scace4/scarcity/runtime/telemetry.py:365: DeprecationWarning: datetime.datetime.utcnow() is deprecated and scheduled for removal in a future version. Use timezone-aware objects to represent datetimes in UTC: datetime.datetime.now(datetime.UTC).
+    'datetime': datetime.utcnow().isoformat(),
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+113 passed, 1 skipped, 10 warnings in 4.70s

@@ -1,0 +1,65 @@
+{
+  "summary": {
+    "run_id": "e5cba026-d276-4f1d-9473-9acc0d904cc4",
+    "total_specs": 3,
+    "succeeded": 3,
+    "failed": 0,
+    "started_at": "2026-02-14T09:40:42.033638",
+    "finished_at": "2026-02-14T09:40:42.194006",
+    "duration_sec": 0.160368,
+    "status": "success",
+    "fail_policy": "continue",
+    "parallelism": "thread"
+  },
+  "metadata": {
+    "run_id": "e5cba026-d276-4f1d-9473-9acc0d904cc4",
+    "runtime": {
+      "refute_random_common_cause": true,
+      "refute_placebo_treatment": true,
+      "refute_data_subset": true,
+      "refutation_simulations": 100,
+      "n_jobs": 3,
+      "seed": 42,
+      "confidence_level": 0.95,
+      "estimator_method": null,
+      "estimator_params": {},
+      "parallelism": "thread",
+      "fail_policy": "continue",
+      "chunk_size": 3,
+      "time_series_policy": "warn",
+      "blas_thread_policy": {
+        "OMP_NUM_THREADS": 1,
+        "MKL_NUM_THREADS": 1,
+        "OPENBLAS_NUM_THREADS": 1,
+        "NUMEXPR_NUM_THREADS": 1,
+        "VECLIB_MAXIMUM_THREADS": 1
+      },
+      "dot_path": null,
+      "artifact_root": "artifacts",
+      "run_id": "e5cba026-d276-4f1d-9473-9acc0d904cc4",
+      "export_graphs": true
+    },
+    "python_version": "3.11.9",
+    "platform": "Windows-10-10.0.26200-SP0",
+    "dowhy_version": "0.14",
+    "econml_version": "0.16.0",
+    "data_signature": {
+      "rows": 65,
+      "columns": [
+        "Access to clean fuels and technologies for cooking (% of population)",
+        "Agriculture, forestry, and fishing, value added (constant 2015 US$)",
+        "Consumer price index (2010 = 100)",
+        "Control of Corruption: Percentile Rank, Upper Bound of 90% Confidence Interval",
+        "Control of Corruption: Percentile Rank, Lower Bound of 90% Confidence Interval"
+      ],
+      "dtypes": {
+        "Access to clean fuels and technologies for cooking (% of population)": "float64",
+        "Agriculture, forestry, and fishing, value added (constant 2015 US$)": "float64",
+        "Consumer price index (2010 = 100)": "float64",
+        "Control of Corruption: Percentile Rank, Upper Bound of 90% Confidence Interval": "float64",
+        "Control of Corruption: Percentile Rank, Lower Bound of 90% Confidence Interval": "float64"
+      },
+      "hash": "ed3a49ff79b872b897ddbd2ea6aff6534b4c4becab0a5a8385e5255164bb300e"
+    }
+  }
+}

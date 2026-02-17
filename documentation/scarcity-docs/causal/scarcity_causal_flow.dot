@@ -1,0 +1,10 @@
+digraph ScarcityCausalFlow {
+  rankdir=LR;
+  node [shape=box, style=rounded];
+
+  input_graph [label="Input: Graph (known/partial)"];
+  pipeline [label="Scarcity Causal Pipeline"];
+  output_graph [label="Output: Graph (learned/updated)"];
+
+  input_graph -> pipeline -> output_graph;
+}
