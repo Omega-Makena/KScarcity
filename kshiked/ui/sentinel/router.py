@@ -1,5 +1,7 @@
 """SENTINEL Command Center - main router and entry point."""
 
+from typing import Optional
+
 from ._shared import (
     st, components, logger,
     DARK_THEME, LIGHT_THEME, generate_css,
@@ -17,6 +19,26 @@ from .document_intel import render_document_intel_tab
 from .analysis_controls import render_analysis_controls
 from .home import render_home
 from .policy_chat import render_policy_chat
+
+
+def _read_query_view() -> Optional[str]:
+    """Read view from URL query params when available."""
+    try:
+        raw = st.query_params.get("view", "")
+        if isinstance(raw, list):
+            raw = raw[0] if raw else ""
+        value = str(raw).strip().upper()
+        return value or None
+    except Exception:
+        return None
+
+
+def _write_query_view(view: str) -> None:
+    """Persist current view to URL query params for stable deep links."""
+    try:
+        st.query_params["view"] = str(view).upper()
+    except Exception:
+        pass
 
 
 def render_sentinel_dashboard():
@@ -65,6 +87,26 @@ def render_sentinel_dashboard():
 
     theme = DARK_THEME if st.session_state.dark_mode else LIGHT_THEME
     st.markdown(generate_css(theme, st.session_state.dark_mode), unsafe_allow_html=True)
+
+    # JS-based de-zoom: set document zoom to counter Streamlit's oversized rendering
+    components.html("""
+    <script>
+        const tryZoom = () => {
+            const main = window.parent.document.querySelector('.main .block-container');
+            if (main) {
+                main.style.zoom = '0.75';
+                main.style.maxWidth = '100%';
+            }
+            const sidebar = window.parent.document.querySelector('section[data-testid="stSidebar"] > div');
+            if (sidebar) {
+                sidebar.style.zoom = '0.82';
+            }
+        };
+        tryZoom();
+        setTimeout(tryZoom, 500);
+        setTimeout(tryZoom, 1500);
+    </script>
+    """, height=0)
 
     # Pre-load card button CSS to prevent flash of unstyled content
     st.markdown(f"""<style>
@@ -144,12 +186,17 @@ def render_sentinel_dashboard():
         "K-SHIELD": "KSHIELD",
         "Simulation (Legacy)": "SIMULATION",
         "Escalation Pathways": "ESCALATION",
-        "Federation": "FEDERATION",
+        "Federation / Federated Databases": "FEDERATION",
         "Operations": "OPERATIONS",
         "System Guide": "SYSTEM_GUIDE",
         "Document Intelligence": "DOCS",
         "Policy Intelligence": "POLICY_CHAT",
     }
+
+    # URL route -> view sync (stable direct navigation paths like ?view=FEDERATION).
+    query_view = _read_query_view()
+    if query_view in NAV_OPTIONS.values():
+        st.session_state.current_view = query_view
 
     view_to_name = {v: k for k, v in NAV_OPTIONS.items()}
     current_name = view_to_name.get(st.session_state.current_view, "Home")
@@ -164,6 +211,7 @@ def render_sentinel_dashboard():
         key="sb_nav_radio",
     )
     st.session_state.current_view = NAV_OPTIONS[selected_nav]
+    _write_query_view(st.session_state.current_view)
 
     # Main Router
     view = st.session_state.current_view

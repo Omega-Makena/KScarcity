@@ -11,14 +11,13 @@ Fetches and categorizes news from NewsAPI.org with:
 from __future__ import annotations
 
 import json
+import hashlib
 import logging
 import os
-import time
 from dataclasses import dataclass, field, asdict
 from datetime import datetime, timedelta
 from pathlib import Path
 from typing import Dict, List, Optional, Any
-from urllib.parse import quote
 
 # Optional: use requests if available, else standard lib (but requests is standard in this project)
 try:
@@ -27,13 +26,14 @@ except ImportError:
     requests = None
 
 from .config import NewsAPIConfig, get_scraper_config, OllamaConfig
-from .llm.ollama import OllamaProvider
-from .llm.signals import (
-    KShieldSignal, 
+from .llm import (
+    OllamaProvider,
+    KShieldSignal,
     MonitoringTarget,
-    ThreatTier
+    ThreatTier,
 )
 from .monitoring import MonitoringManager
+from .news_content import NewsContentExtractor, build_excerpt
 
 logger = logging.getLogger("kshield.pulse.news")
 
@@ -174,12 +174,31 @@ class NewsIngestor:
             
         # Initialize Database
         self.db = NewsDatabase()
+        self.content_extractor = NewsContentExtractor()
 
         # Initialize AI & Monitoring
         scraper_conf = get_scraper_config()
         ollama_conf = scraper_conf.ollama if hasattr(scraper_conf, 'ollama') else OllamaConfig()
-        self.ollama = OllamaProvider(base_url=ollama_conf.base_url, model=ollama_conf.model)
+        if OllamaProvider is None:
+            logger.warning("Ollama provider unavailable; deep async article analysis is disabled.")
+            self.ollama = None
+        else:
+            self.ollama = OllamaProvider(base_url=ollama_conf.base_url, model=ollama_conf.model)
         self.monitoring = MonitoringManager()
+
+    def get_ingestion_status(self) -> Dict[str, Dict[str, Any]]:
+        """Return per-category freshness/status metadata."""
+        status: Dict[str, Dict[str, Any]] = {}
+        for category in CATEGORY_QUERIES.keys():
+            cache = self._load_category_cache(category)
+            stale = self._is_stale(category, cache)
+            status[category] = {
+                "last_fetched": cache.last_fetched,
+                "cached_articles": len(cache.articles),
+                "stale": stale,
+                "status": cache.status,
+            }
+        return status
 
     def _get_cache_path(self, category: str) -> Path:
         return CACHE_DIR / f"{category}.json"
@@ -247,22 +266,82 @@ class NewsIngestor:
             logger.info(f"Refreshing pipeline: {category}")
             try:
                 articles = self._fetch_from_api(category)
+                # Archive headline metadata first.
+                self.db.add_articles(category, articles)
+                # Then enrich each URL with full-text extraction metadata.
+                articles = self._enrich_with_full_content(articles, force=force)
                 cache.articles = articles
                 cache.last_fetched = datetime.utcnow().isoformat()
                 cache.status = "ok"
                 self._save_category_cache(category, cache)
-                
-                # Archive to Database
-                self.db.add_articles(category, articles)
-                
                 return articles
             except Exception as e:
                 logger.error(f"Error fetching {category}: {e}")
-                # Serve stale on error
-                return cache.articles
+                # Serve stale on error, but still enforce content enrichment traceability.
+                return self._enrich_with_full_content(cache.articles, force=False)
         else:
             logger.debug(f"Serving cached pipeline: {category}")
-            return cache.articles
+            return self._enrich_with_full_content(cache.articles, force=False)
+
+    def _enrich_with_full_content(self, articles: List[Dict], force: bool = False) -> List[Dict]:
+        """Fetch full text from each article URL and persist traceable extraction records."""
+        enriched: List[Dict] = []
+        if not articles:
+            return enriched
+
+        for article in articles:
+            item = dict(article)
+            url = str(item.get("url", "")).strip()
+            if not url:
+                enriched.append(item)
+                continue
+
+            existing = self.db.get_content_record(url)
+            has_existing_ok = bool(
+                existing
+                and existing.get("status") in {"ok", "fallback"}
+                and existing.get("extracted_text")
+            )
+
+            record = existing
+            if force or not has_existing_ok:
+                payload = self.content_extractor.extract(url)
+
+                # Offline/network-block fallback: use available NewsAPI content fields.
+                if payload.status != "ok":
+                    fallback_text = (
+                        str(item.get("content", "") or "").strip()
+                        or str(item.get("description", "") or "").strip()
+                    )
+                    if fallback_text:
+                        payload.extracted_text = fallback_text
+                        payload.extraction_method = "newsapi_content_fallback"
+                        payload.status = "fallback"
+                        payload.content_hash = payload.content_hash or hashlib.sha256(
+                            fallback_text.encode("utf-8")
+                        ).hexdigest()
+                        payload.error_reason = payload.error_reason or "network_unavailable_or_blocked"
+
+                record = self.db.upsert_content_extraction(url, asdict(payload))
+
+            if record:
+                extracted_text = str(record.get("extracted_text", "") or "")
+                item["extracted_text"] = extracted_text
+                item["evidence_excerpt"] = build_excerpt(extracted_text)
+                item["extraction_method"] = record.get("extraction_method", "")
+                item["extraction_status"] = record.get("status", "missing")
+                item["content_hash"] = record.get("content_hash", "")
+                item["content_record_id"] = record.get("id")
+                item["article_id"] = record.get("article_id")
+                item["content_storage_path"] = record.get("storage_path", "")
+                item["error_reason"] = record.get("error_reason", "")
+            else:
+                item.setdefault("extracted_text", "")
+                item.setdefault("evidence_excerpt", "")
+                item.setdefault("extraction_status", "missing")
+
+            enriched.append(item)
+        return enriched
 
     async def process_article_deeply(self, article: Dict) -> Optional[KShieldSignal]:
         """
@@ -272,6 +351,10 @@ class NewsIngestor:
         3. Index Scan (LEI, SI, MS)
         4. Risk Calculation (Base * CSM)
         """
+        if self.ollama is None:
+            logger.warning("Skipping deep analysis: Ollama provider unavailable.")
+            return None
+
         text = f"{article['title']}\n{article['description'] or ''}\n{article['content'] or ''}"
         url = article['url']
         

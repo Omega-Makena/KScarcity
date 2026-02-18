@@ -70,30 +70,67 @@ from .signals import (
     MonitoringTarget,
 )
 
-# Ollama provider
-from .ollama import OllamaProvider
+# Optional runtime modules (some environments intentionally omit heavy deps like aiohttp)
+try:
+    from .ollama import OllamaProvider
+except Exception:  # pragma: no cover - environment dependent
+    OllamaProvider = None
 
-# Embeddings
-from .embeddings import OllamaEmbeddings
+try:
+    from .embeddings import OllamaEmbeddings
+except Exception:  # pragma: no cover - environment dependent
+    OllamaEmbeddings = None
 
-# Batch processing
-from .batch_processor import BatchProcessor, ProcessingMode, AnalysisResult
+try:
+    from .batch_processor import BatchProcessor, ProcessingMode, AnalysisResult
+except Exception:  # pragma: no cover - environment dependent
+    BatchProcessor = None
+    ProcessingMode = None
+    AnalysisResult = None
 
-# End-to-end analyzer
-from .analyzer import KShieldAnalyzer, AnalysisReport
+try:
+    from .analyzer import KShieldAnalyzer, AnalysisReport
+except Exception:  # pragma: no cover - environment dependent
+    KShieldAnalyzer = None
+    AnalysisReport = None
 
-# Model management
-from .models import ModelManager, SystemStatus
+try:
+    from .models import ModelManager, SystemStatus
+except Exception:  # pragma: no cover - environment dependent
+    ModelManager = None
+    SystemStatus = None
 
-# Policy chatbot
-from .policy_extractor import PolicyExtractor, BillAnalysis, BillProvision
-from .policy_search import PolicySearchEngine, SearchResults, SearchResult
-from .policy_predictor import PolicyPredictor, ImpactPrediction, ProvisionImpact
-from .policy_chatbot import PolicyChatbot, ChatSession, ChatMessage
+try:
+    from .policy_extractor import PolicyExtractor, BillAnalysis, BillProvision
+    from .policy_search import PolicySearchEngine, SearchResults, SearchResult
+    from .policy_predictor import PolicyPredictor, ImpactPrediction, ProvisionImpact
+    from .policy_chatbot import PolicyChatbot, ChatSession, ChatMessage
+except Exception:  # pragma: no cover - environment dependent
+    PolicyExtractor = None
+    BillAnalysis = None
+    BillProvision = None
+    PolicySearchEngine = None
+    SearchResults = None
+    SearchResult = None
+    PolicyPredictor = None
+    ImpactPrediction = None
+    ProvisionImpact = None
+    PolicyChatbot = None
+    ChatSession = None
+    ChatMessage = None
 
-# Legacy providers
-from .gemini import GeminiProvider, GeminiConfig, create_gemini_provider
-from .fine_tuning import FineTuningDataPreparer, create_fine_tuning_preparer
+try:
+    from .gemini import GeminiProvider, GeminiConfig, create_gemini_provider
+except Exception:  # pragma: no cover - environment dependent
+    GeminiProvider = None
+    GeminiConfig = None
+    create_gemini_provider = None
+
+try:
+    from .fine_tuning import FineTuningDataPreparer, create_fine_tuning_preparer
+except Exception:  # pragma: no cover - environment dependent
+    FineTuningDataPreparer = None
+    create_fine_tuning_preparer = None
 
 __all__ = [
     # Core

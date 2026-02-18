@@ -30,6 +30,9 @@ from typing import Any, Dict, List, Optional, Tuple
 
 import numpy as np
 
+from ..db.news_db import NewsDatabase
+from ..news_content import build_excerpt
+
 logger = logging.getLogger(__name__)
 
 # Project data root — resolve relative to this file
@@ -102,6 +105,8 @@ class PolicySearchEngine:
         self._tweet_cache: Optional[List[Dict]] = None
         self._policy_tweet_cache: Optional[List[Dict]] = None
         self._news_cache: Optional[Dict[str, List[Dict]]] = None
+        self._news_db_cache: Optional[List[Dict]] = None
+        self._news_db = NewsDatabase()
 
     # ─── Main Search ────────────────────────────────────────────────────
 
@@ -251,13 +256,31 @@ class PolicySearchEngine:
         keywords: set,
         top_k: int,
     ) -> List[SearchResult]:
-        """Search news cache JSON files."""
-        news = self._load_news_cache()
-        if not news:
-            return []
-
-        # Flatten all articles
+        """Search news history with full-content traceability."""
         all_articles = []
+
+        # 1) Prefer DB-backed full-content records (URL + extracted text + IDs).
+        for row in self._load_news_from_db():
+            all_articles.append(
+                {
+                    "title": row.get("title", ""),
+                    "url": row.get("url", ""),
+                    "source": row.get("source", ""),
+                    "published_at": row.get("published_at", ""),
+                    "description": row.get("description", ""),
+                    "content": row.get("content", ""),
+                    "extracted_text": row.get("extracted_text", ""),
+                    "evidence_excerpt": build_excerpt(str(row.get("extracted_text", "") or "")),
+                    "_topic": row.get("category", ""),
+                    "article_id": row.get("article_id"),
+                    "content_record_id": row.get("content_record_id"),
+                    "extraction_status": row.get("extraction_status", ""),
+                    "content_storage_path": row.get("storage_path", ""),
+                }
+            )
+
+        # 2) Fall back to cache files (with lower traceability detail).
+        news = self._load_news_cache()
         for topic, articles in news.items():
             for article in articles:
                 if isinstance(article, dict):
@@ -277,6 +300,7 @@ class PolicySearchEngine:
         for article in all_articles:
             searchable = (
                 article.get("title", "") + " " +
+                article.get("extracted_text", "") + " " +
                 article.get("content", "") + " " +
                 article.get("description", "")
             ).lower()
@@ -291,7 +315,8 @@ class PolicySearchEngine:
         # Semantic ranking if available
         if self.embeddings and candidates:
             texts = [
-                f"{a.get('title', '')}. {a.get('content', a.get('description', ''))[:300]}"
+                f"{a.get('title', '')}. "
+                f"{(a.get('extracted_text') or a.get('content') or a.get('description') or '')[:1200]}"
                 for a in candidates
             ]
             try:
@@ -308,6 +333,14 @@ class PolicySearchEngine:
                             "url": a.get("url", ""),
                             "source": a.get("source", ""),
                             "topic": a.get("_topic", ""),
+                            "published_at": a.get("published_at", ""),
+                            "article_id": a.get("article_id"),
+                            "content_record_id": a.get("content_record_id"),
+                            "content_storage_path": a.get("content_storage_path", ""),
+                            "extraction_status": a.get("extraction_status", ""),
+                            "evidence_excerpt": a.get("evidence_excerpt") or build_excerpt(
+                                str(a.get("extracted_text", "") or a.get("content", "") or "")
+                            ),
                         },
                     ))
                 return results
@@ -317,12 +350,28 @@ class PolicySearchEngine:
         # Keyword fallback
         results = []
         for a in candidates[:top_k]:
-            text = f"{a.get('title', '')}. {a.get('content', a.get('description', ''))[:300]}"
+            text = (
+                f"{a.get('title', '')}. "
+                f"{(a.get('extracted_text') or a.get('content') or a.get('description') or '')[:800]}"
+            )
             text_lower = text.lower()
             score = sum(1 for kw in keywords if kw in text_lower) / max(len(keywords), 1)
             results.append(SearchResult(
                 source="news", text=text, similarity=min(score, 1.0),
-                metadata={"title": a.get("title", ""), "url": a.get("url", "")},
+                metadata={
+                    "title": a.get("title", ""),
+                    "url": a.get("url", ""),
+                    "source": a.get("source", ""),
+                    "topic": a.get("_topic", ""),
+                    "published_at": a.get("published_at", ""),
+                    "article_id": a.get("article_id"),
+                    "content_record_id": a.get("content_record_id"),
+                    "content_storage_path": a.get("content_storage_path", ""),
+                    "extraction_status": a.get("extraction_status", ""),
+                    "evidence_excerpt": a.get("evidence_excerpt") or build_excerpt(
+                        str(a.get("extracted_text", "") or a.get("content", "") or "")
+                    ),
+                },
             ))
         results.sort(key=lambda r: r.similarity, reverse=True)
         return results[:top_k]
@@ -471,6 +520,17 @@ class PolicySearchEngine:
                 logger.warning(f"Failed to load news cache {fpath.name}: {e}")
 
         return self._news_cache
+
+    def _load_news_from_db(self, limit: int = 1000) -> List[Dict]:
+        """Load traceable news records from SQLite (article+content join)."""
+        if self._news_db_cache is not None:
+            return self._news_db_cache
+        try:
+            self._news_db_cache = self._news_db.get_recent_articles_with_content(limit=limit)
+        except Exception as exc:
+            logger.warning(f"Failed loading news from db: {exc}")
+            self._news_db_cache = []
+        return self._news_db_cache
 
     @staticmethod
     def _load_csv(path: Path, max_rows: int = 10000) -> List[Dict]:

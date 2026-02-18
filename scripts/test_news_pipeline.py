@@ -30,14 +30,15 @@ def main():
     results = ingestor.fetch_all(force=True)
     
     total_articles = 0
+    extracted_articles = 0
     categories_found = []
     
     for category, articles in results.items():
         count =_len = len(articles)
         print(f"   [{category.upper()}] Found {count} articles")
-        if count > 0:
-            total_articles += count
-            categories_found.append(category)
+            if count > 0:
+                total_articles += count
+                categories_found.append(category)
             
             # Print first article
             first = articles[0]
@@ -46,13 +47,19 @@ def main():
             
             # Check Domain Whitelist for non-native categories
             # (Business/Tech etc use native which might return other sources, but Search ones use whitelist)
-            if category in ["politics", "economics", "agriculture"]:
-                if any(chk in first['url'] for chk in TRUSTED_DOMAINS):
-                    print("      [PASS] Source in whitelist")
-                else:
-                    print(f"      [WARN] Source not in whitelist logic? URL: {first['url']}")
+                if category in ["politics", "economics", "agriculture"]:
+                    if any(chk in first['url'] for chk in TRUSTED_DOMAINS):
+                        print("      [PASS] Source in whitelist")
+                    else:
+                        print(f"      [WARN] Source not in whitelist logic? URL: {first['url']}")
+
+                # Verify extraction metadata
+                with_extracted = [a for a in articles if a.get("extracted_text")]
+                extracted_articles += len(with_extracted)
+                print(f"      Extraction coverage: {len(with_extracted)}/{len(articles)}")
 
     print(f"\nTotal Articles: {total_articles}")
+    print(f"With extracted_text: {extracted_articles}")
     print(f"Categories with Content: {len(categories_found)}/{len(results)}")
     
     # 2. Test Cache

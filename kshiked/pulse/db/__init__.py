@@ -8,17 +8,32 @@ Provides:
 - Support for SQLite (dev) and PostgreSQL (production)
 """
 
-from .models import (
-    Base,
-    SocialPost,
-    ProcessedSignal,
-    LLMAnalysis,
-    Author,
-    NetworkEdge,
-    PriceSnapshot,
-    ProductCategory,
-)
-from .database import Database, DatabaseConfig
+try:
+    from .models import (
+        Base,
+        SocialPost,
+        ProcessedSignal,
+        LLMAnalysis,
+        Author,
+        NetworkEdge,
+        PriceSnapshot,
+        ProductCategory,
+    )
+except Exception:  # pragma: no cover - optional SQLAlchemy runtime
+    Base = None
+    SocialPost = None
+    ProcessedSignal = None
+    LLMAnalysis = None
+    Author = None
+    NetworkEdge = None
+    PriceSnapshot = None
+    ProductCategory = None
+
+try:
+    from .database import Database, DatabaseConfig
+except Exception:  # pragma: no cover - optional SQLAlchemy runtime
+    Database = None
+    DatabaseConfig = None
 
 __all__ = [
     "Base",
