@@ -1,37 +1,140 @@
-# LLM integration package
 """
-LLM integration layer for KShield Pulse.
+KShield Pulse LLM Integration Layer
 
-Provides swappable LLM provider interface with:
-- Gemini implementation (default)
-- Threat tier classification
-- Role identification
-- Narrative analysis
-- Fine-tuning data preparation
+Provides a complete Ollama-based LLM architecture for threat intelligence:
 
-The design allows easy swapping between Gemini, OpenAI, Claude,
-or local models without changing the rest of the codebase.
+Core:
+    - OllamaProvider: Production Ollama client with retries, multi-model routing
+    - OllamaConfig: Central configuration (models, tasks, hardware profiles)
+    - KShieldAnalyzer: End-to-end analysis orchestrator
+
+Analysis:
+    - 14-Category Threat Taxonomy with Dual-Layer Risk (BaseRisk × CSM)
+    - Kenya-specific prompts with Sheng/Swahili awareness
+    - Policy impact analysis for Kenyan governance events
+    - Semantic embeddings via Ollama /api/embed
+    - Narrative clustering and anomaly detection
+
+Operations:
+    - BatchProcessor: Process 100K+ texts with checkpointing
+    - ModelManager: Pull/verify/manage Ollama models
+    - SessionMetrics: Track latency, tokens, success rates
+
+Legacy:
+    - GeminiProvider: Google Gemini implementation
+    - FineTuningDataPreparer: Training data export
+
+Usage:
+    from kshiked.pulse.llm import KShieldAnalyzer, OllamaConfig
+
+    config = OllamaConfig.single_model("llama3.1:8b")
+    async with KShieldAnalyzer(config=config) as analyzer:
+        report = await analyzer.analyze("Serikali wezi! Twende streets!")
+        print(report.summary())
 """
 
+# Base interfaces
 from .base import (
     LLMProvider,
     ThreatClassification,
     RoleClassification,
-    NarrativeAnalysis
+    NarrativeAnalysis,
+    ThreatTier,
+    RoleType,
+    NarrativeMaturity,
 )
-from .gemini import GeminiProvider, GeminiConfig, create_gemini_provider
+
+# Configuration
+from .config import (
+    OllamaConfig,
+    AnalysisTask,
+    ModelProfile,
+    InferenceMetrics,
+    SessionMetrics,
+    MODEL_REGISTRY,
+)
+
+# V3 Signal models
+from .signals import (
+    KShieldSignal,
+    ThreatSignal,
+    ContextAnalysis,
+    AdvancedIndices,
+    ThreatCategory,
+    ThreatTier as V3ThreatTier,
+    EconomicGrievance,
+    SocialGrievance,
+    TimeToAction,
+    ResilienceIndex,
+    RoleType as V3RoleType,
+    MonitoringTarget,
+)
+
+# Ollama provider
 from .ollama import OllamaProvider
+
+# Embeddings
+from .embeddings import OllamaEmbeddings
+
+# Batch processing
+from .batch_processor import BatchProcessor, ProcessingMode, AnalysisResult
+
+# End-to-end analyzer
+from .analyzer import KShieldAnalyzer, AnalysisReport
+
+# Model management
+from .models import ModelManager, SystemStatus
+
+# Legacy providers
+from .gemini import GeminiProvider, GeminiConfig, create_gemini_provider
 from .fine_tuning import FineTuningDataPreparer, create_fine_tuning_preparer
 
 __all__ = [
+    # Core
     "LLMProvider",
     "ThreatClassification",
     "RoleClassification",
+    "NarrativeAnalysis",
     "ThreatTier",
     "RoleType",
-    "GeminiProvider",
-    "create_gemini_provider",
+    "NarrativeMaturity",
+    # Config
+    "OllamaConfig",
+    "AnalysisTask",
+    "ModelProfile",
+    "InferenceMetrics",
+    "SessionMetrics",
+    "MODEL_REGISTRY",
+    # V3 Signals
+    "KShieldSignal",
+    "ThreatSignal",
+    "ContextAnalysis",
+    "AdvancedIndices",
+    "ThreatCategory",
+    "V3ThreatTier",
+    "EconomicGrievance",
+    "SocialGrievance",
+    "TimeToAction",
+    "ResilienceIndex",
+    "V3RoleType",
+    "MonitoringTarget",
+    # Providers
     "OllamaProvider",
+    "OllamaEmbeddings",
+    "GeminiProvider",
+    "GeminiConfig",
+    "create_gemini_provider",
+    # Processing
+    "BatchProcessor",
+    "ProcessingMode",
+    "AnalysisResult",
+    # Analyzer
+    "KShieldAnalyzer",
+    "AnalysisReport",
+    # Model management
+    "ModelManager",
+    "SystemStatus",
+    # Fine-tuning
     "FineTuningDataPreparer",
     "create_fine_tuning_preparer",
 ]

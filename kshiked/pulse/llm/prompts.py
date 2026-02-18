@@ -59,8 +59,8 @@ CONTEXT:
 
 Return JSON:
 {{
-  "category": "CAT_X_NAME" (Select 1 from 14),
-  "tier": "TIER_X",
+  "category": one of ["mass_casualty_advocacy", "terrorism_support", "critical_infrastructure_sabotage", "coordinated_insurrection", "election_interference", "targeted_threats_officials", "ethnic_religious_mobilization", "large_scale_disinformation", "economic_warfare_destabilization", "radicalization_pipelines", "coordinated_hate_networks", "foreign_influence_proxy", "political_criticism", "satire_art_protest", "unknown"],
+  "tier": one of ["TIER_1_EXISTENTIAL", "TIER_2_SEVERE_STABILITY", "TIER_3_HIGH_RISK", "TIER_4_EMERGING", "TIER_5_NON_THREAT"],
   "intent": 0.0-1.0,
   "capability": 0.0-1.0,
   "specificity": 0.0-1.0,

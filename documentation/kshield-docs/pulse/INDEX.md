@@ -9,6 +9,7 @@ Complete documentation for the `kshiked.pulse` module — social sensing engine.
 | File | Topic |
 |------|-------|
 | [00_overview.md](./00_overview.md) | **Start here** — Signal detection, indices |
+| [01_llm_architecture.md](./01_llm_architecture.md) | Ollama LLM integration — models, pipeline, config |
 
 ---
 
