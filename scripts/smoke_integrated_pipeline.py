@@ -94,17 +94,25 @@ def check_federation_sync() -> tuple[bool, str]:
         manager.register_node("org_a", county_filter="Nairobi")
         manager.register_node("org_b", county_filter="Mombasa")
 
+    primary_node = manager.list_nodes()[0]["node_id"]
+    single = manager.run_single_node_training(primary_node, learning_rate=0.12)
     result = manager.run_sync_round(learning_rate=0.12, lookback_hours=24)
+    status = manager.get_status()
     audit_rows = manager.get_exchange_log(limit=10)
 
+    if single.get("sample_count", 0) <= 0:
+        return False, "single-node ML training had zero samples"
     if result.participants <= 0:
         return False, "sync round had zero participants"
+    if not status.get("nodes"):
+        return False, "federation node database status missing"
     if not audit_rows:
         return False, "no audit records after sync"
 
     return True, (
-        f"round={result.round_number}, participants={result.participants}, "
-        f"samples={result.total_samples}, audit_rows={len(audit_rows)}"
+        f"single_loss={single.get('loss', 0.0):.4f}, round={result.round_number}, "
+        f"participants={result.participants}, samples={result.total_samples}, "
+        f"audit_rows={len(audit_rows)}"
     )
 
 
