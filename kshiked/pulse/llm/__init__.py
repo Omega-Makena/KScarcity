@@ -85,6 +85,12 @@ from .analyzer import KShieldAnalyzer, AnalysisReport
 # Model management
 from .models import ModelManager, SystemStatus
 
+# Policy chatbot
+from .policy_extractor import PolicyExtractor, BillAnalysis, BillProvision
+from .policy_search import PolicySearchEngine, SearchResults, SearchResult
+from .policy_predictor import PolicyPredictor, ImpactPrediction, ProvisionImpact
+from .policy_chatbot import PolicyChatbot, ChatSession, ChatMessage
+
 # Legacy providers
 from .gemini import GeminiProvider, GeminiConfig, create_gemini_provider
 from .fine_tuning import FineTuningDataPreparer, create_fine_tuning_preparer
@@ -137,4 +143,17 @@ __all__ = [
     # Fine-tuning
     "FineTuningDataPreparer",
     "create_fine_tuning_preparer",
+    # Policy chatbot
+    "PolicyExtractor",
+    "BillAnalysis",
+    "BillProvision",
+    "PolicySearchEngine",
+    "SearchResults",
+    "SearchResult",
+    "PolicyPredictor",
+    "ImpactPrediction",
+    "ProvisionImpact",
+    "PolicyChatbot",
+    "ChatSession",
+    "ChatMessage",
 ]
