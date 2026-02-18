@@ -10,6 +10,7 @@ Complete documentation for the `kshiked.pulse` module — social sensing engine.
 |------|-------|
 | [00_overview.md](./00_overview.md) | **Start here** — Signal detection, indices |
 | [01_llm_architecture.md](./01_llm_architecture.md) | Ollama LLM integration — models, pipeline, config |
+| [02_policy_chatbot_architecture.md](./02_policy_chatbot_architecture.md) | Policy Impact Chatbot — design, data flow, UI |
 
 ---
 

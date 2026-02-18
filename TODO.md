@@ -79,6 +79,47 @@ Tracking upcoming work for the KShield Pulse LLM pipeline.
 - [ ] Show Sheng detection indicators in tweet analysis view
 - [ ] Display embedding similarity clusters as interactive scatter plot
 
+---
+
+## Priority: Policy Impact Chatbot
+
+See full architecture: [`documentation/kshield-docs/pulse/02_policy_chatbot_architecture.md`](documentation/kshield-docs/pulse/02_policy_chatbot_architecture.md)
+
+### Phase 1 — Core Chatbot (Week 1)
+- [ ] `policy_extractor.py` — Bill text parsing + provision extraction via LLM
+- [ ] `policy_search.py` — Tweet corpus search with embeddings (keyword pre-filter + semantic)
+- [ ] `policy_chatbot.py` — Core conversation engine with context memory
+- [ ] `policy_chat.py` (UI) — Streamlit chat panel with `st.chat_input`
+- [ ] Wire into SENTINEL dashboard as "Policy Intelligence" sidebar entry
+- [ ] Support paste-text input mode
+
+### Phase 2 — Historical Matching (Week 2)
+- [ ] `policy_predictor.py` — Impact prediction engine
+- [ ] Historical bill matcher using 12 PolicyEvents from `policy_events.py`
+- [ ] County risk scoring from historical incident data
+- [ ] Timeline prediction using 7-phase PolicyPhase lifecycle
+- [ ] Inline visualizations (risk cards, timeline chart)
+
+### Phase 3 — Document Input (Week 3)
+- [ ] PDF upload + text extraction (PyMuPDF / pdfplumber)
+- [ ] URL scraping for Kenya Gazette / Parliament websites
+- [ ] Section-by-section drill-down in chat
+- [ ] Standalone app mode (`policy_chatbot_standalone.py`)
+
+### Phase 4 — Monitoring & Streams (Week 4)
+- [ ] `policy_monitor.py` — Real-time keyword/hashtag monitoring
+- [ ] Integration with live Twitter/X API
+- [ ] Sentiment shift tracking (before/after bill announcement)
+- [ ] Alert system when escalation thresholds crossed
+- [ ] Kenya Gazette auto-ingest for new bills
+
+### Phase 5 — Polish & Export (Week 5)
+- [ ] PDF report generation (analyst-ready briefing)
+- [ ] CSV export of predictions + supporting evidence
+- [ ] Counter-narrative suggestions
+- [ ] Multi-session support (concurrent bill analysis)
+- [ ] Performance optimization (caching, pre-computed embeddings)
+
 ### Testing
 - [ ] Write pytest suite for all 7 LLM modules
 - [ ] Add integration tests with Ollama mock server
