@@ -1,0 +1,75 @@
+name: Documentation
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'documentation/**'
+      - 'scarcity/**'
+      - 'kshiked/**'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install dependencies
+        run: |
+          pip install mkdocs mkdocs-material mkdocs-awesome-pages-plugin
+
+      - name: Copy docs to mkdocs structure
+        run: |
+          mkdir -p docs
+          cp -r documentation/scarcity-docs docs/scarcity
+          cp -r documentation/kshield-docs docs/kshield
+          # Create index
+          echo "# Scarcity & KShield Documentation" > docs/index.md
+          echo "" >> docs/index.md
+          echo "- [Scarcity Library](scarcity/INDEX.md)" >> docs/index.md
+          echo "- [KShield System](kshield/INDEX.md)" >> docs/index.md
+
+      - name: Create mkdocs.yml
+        run: |
+          cat > mkdocs.yml << 'EOF'
+          site_name: Scarcity Documentation
+          theme:
+            name: material
+            palette:
+              scheme: slate
+              primary: indigo
+          nav:
+            - Home: index.md
+            - Scarcity: scarcity/INDEX.md
+            - KShield: kshield/INDEX.md
+          EOF
+
+      - name: Build docs
+        run: mkdocs build
+
+      - name: Upload Pages artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: site/
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
