@@ -1,92 +1,78 @@
 # Dashboard (UI) — Overview
 
-> `kshiked.ui` — SENTINEL Command Center Dashboard v2.0 (Streamlit)
+> `kshiked.ui` — SENTINEL Command Center (Streamlit, routed single-port app)
 
 ---
 
 ## Purpose
 
-The dashboard is a **9-tab Streamlit application** that provides real-time visualization of SENTINEL intelligence. It serves as the primary human interface for analysts and decision-makers.
+The dashboard is a **single Streamlit app on one port** that routes between SENTINEL views and the K-SHIELD module without restarting the app.
 
 ---
 
-## Tab Architecture
+## Current Navigation Model
 
-| # | Tab | Description | Key Visuals |
-|---|-----|-------------|-------------|
-| 1 | **Live Threat Map** | Kaspersky-inspired real-time view | 3D Globe (Globe.gl), threat counter, top counties |
-| 2 | **Executive Overview** | Traffic-light status summary | Traffic light, escalation gauge, top threats, unknown-unknowns |
-| 3 | **Signal Intelligence** | 15 SIGINT signal analysis | Signal gauges, cascade Sankey, co-occurrence heatmap, silence detector |
-| 4 | **Causal Network** | Discovered relationships | 3D WebGL causal graph (full-economy base map), relationship table, Granger tests |
-| 5 | **Simulation** | Scenario analysis platform | Scenario builder, 4D state cube, policy sensitivity, economic terrain |
-| 6 | **Escalation** | Threat escalation pathways | Escalation tree, decision countdown |
-| 7 | **Governance** | Economic governance dashboard | Policy controls, SFC model state |
-| 8 | **Regional Map** | Kenya county-level threat map | Choropleth, county drill-down |
-| 9 | **Documents** | Document intelligence | Uploaded document analysis |
+Top-level views are routed through `kshiked/ui/sentinel/router.py` and synced to URL query params (`?view=...`).
+
+| View Key | UI Label | Purpose |
+|---|---|---|
+| `HOME` | Home | Landing cards and entry navigation |
+| `LIVE_MAP` | Live Threat Map | Geographic threat overlays |
+| `EXECUTIVE` | Executive Overview | Decision summary and KPIs |
+| `SIGNALS` | Signal Intelligence | Social signal monitoring |
+| `CAUSAL` | Causal Analysis | Causal analysis workspace |
+| `KSHIELD` | K-SHIELD | K-SHIELD card module |
+| `SIMULATION` | Simulation (Legacy) | Legacy WhatIf workbench |
+| `ESCALATION` | Escalation Pathways | Escalation and response pathways |
+| `FEDERATION` | Federation / Federated Databases | Node registry, sync controls, metrics, audit log |
+| `OPERATIONS` | Operations | Operational alerts and summaries |
+| `SYSTEM_GUIDE` | System Guide | Embedded docs/help |
+| `DOCS` | Document Intelligence | News + dossier intelligence |
+| `POLICY_CHAT` | Policy Intelligence | Policy chatbot and evidence traces |
 
 ---
 
-## File Guide
+## K-SHIELD Card Module
 
-| File | Size | Purpose |
-|------|------|---------|
-| `sentinel_dashboard.py` | 65 KB | Main dashboard — 9 tabs, 40+ render functions |
-| `theme.py` | 19 KB | `DARK_THEME`, `LIGHT_THEME`, threat-level colours, CSS generator, Plotly theme |
-| `data_connector.py` | 37 KB | `DashboardData` dataclass + `get_dashboard_data()` — interfaces with backend or generates demo data |
-| `globe_viz.py` | 16 KB | 3D Globe.gl component — Kenya boundaries, threat arcs, CesiumJS |
-| `kenya_threatmap.py` | 20 KB | Kenya county choropleth with Folium |
-| `kenya_data_loader.py` | 11 KB | Loads GeoJSON county boundaries and economic indicators |
-| `pulse_data_loader.py` | 5 KB | Loads Pulse sensor state for dashboard display |
-| `causal_viz.py` | 4 KB | 3D causal network WebGL renderer |
-| `full_economy_graph.py` | 4 KB | 40+ variable base economy map (nodes and edges) |
-| `flux_viz.py` | 5 KB | Economic money-flow 3D animations |
-| `animated_header.py` | 3 KB | WebGL animated header with particle effects |
-| `document_intel.py` | 9 KB | Document upload and NLP analysis interface |
+K-SHIELD is rendered from `kshiked/ui/kshield/page.py` and keeps its own internal view state.
+
+| Card | Main implementation |
+|---|---|
+| Causal Relationships | `kshiked/ui/kshield/causal.py` |
+| Policy Terrain | `kshiked/ui/kshield/terrain.py` |
+| Simulations | `kshiked/ui/kshield/simulation.py` |
+| Policy Impact (existing card) | `kshiked/ui/kshield/impact/components/layout.py` + `kshiked/ui/kshield/impact/components/live_policy.py` |
+
+The Policy Impact card now includes live synthetic criticality overlays (baseline vs counterfactual), filters, and data-freshness indicators.
+
+---
+
+## Federation + Route Visibility
+
+The federation page (`kshiked/ui/sentinel/federation.py`) displays:
+
+- stable route path (`/?view=FEDERATION`)
+- full URL (host + port + path)
+- node registration controls
+- sync triggers
+- sync metrics and exchange audit log
 
 ---
 
 ## Running the Dashboard
 
 ```bash
-# From the project root
 streamlit run kshiked/ui/sentinel_dashboard.py
 ```
 
-The dashboard will be available at `http://localhost:8501`.
+Default URL: `http://localhost:8501`
+
+Deep-link examples:
+
+- `http://localhost:8501/?view=FEDERATION`
+- `http://localhost:8501/?view=KSHIELD`
+- `http://localhost:8501/?view=POLICY_CHAT`
 
 ---
 
-## Theme System
-
-The theme is defined in `theme.py` and provides:
-
-- **Dark mode** (default) and **light mode** themes
-- Threat-level colour mappings: `LOW` (green), `MODERATE` (amber), `HIGH` (orange), `CRITICAL` (red)
-- CSS generator for Streamlit custom styling
-- Plotly chart theme integration
-
-```python
-from theme import DARK_THEME, generate_css, get_plotly_theme
-
-st.markdown(f"<style>{generate_css(DARK_THEME)}</style>", unsafe_allow_html=True)
-fig.update_layout(template=get_plotly_theme(DARK_THEME))
-```
-
----
-
-## Data Connector
-
-`data_connector.py` provides the `DashboardData` dataclass that feeds all 9 tabs:
-
-```python
-from data_connector import get_dashboard_data, DashboardData
-
-data: DashboardData = get_dashboard_data()
-# data.threat_level, data.signals, data.hypotheses, data.simulation_state, ...
-```
-
-In production, this connects to the FastAPI backend. In demo mode, it generates synthetic data.
-
----
-
-*Source: `kshiked/ui/` · Last updated: 2026-02-11*
+*Source: `kshiked/ui/` · Last updated: 2026-02-19*

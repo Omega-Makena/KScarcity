@@ -13,7 +13,7 @@ Complete documentation for the **KShield** economic monitoring and early warning
 | [sim](./sim/INDEX.md) | Backtesting and Monte Carlo |
 | [causal](./causal/INDEX.md) | Causal inference adapter |
 | [hub](./hub/INDEX.md) | KShieldHub central orchestrator |
-| [ui](./ui/INDEX.md) | SENTINEL Command Center dashboard (9 tabs) |
+| [ui](./ui/INDEX.md) | SENTINEL Command Center dashboard (routed multi-view UI) |
 | [federation-kshield](./federation-kshield/INDEX.md) | Aegis Protocol — defense sector federation |
 | [causal-adapter](./causal-adapter/INDEX.md) | Causal pipeline bridge (Scarcity ↔ KShield) |
 | [simulation-kshield](./simulation-kshield/INDEX.md) | ShockCompiler — stochastic → SFC vectors |

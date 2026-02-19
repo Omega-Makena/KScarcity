@@ -11,7 +11,7 @@
 │                          SENTINEL                                        │
 │              (The Product — what the end-user sees)                       │
 │                                                                          │
-│   Streamlit Command Center · 11 sidebar views · 4 K-modules             │
+│   Streamlit Command Center · 13 routed views · 4 K-modules              │
 │   Analyst-facing dashboards with threat maps, simulation UI,             │
 │   federation status, and decision support.                               │
 ├─────────────────────────────────────────────────────────────────────────┤
@@ -72,7 +72,7 @@ KShield is where **domain knowledge** lives:
 | `kshiked.causal_adapter` | Bridges Scarcity's `OnlineDiscoveryEngine` → KShield UI. Translates discovered hypotheses into analyst-readable causal chains |
 | `kshiked.federation` | Aegis Protocol — defense-sector federation bridge. Maps to Kenya's institutional structure (NIS, DCI, CBK, KDF, CA) |
 | `kshiked.hub` | `KShieldHub` — central orchestrator that wires Pulse + Causal + Simulation + Federation into a single real-time event loop |
-| `kshiked.ui` | SENTINEL Command Center — the Streamlit dashboard with K-SHIELD sub-module (Causal, Terrain, Simulation, Impact) |
+| `kshiked.ui` | SENTINEL Command Center — routed Streamlit UI with K-SHIELD sub-module (Causal, Terrain, Simulation, Impact) |
 | `kshiked.analysis` | Offline diagnostics — data quality checks and historical crash identification |
 
 ### Design Principle
@@ -88,11 +88,12 @@ SENTINEL comprises:
 
 | Component | Files | Purpose |
 |-----------|-------|---------|
-| Command Center | `kshiked/ui/sentinel_dashboard.py` | Streamlit entrypoint — 11 sidebar views including HOME with 4 K-module cards |
+| Command Center | `kshiked/ui/sentinel_dashboard.py`, `kshiked/ui/sentinel/router.py` | Streamlit entrypoint + routed navigation with deep links (`?view=...`) |
 | K-SHIELD Module | `kshiked/ui/kshield/page.py` | Auth gate → landing page → 4 sub-cards (Causal, Terrain, Simulation, Impact) |
 | K-PULSE Module | via `sentinel_dashboard.py` Signal Intelligence tab | Real-time social signal monitoring |
-| K-COLLAB Module | via `sentinel_dashboard.py` Federation tab | Multi-agency federated learning status |
+| K-COLLAB Module | `kshiked/ui/sentinel/federation.py` + `federated_databases/` | Federated DB node control, sync rounds, metrics, audit trail |
 | K-EDUCATION Module | via `sentinel_dashboard.py` Document Intelligence tab | Explainable analytics and public knowledge |
+| Policy Intelligence | `kshiked/ui/sentinel/policy_chat.py` | Bill analysis chat with URL-linked evidence traces |
 | Backend API | `backend/app/` | FastAPI REST API (v2) for programmatic access |
 | Frontend | `scarcity-deep-dive/` | Vite + React interactive visualisation (secondary UI) |
 
@@ -167,7 +168,7 @@ SENTINEL comprises:
 | Can SENTINEL run without both? | **No.** The dashboard imports KShield modules which import Scarcity modules. |
 | Where do I add a new country? | Create a new calibration module (like `kenya_calibration.py`) and scenario templates. Scarcity's SFC engine works unchanged. |
 | Where do I add a new hypothesis type? | In `scarcity/engine/`. KShield and SENTINEL pick it up automatically. |
-| Where do I add a new dashboard tab? | In `kshiked/ui/sentinel_dashboard.py` (top-level) or `kshiked/ui/kshield/simulation.py` (within K-SHIELD). |
+| Where do I add a new dashboard view? | In `kshiked/ui/sentinel/router.py` (`NAV_OPTIONS`) and corresponding `kshiked/ui/sentinel/*.py` renderer. |
 | Where is the SFC model? | `scarcity/simulation/sfc.py` — the core engine. `kshiked/simulation/kenya_calibration.py` — the Kenya parameter wrapper. |
 
 ---

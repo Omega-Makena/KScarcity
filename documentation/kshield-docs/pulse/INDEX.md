@@ -9,8 +9,8 @@ Complete documentation for the `kshiked.pulse` module — social sensing engine.
 | File | Topic |
 |------|-------|
 | [00_overview.md](./00_overview.md) | **Start here** — Signal detection, indices |
-| [01_llm_architecture.md](./01_llm_architecture.md) | Ollama LLM integration — models, pipeline, config |
-| [02_policy_chatbot_architecture.md](./02_policy_chatbot_architecture.md) | Policy Impact Chatbot — design, data flow, UI |
+| [llm/01_llm_architecture.md](./llm/01_llm_architecture.md) | Ollama LLM integration — models, pipeline, config |
+| [llm/02_policy_chatbot_architecture.md](./llm/02_policy_chatbot_architecture.md) | Policy Impact Chatbot — design, data flow, UI, evidence tracing |
 
 ---
 
@@ -29,6 +29,12 @@ Complete documentation for the `kshiked.pulse` module — social sensing engine.
 - **MRS**: Mobilization Readiness Score
 - **ECI**: Elite Cohesion Index
 - **IWI**: Information Warfare Index
+
+### News Traceability
+
+- News ingestion persists URL-linked records with extraction metadata.
+- Full-content extraction is stored with `extracted_text`, `content_hash`, and extraction status.
+- Policy chat outputs include URL + evidence excerpt + trace pointer (record/file reference).
 
 ### Time Weighting
 

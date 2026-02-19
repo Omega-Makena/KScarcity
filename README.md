@@ -27,7 +27,7 @@ These three names appear everywhere in the codebase — here is the relationship
 ┌──────────────────────────────────────────────────────────────────┐
 │  SENTINEL  — the user-facing product                             │
 │  Streamlit Command Center on port 8501                           │
-│  12 sidebar views + K-SHIELD module (4 cards, 11 sim tabs)       │
+│  13 routed views + K-SHIELD module (4 cards, 11 sim tabs)         │
 ├──────────────────────────────────────────────────────────────────┤
 │  KShield (kshiked/)  — Kenya-specific intelligence layer         │
 │  Pulse (15 signals), calibration (World Bank → SFC),             │
@@ -287,16 +287,22 @@ scace4/
 │   ├── simulation/                 # Kenya calibration, 9 scenarios, 8 policies
 │   ├── analysis/                   # Data quality & crash analysis
 │   ├── ui/                         # SENTINEL dashboard (Streamlit)
-│   │   ├── sentinel_dashboard.py   # Entry point — 12 sidebar views
-│   │   └── kshield/               # K-SHIELD sub-module
+│   │   ├── sentinel_dashboard.py   # Streamlit entrypoint
+│   │   ├── sentinel/router.py      # Top-level routed navigation + deep links
+│   │   └── kshield/                # K-SHIELD sub-module
 │   │       ├── page.py            # Auth + landing + routing
 │   │       ├── simulation.py      # 11 analysis tabs (2040 lines)
 │   │       ├── causal.py          # Causal Relationships card
 │   │       ├── terrain.py         # Policy Terrain card
-│   │       └── impact.py          # Policy Impact card
+│   │       └── impact/components/ # Policy Impact (live data + counterfactual)
 │   ├── causal_adapter/             # Causal adapter layer
 │   ├── federation/                 # KShield federation bridge
 │   └── hub.py                      # KShieldHub orchestrator
+├── federated_databases/            # Scarcity federation data-plane module
+│   ├── scarcity_federation.py      # Node registry + sync rounds + audit
+│   ├── storage.py                  # Node/control SQLite storage
+│   ├── pipeline.py                 # single_node/federated ML modes
+│   └── README.md                   # Module guide
 ├── backend/                        # REST API (FastAPI)
 │   └── app/
 │       ├── api/v1/                 # v1 endpoints (deprecated)
@@ -315,6 +321,12 @@ scace4/
 └── tests/                          # Test suite
 ```
 ---
+
+##  Recent Updates (2026-02-19)
+
+- **Policy Impact (existing card):** now overlays live appended synthetic criticality, freshness indicators, and baseline vs counterfactual trajectories.
+- **News Pipeline:** full-content extraction + URL traceability (`extracted_text`, hashes, error/status, evidence excerpts, trace pointers).
+- **Federation / Federated Databases:** first-class `federated_databases/` module with UI controls, sync metrics, route deep links, and audit logging.
 
 ##  Documentation
 

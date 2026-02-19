@@ -4,9 +4,9 @@
 
 ## Architecture Summary
 
-The dashboard is a **single-port Streamlit app** with 12 sidebar views and a modular K-SHIELD sub-module that hosts four analysis cards, each with its own workspace.
+The dashboard is a **single-port Streamlit app** with 13 sidebar views and a modular K-SHIELD sub-module that hosts four analysis cards, each with its own workspace.
 
-### Top-Level Navigation (12 views)
+### Top-Level Navigation (13 views)
 
 | View | Key | Description |
 |------|-----|-------------|
@@ -18,10 +18,11 @@ The dashboard is a **single-port Streamlit app** with 12 sidebar views and a mod
 | **K-SHIELD** | `KSHIELD` | Intelligence module — see below |
 | Simulation (Legacy) | `SIMULATION` | WhatIf Workbench |
 | Escalation Pathways | `ESCALATION` | Decision intelligence + pathways |
-| Federation | `FEDERATION` | Multi-agency status + gossip |
+| Federation / Federated Databases | `FEDERATION` | Node registration, sync rounds, metrics, audit logs |
 | Operations | `OPERATIONS` | County drilldown, alert table |
 | System Guide | `SYSTEM_GUIDE` | Built-in interactive docs |
 | Document Intelligence | `DOCS` | PDF / document analysis |
+| Policy Intelligence | `POLICY_CHAT` | Policy chatbot + evidence trace output |
 
 ### K-SHIELD Sub-Module (4 cards)
 
@@ -30,7 +31,7 @@ The dashboard is a **single-port Streamlit app** with 12 sidebar views and a mod
 | Causal Relationships | `kshield/causal.py` | DoWhy causal inference workspace |
 | Policy Terrain | `kshield/terrain.py` | Multi-dimensional policy landscape |
 | **Simulations** | `kshield/simulation.py` | SFC simulation — **11 analysis tabs** (all dynamic, 3D-capable) |
-| Policy Impact | `kshield/impact.py` | Impact assessment per county |
+| Policy Impact | `kshield/impact/components/layout.py` | Existing card + live baseline/counterfactual overlay + freshness |
 
 ### Simulation Tabs (11)
 
@@ -52,7 +53,7 @@ The dashboard is a **single-port Streamlit app** with 12 sidebar views and a mod
 
 | File | Description |
 |------|-------------|
-| [00_overview.md](00_overview.md) | Legacy overview (pre-K-SHIELD architecture) |
+| [00_overview.md](00_overview.md) | Current routed UI overview and deep-link patterns |
 
 ## Quick Links
 

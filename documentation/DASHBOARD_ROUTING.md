@@ -75,7 +75,7 @@ All navigation is driven by two `st.session_state` keys:
 
 | Key | Values | Scope |
 |-----|--------|-------|
-| `current_view` | `HOME`, `KSHIELD`, `SIGNALS`, `FEDERATION`, `DOCS`, `LIVE_MAP`, `EXECUTIVE`, `CAUSAL`, `SIMULATION`, `ESCALATION`, `OPERATIONS`, `SYSTEM_GUIDE` | Top-level sentinel dashboard |
+| `current_view` | `HOME`, `KSHIELD`, `SIGNALS`, `FEDERATION`, `DOCS`, `LIVE_MAP`, `EXECUTIVE`, `CAUSAL`, `SIMULATION`, `ESCALATION`, `OPERATIONS`, `SYSTEM_GUIDE`, `POLICY_CHAT` | Top-level sentinel dashboard |
 | `kshield_view` | `LANDING`, `CAUSAL`, `TERRAIN`, `SIMULATION`, `IMPACT` | Within K-SHIELD module |
 
 ### Navigation Flow
@@ -101,6 +101,19 @@ if st.session_state.get("sb_nav_radio") != current_name:
 
 This prevents the cached radio value from overriding the card-button navigation.
 
+### URL Deep Links
+
+The router also syncs view state with URL query params:
+
+- Read: `?view=<VIEW_KEY>` on load
+- Write: sets `?view=<CURRENT_VIEW>` on navigation
+
+Examples:
+
+- `/?view=FEDERATION`
+- `/?view=KSHIELD`
+- `/?view=POLICY_CHAT`
+
 ---
 
 ## Sidebar Navigation Options
@@ -115,10 +128,11 @@ This prevents the cached radio value from overriding the card-button navigation.
 | **K-SHIELD** | `KSHIELD` | K-SHIELD module (landing → sub-pages) |
 | Simulation (Legacy) | `SIMULATION` | WhatIf Workbench (pre-K-SHIELD) |
 | Escalation Pathways | `ESCALATION` | Decision intelligence |
-| Federation | `FEDERATION` | Multi-agency status |
+| Federation / Federated Databases | `FEDERATION` | Node registration, sync rounds, metrics, audit logs |
 | Operations | `OPERATIONS` | County table, alerts |
 | System Guide | `SYSTEM_GUIDE` | Built-in documentation |
 | Document Intelligence | `DOCS` | PDF/document analysis |
+| Policy Intelligence | `POLICY_CHAT` | Policy chatbot + evidence traces |
 
 ---
 
@@ -132,12 +146,15 @@ K-SHIELD sub-pages pass through `check_access("K-SHIELD", theme)` which reads `k
 
 | File | Role |
 |------|------|
-| `kshiked/ui/sentinel_dashboard.py` | Main entry — sidebar nav, HOME, router for all top-level views |
+| `kshiked/ui/sentinel_dashboard.py` | Main Streamlit entrypoint |
+| `kshiked/ui/sentinel/router.py` | Top-level router, sidebar navigation, query-param deep-link sync |
+| `kshiked/ui/sentinel/federation.py` | Federation / Federated Databases view |
+| `kshiked/ui/sentinel/policy_chat.py` | Policy Intelligence chat view |
 | `kshiked/ui/kshield/page.py` | K-SHIELD module — auth, landing, sub-page routing |
 | `kshiked/ui/kshield/simulation.py` | Simulation card — 11 analysis tabs |
 | `kshiked/ui/kshield/causal.py` | Causal Relationships card |
 | `kshiked/ui/kshield/terrain.py` | Policy Terrain card |
-| `kshiked/ui/kshield/impact.py` | Policy Impact card |
+| `kshiked/ui/kshield/impact/components/live_policy.py` | Live Policy Impact overlays (baseline vs counterfactual, freshness) |
 | `kshiked/ui/common/auth.py` | Access code gate |
 | `kshiked/ui/common/landing.py` | Reusable landing page renderer |
 | `kshiked/ui/common/nav.py` | Back-button helpers |

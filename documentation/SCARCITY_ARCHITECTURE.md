@@ -10,20 +10,21 @@ The platform is organised into four layers, each depending only on the layers be
 
 ```
  ┌────────────────────────────────────────────────┐
- │            PRESENTATION LAYER                   │
- │  sentinel_dashboard.py · scarcity-deep-dive     │
- │  (Streamlit 9-tab + Vite frontend)              │
+│            PRESENTATION LAYER                   │
+│  sentinel_dashboard.py · sentinel/router.py      │
+│  (Streamlit routed UI + Vite frontend)           │
  ├────────────────────────────────────────────────┤
  │               API LAYER                         │
  │  backend/app/api/v2 (FastAPI — current)         │
  │  backend/app/api/v1 (FastAPI — deprecated)      │
  ├────────────────────────────────────────────────┤
- │           INTELLIGENCE LAYER                    │
- │  kshiked.pulse    — 15 social signals           │
- │  kshiked.core     — EconomicGovernor, shocks    │
- │  kshiked.hub      — KShieldHub orchestrator     │
- │  kshiked.causal_adapter — causal pipeline       │
- │  kshiked.federation — Aegis Protocol            │
+│           INTELLIGENCE LAYER                    │
+│  kshiked.pulse    — 15 social signals           │
+│  kshiked.core     — EconomicGovernor, shocks    │
+│  kshiked.hub      — KShieldHub orchestrator     │
+│  kshiked.causal_adapter — causal pipeline       │
+│  kshiked.federation — Aegis Protocol            │
+│  federated_databases — federation data plane    │
  ├────────────────────────────────────────────────┤
  │           FOUNDATION LAYER                      │
  │  scarcity.engine   — OnlineDiscoveryEngine      │
@@ -57,8 +58,9 @@ The platform is organised into four layers, each depending only on the layers be
 | Hub | `kshiked.hub` | `KShieldHub` | Singleton orchestrator unifying Pulse + Scarcity |
 | Causal Adapter | `kshiked.causal_adapter` | `AdapterConfig` | Bridge between Scarcity causal engine and KShield |
 | Threat Indices | `kshiked.pulse.indices` | `compute_threat_report` | 5 composite threat indices |
-| Dashboard | `kshiked.ui` | `render_sentinel_dashboard` | 9-tab Streamlit Command Center |
+| Dashboard | `kshiked.ui` | `render_sentinel_dashboard` | Routed Streamlit Command Center (single-port) |
 | KShield Federation | `kshiked.federation` | — | Aegis Protocol — defense sector federation |
+| Federated Databases | `federated_databases` | `ScarcityFederationManager` | Node DBs + control plane + ML sync + audit |
 | Shock Compiler | `kshiked.simulation` | `ShockCompiler` | Transforms stochastic shocks into SFC vectors |
 
 ---
@@ -169,13 +171,18 @@ scace4/
 │   ├── core/                       # EconomicGovernor, shocks
 │   ├── pulse/                      # 15 SIGINT signals + NLP
 │   ├── sim/                        # Backtesting & Monte Carlo
-│   ├── ui/                         # Streamlit dashboard (9 tabs)
+│   ├── ui/                         # Streamlit dashboard (routed multi-view)
 │   ├── causal_adapter/             # Causal pipeline bridge
 │   ├── federation/                 # Aegis Protocol
 │   ├── simulation/                 # ShockCompiler
 │   ├── data/                       # GeoJSON, news DB
 │   ├── analysis/                   # Data quality tools
 │   └── hub.py                      # KShieldHub orchestrator
+├── federated_databases/            # Scarcity federation data plane
+│   ├── scarcity_federation.py      # Node registration, sync rounds, audit
+│   ├── storage.py                  # Node/control SQLite storage backends
+│   ├── pipeline.py                 # single_node/federated mode wrapper
+│   └── README.md                   # Module usage and runtime artifacts
 ├── backend/                        # API Layer
 │   └── app/
 │       ├── api/v1/                 # v1 endpoints (deprecated)
@@ -188,4 +195,4 @@ scace4/
 
 ---
 
-*Last updated: 2026-02-11*
+*Last updated: 2026-02-19*
