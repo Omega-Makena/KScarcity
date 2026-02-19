@@ -1,6 +1,8 @@
 
 import random
 from datetime import timedelta
+from scarcity.synthetic.policy_events import PolicyEventInjector
+
 
 class ScenarioManager:
     def __init__(self, start_date, duration_days):
@@ -8,6 +10,9 @@ class ScenarioManager:
         self.duration_days = duration_days
         self.events = []
         self._initialize_scenarios()
+
+        # ── Policy Event Layer ──────────────────────────────────────────
+        self.policy_injector = PolicyEventInjector(start_date=start_date)
         
     def _initialize_scenarios(self):
         """
@@ -61,7 +66,7 @@ class ScenarioManager:
 
     def get_active_events(self, current_date):
         """
-        Returns a list of events active on the given date.
+        Returns a list of crisis scenario events active on the given date.
         """
         day_offset = (current_date - self.start_date).days
         active = []
@@ -69,3 +74,24 @@ class ScenarioManager:
             if event["start_day"] <= day_offset <= event["end_day"]:
                 active.append(event)
         return active
+
+    def get_active_policy_events(self, current_date):
+        """
+        Returns list of (PolicyEvent, PolicyPhase) tuples active on current_date.
+        Delegates to the PolicyEventInjector.
+        """
+        return self.policy_injector.get_active_policy_events(current_date)
+
+    def should_account_react_to_policy(self, policy_event, phase, account):
+        """
+        Probabilistic check: should this account tweet about this policy event?
+        """
+        return self.policy_injector.should_account_react(policy_event, phase, account)
+
+    def get_policy_intent(self, phase, risk_band, account_type="Individual"):
+        """Select an appropriate tweet intent for a policy phase."""
+        return self.policy_injector.select_intent(phase, risk_band, account_type)
+
+    def get_policy_stance(self, phase, account_type="Individual"):
+        """Select a stance (anti / pro / neutral) for the account."""
+        return self.policy_injector.select_stance(phase, account_type)

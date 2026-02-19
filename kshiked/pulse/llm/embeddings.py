@@ -117,7 +117,7 @@ class OllamaEmbeddings:
         )
 
         try:
-            payload = {"model": self.model, "input": text}
+            payload = {"model": self.model, "input": text, "keep_alive": "30m"}
             async with self._session.post(
                 f"{self.base_url}/api/embed", json=payload
             ) as resp:
@@ -198,7 +198,7 @@ class OllamaEmbeddings:
 
             await self._ensure_session()
             try:
-                payload = {"model": self.model, "input": batch_texts}
+                payload = {"model": self.model, "input": batch_texts, "keep_alive": "30m"}
                 async with self._session.post(
                     f"{self.base_url}/api/embed", json=payload
                 ) as resp:

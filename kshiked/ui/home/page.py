@@ -46,11 +46,11 @@ TOP_CARDS = [
 
 
 def render(theme):
-    """Render the SENTINEL home landing page."""
+    """Render the K-Scarcity home landing page."""
     render_landing(
         theme=theme,
-        title="WELCOME TO SENTINEL",
-        subtitle="The Autonomous Economic Defense & Simulation Platform",
-        tagline="— Powered by Scarcity —",
+        title="K-SCARCITY",
+        subtitle="Economic Defense & Simulation Platform",
+        tagline="— Analyze · Simulate · Predict —",
         cards=TOP_CARDS,
     )

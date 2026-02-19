@@ -364,6 +364,33 @@ class OllamaProvider(LLMProvider):
         logger.info(f"Model {model_name} not found locally, pulling...")
         return await self.pull_model(model_name)
 
+    async def warm_model(self, model_name: Optional[str] = None) -> bool:
+        """Pre-load a model into Ollama memory to eliminate cold-start latency.
+
+        Sends a tiny generate request with keep_alive=30m so the model
+        stays resident for subsequent real requests.
+        """
+        await self._ensure_session()
+        model = model_name or self.config.get_model_for_task(AnalysisTask.POLICY_IMPACT)
+        try:
+            payload = {
+                "model": model,
+                "prompt": "hello",
+                "stream": False,
+                "keep_alive": "30m",
+                "options": {"num_predict": 1},  # generate only 1 token
+            }
+            async with self._session.post(
+                f"{self.base_url}/api/generate", json=payload
+            ) as resp:
+                if resp.status == 200:
+                    logger.info(f"Model {model} warmed up and loaded into memory")
+                    return True
+                logger.warning(f"Warm-up got HTTP {resp.status} for {model}")
+        except Exception as e:
+            logger.warning(f"Model warm-up failed for {model}: {e}")
+        return False
+
     # =========================================================================
     # Core Generation (with retries)
     # =========================================================================
@@ -397,6 +424,7 @@ class OllamaProvider(LLMProvider):
             "stream": False,
             "format": "json",
             "options": options,
+            "keep_alive": "30m",
         }
 
         if self.config.log_prompts:
@@ -513,6 +541,7 @@ class OllamaProvider(LLMProvider):
             "system": system_prompt,
             "stream": False,
             "options": options,
+            "keep_alive": "30m",
         }
 
         try:

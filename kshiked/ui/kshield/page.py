@@ -20,11 +20,45 @@ import sys
 from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
+import threading
 from common.auth import check_access
 from common.landing import render_landing
-from common.nav import render_back_button
 
 logger = logging.getLogger("sentinel.kshield.page")
+
+_IMPORT_WARMED = False
+
+def _warm_import_cache():
+    """Pre-import heavy modules in a background thread so card clicks are instant."""
+    # Use session state to ensure we only warm up once per session
+    if st.session_state.get("_kshield_warmed", False):
+        return
+    st.session_state["_kshield_warmed"] = True
+
+    def _bg_imports():
+        try:
+            import importlib
+            import time
+            # These are the heaviest imports — warm them into sys.modules
+            # Adding sleeps to yield GIL and prevent UI stutter during landing page render
+            modules = [
+                "kshiked.ui.kshield.causal",
+                "kshiked.ui.kshield.terrain",
+                "kshiked.ui.kshield.simulation",
+                "kshiked.ui.kshield.impact",
+            ]
+            for mod in modules:
+                try:
+                    importlib.import_module(mod)
+                    time.sleep(0.1) # Yield GIL
+                except Exception as e:
+                    # Silent fail, will be caught when user actually clicks card
+                    pass
+        except Exception:
+            pass
+
+    t = threading.Thread(target=_bg_imports, daemon=True)
+    t.start()
 
 
 # K-SHIELD sub-card definitions
@@ -99,7 +133,7 @@ def _get_kshield_data():
     if "kshield_cached_data" in st.session_state:
         return st.session_state["kshield_cached_data"]
     try:
-        from data_connector import get_dashboard_data
+        from kshiked.ui.connector import get_dashboard_data
 
         force_causal = bool(st.session_state.get("force_causal_retrain", False))
         data = get_dashboard_data(force_causal=force_causal)
@@ -121,15 +155,8 @@ def _render_landing(theme):
         view_prefix="kshield_",
         back_target="HOME",
     )
-    
-    # Handle sub-card clicks (the landing page sets current_view to kshield_CAUSAL etc.)
-    # We need to intercept and route to kshield_view instead
-    cv = st.session_state.get("current_view", "")
-    if cv.startswith("kshield_") and cv != "KSHIELD":
-        sub = cv.replace("kshield_", "")
-        st.session_state.kshield_view = sub
-        st.session_state.current_view = "KSHIELD"
-        st.rerun()
+    # Pre-import heavy modules in background while user reads the landing page
+    _warm_import_cache()
 
 
 def _back_to_kshield(key_suffix: str):
@@ -143,35 +170,66 @@ def _render_causal_page(theme, data):
     """Causal Relationships sub-page — self-contained, uses World Bank data."""
     _back_to_kshield("causal")
     
-    from kshield.causal import render_causal
-    render_causal(theme)  # no data arg needed — loads CSV internally
+def _render_causal_page(theme, data):
+    """Causal Relationships sub-page — self-contained, uses World Bank data."""
+    _back_to_kshield("causal")
+    
+    try:
+        from kshiked.ui.kshield.causal import render_causal
+        render_causal(theme)
+    except Exception as e:
+        st.error(f"Causal module error: {e}")
+        logger.exception("Causal page error")
 
 
 def _render_terrain_page(theme, data):
     """Policy Terrain sub-page."""
     _back_to_kshield("terrain")
     
-    from kshield.terrain import render_terrain
-    render_terrain(theme, data)
+def _render_terrain_page(theme, data):
+    """Policy Terrain sub-page."""
+    _back_to_kshield("terrain")
+    
+    try:
+        from kshiked.ui.kshield.terrain import render_terrain
+        render_terrain(theme, data)
+    except Exception as e:
+        st.error(f"Terrain module error: {e}")
+        logger.exception("Terrain page error")
 
 
 def _render_simulation_page(theme, data):
     """Simulations sub-page."""
     _back_to_kshield("simulation")
     
-    from kshield.simulation import render_simulation
-    if data is None:
-        with st.spinner("Loading simulation data..."):
-            data = _get_kshield_data()
-    render_simulation(theme, data)
+def _render_simulation_page(theme, data):
+    """Simulations sub-page."""
+    _back_to_kshield("simulation")
+    
+    try:
+        from kshiked.ui.kshield.simulation import render_simulation
+        render_simulation(theme, data)
+    except Exception as e:
+        st.error(f"Simulation module error: {e}")
+        logger.exception("Simulation page error")
 
 
 def _render_impact_page(theme, data):
     """Policy Impact sub-page."""
     _back_to_kshield("impact")
     
-    from kshield.impact import render_impact
-    if data is None:
-        with st.spinner("Loading impact data..."):
+def _render_impact_page(theme, data):
+    """Policy Impact sub-page."""
+    _back_to_kshield("impact")
+    
+    try:
+        # Avoid caching the function object to allow hot-reloading
+        from kshiked.ui.kshield.impact import render_impact
+        
+        if data is None:
             data = _get_kshield_data()
-    render_impact(theme, data)
+        render_impact(theme, data)
+    except Exception as e:
+        st.error(f"Impact module error: {e}")
+        logger.exception("Impact page error")
+

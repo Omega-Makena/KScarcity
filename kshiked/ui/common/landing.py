@@ -105,7 +105,7 @@ def render_landing(
         margin-bottom: 0.5rem;
         opacity: 0;
         animation: fadeIn 1.5s ease-out forwards;
-        animation-delay: 1.2s;
+        animation-delay: 0.3s;
     }}
     
     .hero-subtitle {{
@@ -117,7 +117,7 @@ def render_landing(
         text-transform: uppercase;
         margin-top: 1rem;
         animation: fadeIn 1s ease-out forwards;
-        animation-delay: 2.5s; 
+        animation-delay: 0.6s; 
     }}
     </style>
     """
@@ -158,19 +158,33 @@ def render_landing(
     
     st.markdown("---")
     
-    # Back button (if applicable)
+    # Back button (if applicable) — NOT inside card-grid so it stays normal-sized
     if back_target:
         if st.button("← Back", key=f"landing_back_{view_prefix}"):
             st.session_state.current_view = back_target
             st.rerun()
     
-    # Card Grid — 2×2
+    # Card Grid — 2×2, wrapped in .card-grid for scoped CSS
+    st.markdown('<div class="card-grid">', unsafe_allow_html=True)
+    
     def render_card(col, title, desc, target):
         with col:
-            label = f"{title}\n\n{desc}"
-            full_target = f"{view_prefix}{target}" if view_prefix else target
-            if st.button(label, key=f"card_btn_{full_target}", use_container_width=True):
-                st.session_state.current_view = full_target
+            # Render shimmer text above card title
+            st.markdown(f'<div class="shimmer-text" style="font-size: 1.1rem; margin-bottom: -0.5rem; z-index: 2; position: relative; pointer-events: none;">{title}</div>', unsafe_allow_html=True)
+            label = f"\n\n{desc}"
+            btn_key = f"card_btn_{view_prefix}{target}" if view_prefix else f"card_btn_{target}"
+            if st.button(label, key=btn_key, use_container_width=True):
+                if view_prefix:
+                    # Sub-card: set parent module view + sub-view directly
+                    # e.g. view_prefix="kshield_" → current_view="KSHIELD",
+                    #      kshield_view="CAUSAL"
+                    parent = view_prefix.rstrip("_").upper()
+                    sub_view_key = f"{view_prefix.rstrip('_')}_view"
+                    st.session_state.current_view = parent
+                    st.session_state[sub_view_key] = target
+                else:
+                    # Top-level card: set current_view directly
+                    st.session_state.current_view = target
                 st.rerun()
     
     # Render in rows of 2
@@ -183,6 +197,8 @@ def render_landing(
         else:
             _, c1, _ = st.columns([1, 3, 1])
             render_card(c1, *row_cards[0])
+    
+    st.markdown('</div>', unsafe_allow_html=True)
     
     # Footer
     st.markdown("---")

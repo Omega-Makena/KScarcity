@@ -137,20 +137,26 @@ class DefenseFederationSimulator:
     def tick(self) -> Dict[str, Any]:
         """Sync wrapper for async tick."""
         import asyncio
-        loop = asyncio.get_event_loop()
-        
-        if loop.is_running():
+
+        # Check if there is already a running event loop (e.g. Jupyter, nested Streamlit)
+        try:
+            loop = asyncio.get_running_loop()
+        except RuntimeError:
+            loop = None
+
+        if loop is not None and loop.is_running():
             # Apply nest_asyncio to allow re-entrant loop (common in Streamlit/Jupyter)
             try:
                 import nest_asyncio
                 nest_asyncio.apply()
+                return loop.run_until_complete(self.tick_async())
             except ImportError:
-                # Fallback: if nest_asyncio missing, we can't run async in sync loop
                 return {
-                    "round": self.round_id, 
-                    "packets": [], 
-                    "agencies": [], 
+                    "round": self.round_id,
+                    "packets": [],
+                    "agencies": [],
                     "note": "Error: Async loop conflict and nest_asyncio missing"
                 }
 
+        # No running loop — safe to use asyncio.run() which creates its own loop
         return asyncio.run(self.tick_async())

@@ -3,6 +3,9 @@ Global CSS injection for the SENTINEL dashboard.
 
 Injects the base theme CSS + card button pre-load CSS at the top
 of every page to prevent flash of unstyled content.
+
+Card CSS is scoped to buttons inside `.landing-wrapper` containers
+so it does not bleed into sub-pages.
 """
 
 from __future__ import annotations
@@ -21,9 +24,10 @@ def inject_global_css(theme, dark_mode: bool, generate_css_fn) -> None:
     # Base theme CSS
     st.markdown(generate_css_fn(theme, dark_mode), unsafe_allow_html=True)
     
-    # Card button CSS pre-load (prevents FOUC)
+    # Card button CSS — scoped to .card-grid containers only
+    # This prevents card styling from bleeding into sub-pages
     st.markdown(f"""<style>
-    div[data-testid="stVerticalBlock"] button {{
+    .card-grid button {{
         width: 100% !important;
         height: 320px !important;
         margin: 0 auto !important;
@@ -44,8 +48,9 @@ def inject_global_css(theme, dark_mode: bool, generate_css_fn) -> None:
         justify-content: flex-start !important;
         gap: 0.3rem !important;
         box-shadow: 0 8px 24px rgba(0,0,0,0.35), 0 0 1px rgba(0, 255, 136, 0.1) !important;
+        transition: transform 0.25s ease, box-shadow 0.25s ease, border-color 0.25s ease !important;
     }}
-    div[data-testid="stVerticalBlock"] button p:first-child {{
+    .card-grid button p:first-child {{
         font-size: 1.4rem !important;
         font-weight: 700 !important;
         background: linear-gradient(90deg, {theme.text_primary}, {theme.accent_primary}) !important;
@@ -55,14 +60,14 @@ def inject_global_css(theme, dark_mode: bool, generate_css_fn) -> None:
         letter-spacing: 2px !important;
         text-transform: uppercase !important;
     }}
-    div[data-testid="stVerticalBlock"] button p:not(:first-child) {{
+    .card-grid button p:not(:first-child) {{
         font-size: 0.88rem !important;
         color: {theme.text_secondary} !important;
         font-weight: 400 !important;
         line-height: 1.65 !important;
         opacity: 0.85 !important;
     }}
-    div[data-testid="stVerticalBlock"] button:hover {{
+    .card-grid button:hover {{
         transform: translateY(-5px) !important;
         border-color: rgba(0, 255, 136, 0.35) !important;
         background: linear-gradient(160deg, rgba(31, 51, 29, 0.7), rgba(0, 255, 136, 0.06)) !important;

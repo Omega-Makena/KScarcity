@@ -1,5 +1,5 @@
 """
-SENTINEL Command Center — App Router
+K-Scarcity Dashboard — App Router
 
 Thin router that sets up the page, injects global CSS,
 and routes to the appropriate module based on session state.
@@ -27,10 +27,10 @@ logger = logging.getLogger("sentinel.app")
 
 
 def main():
-    """Run the SENTINEL dashboard."""
+    """Run the dashboard."""
     st.set_page_config(
-        page_title="SENTINEL Command Center",
-        page_icon="S",
+        page_title="K-Scarcity",
+        page_icon="⚡",
         layout="wide",
         initial_sidebar_state="collapsed",
     )
@@ -51,9 +51,10 @@ def main():
     # Normalize sub-card routing emitted by landing cards.
     # Example: "kshield_TERRAIN" -> current_view="KSHIELD", kshield_view="TERRAIN"
     cv = str(st.session_state.current_view)
-    if cv.startswith("kshield_"):
+    if cv.startswith("kshield_") and cv != "KSHIELD":
         st.session_state.kshield_view = cv.replace("kshield_", "")
         st.session_state.current_view = "KSHIELD"
+        st.rerun()
 
     view = st.session_state.current_view
     
@@ -91,7 +92,7 @@ def main():
 def _load_data():
     """Lazy-load dashboard data."""
     try:
-        from data_connector import get_dashboard_data
+        from kshiked.ui.connector import get_dashboard_data
         
         if "force_causal_retrain" not in st.session_state:
             st.session_state.force_causal_retrain = False

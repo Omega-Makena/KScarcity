@@ -541,6 +541,55 @@ class SFCEconomy:
             'government_debt': float(self.government.total_liabilities),
         })
     
+    def apply_shock(self, shock_type: str, magnitude: float) -> None:
+        """
+        Apply a one-shot shock and immediately step the economy.
+
+        Convenience wrapper that injects a shock into the *next* step
+        via the legacy ``shock_schedule`` and then calls ``step()``.
+
+        Supported *shock_type* values:
+
+        - ``"demand"``   →  demand_shock
+        - ``"supply"``   →  supply_shock
+        - ``"fiscal"``   →  fiscal_shock
+        - ``"fx"``       →  fx_shock
+        - ``"monetary"`` →  directly adjusts the interest rate
+
+        For ``"monetary"`` the interest rate is adjusted *in-place*
+        (no Phillips-curve mediation), matching the test expectation
+        that ``interest_rate == old + magnitude`` after the call.
+        """
+        if shock_type == "monetary":
+            self.interest_rate += magnitude
+            self.interest_rate = np.clip(
+                self.interest_rate,
+                self.config.interest_rate_min,
+                self.config.interest_rate_max,
+            )
+            return
+
+        key_map = {
+            "demand": "demand_shock",
+            "supply": "supply_shock",
+            "fiscal": "fiscal_shock",
+            "fx": "fx_shock",
+        }
+        target_key = key_map.get(shock_type, shock_type)
+        if target_key not in self.SHOCK_KEYS:
+            raise ValueError(
+                f"Unknown shock type '{shock_type}'. "
+                f"Use one of: {list(key_map.keys())} or {self.SHOCK_KEYS}"
+            )
+
+        # Inject via shock_schedule so the next step() picks it up
+        self.config.shock_schedule.append({
+            "t": self.time + 1,
+            "type": target_key,
+            "magnitude": magnitude,
+        })
+        self.step()
+
     def run(self, steps: int) -> List[Dict[str, Any]]:
         """Run simulation for specified number of steps."""
         for _ in range(steps):

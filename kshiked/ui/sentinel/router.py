@@ -88,26 +88,6 @@ def render_sentinel_dashboard():
     theme = DARK_THEME if st.session_state.dark_mode else LIGHT_THEME
     st.markdown(generate_css(theme, st.session_state.dark_mode), unsafe_allow_html=True)
 
-    # JS-based de-zoom: set document zoom to counter Streamlit's oversized rendering
-    components.html("""
-    <script>
-        const tryZoom = () => {
-            const main = window.parent.document.querySelector('.main .block-container');
-            if (main) {
-                main.style.zoom = '0.75';
-                main.style.maxWidth = '100%';
-            }
-            const sidebar = window.parent.document.querySelector('section[data-testid="stSidebar"] > div');
-            if (sidebar) {
-                sidebar.style.zoom = '0.82';
-            }
-        };
-        tryZoom();
-        setTimeout(tryZoom, 500);
-        setTimeout(tryZoom, 1500);
-    </script>
-    """, height=0)
-
     # Pre-load card button CSS to prevent flash of unstyled content
     st.markdown(f"""<style>
     div[data-testid="stVerticalBlock"] button {{
@@ -135,12 +115,25 @@ def render_sentinel_dashboard():
     div[data-testid="stVerticalBlock"] button p:first-child {{
         font-size: 1.4rem !important;
         font-weight: 700 !important;
-        background: linear-gradient(90deg, {theme.text_primary}, {theme.accent_primary}) !important;
+        background-image: linear-gradient(
+            90deg,
+            {theme.text_muted} 0%,
+            {theme.accent_primary} 40%,
+            {theme.text_primary} 50%,
+            {theme.accent_primary} 60%,
+            {theme.text_muted} 100%
+        ) !important;
+        background-size: 200% auto !important;
         -webkit-background-clip: text !important;
         -webkit-text-fill-color: transparent !important;
         background-clip: text !important;
+        animation: shimmer-slide 4s linear infinite !important;
         letter-spacing: 2px !important;
         text-transform: uppercase !important;
+    }}
+    @keyframes shimmer-slide {{
+        0% {{ background-position: -200% center; }}
+        100% {{ background-position: 200% center; }}
     }}
     div[data-testid="stVerticalBlock"] button p:not(:first-child) {{
         font-size: 0.88rem !important;
@@ -172,11 +165,6 @@ def render_sentinel_dashboard():
         )
 
     # Navigation State
-    if "current_view" not in st.session_state:
-        st.session_state.current_view = "HOME"
-
-    # Global Sidebar Navigation (always visible, including HOME)
-    st.sidebar.title("Navigation")
     NAV_OPTIONS = {
         "Home": "HOME",
         "Live Threat Map": "LIVE_MAP",
@@ -193,10 +181,16 @@ def render_sentinel_dashboard():
         "Policy Intelligence": "POLICY_CHAT",
     }
 
-    # URL route -> view sync (stable direct navigation paths like ?view=FEDERATION).
-    query_view = _read_query_view()
-    if query_view in NAV_OPTIONS.values():
-        st.session_state.current_view = query_view
+    if "current_view" not in st.session_state:
+        # On first load, check URL for deep link
+        query_view = _read_query_view()
+        if query_view and query_view in NAV_OPTIONS.values():
+            st.session_state.current_view = query_view
+        else:
+            st.session_state.current_view = "HOME"
+
+    # Global Sidebar Navigation
+    st.sidebar.title("Navigation")
 
     view_to_name = {v: k for k, v in NAV_OPTIONS.items()}
     current_name = view_to_name.get(st.session_state.current_view, "Home")

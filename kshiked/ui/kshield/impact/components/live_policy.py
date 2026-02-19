@@ -84,7 +84,7 @@ def _load_live_policy_frame(refresh_nonce: int) -> Tuple["pd.DataFrame", Dict[st
         "file_mtime": file_mtime,
         "row_count": int(len(frame)),
         "latest_batch_rows": int(frame["is_latest_batch"].sum()),
-        "within_24h": bool((datetime.utcnow() - latest_ts.to_pydatetime().replace(tzinfo=None)) <= timedelta(hours=24)),
+        "within_24h": bool((pd.Timestamp.utcnow() - latest_ts).total_seconds() <= 86400),
     }
     return frame, freshness
 
@@ -223,7 +223,7 @@ def render_live_policy_impact(theme) -> None:
         if sectors:
             filtered = filtered[filtered["sector"].isin(sectors)]
 
-        now = datetime.utcnow()
+        now = pd.Timestamp.utcnow()
         window_delta = WINDOW_MAP[window]
         if window_delta is not None:
             cutoff = now - window_delta

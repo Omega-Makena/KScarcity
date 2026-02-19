@@ -3,6 +3,7 @@ import random
 import numpy as np
 from datetime import timedelta, datetime
 
+
 class BehaviorSimulator:
     def __init__(self, seed=42):
         random.seed(seed)
@@ -11,7 +12,8 @@ class BehaviorSimulator:
     def generate_activity_schedule(self, account, start_date, duration_days, scenario_manager=None):
         """
         Generates a schedule of posts for an account over the given duration.
-        Returns a list of tuples: (timestamp, intent, is_coordination)
+        Returns a list of dicts with: timestamp, intent, is_coordination, state,
+        and optional policy_event_id, policy_phase, stance.
         """
         timestamps = []
         current_time = start_date
@@ -20,6 +22,7 @@ class BehaviorSimulator:
         risk_band = account["risk_band"]
         baseline_rate = account["baseline_post_rate"]
         home_county = account.get("home_county", "Nairobi")
+        account_type = account.get("account_type", "Individual")
         
         # Behavior State Machine
         # States: NORMAL, ESCALATING, IDLE, RECOVERING
@@ -29,7 +32,7 @@ class BehaviorSimulator:
         for day in range(duration_days):
             daily_rate = baseline_rate
             
-            # 1. Check for Active Scenario Events
+            # 1. Check for Active Crisis Scenario Events
             active_events = []
             if scenario_manager:
                 active_events = scenario_manager.get_active_events(current_time)
@@ -41,6 +44,16 @@ class BehaviorSimulator:
                 elif event["type"] == "migration_signal" and risk_band in event["target_risk"]:
                      daily_rate *= 0.5 # Moving to encrypted channels
             
+            # 2. Check for Active Policy Events (boost tweet rate)
+            active_policy_events = []
+            if scenario_manager and hasattr(scenario_manager, "get_active_policy_events"):
+                active_policy_events = scenario_manager.get_active_policy_events(current_time)
+                # Policy events boost posting rate based on phase intensity
+                # Use diminishing returns: each additional event adds less
+                for idx, (_pe, phase) in enumerate(active_policy_events):
+                    boost = baseline_rate * phase.tweet_intensity * 0.15 / (1 + idx * 0.5)
+                    daily_rate += boost
+
             # Apply state modifiers
             if state == "ESCALATING":
                 daily_rate *= random.uniform(2.0, 5.0) # Burst activity
@@ -68,22 +81,42 @@ class BehaviorSimulator:
                 # Determine Intent
                 intent = "casual"
                 is_coordination = False
+                policy_event_id = None
+                policy_phase = None
+                stance = None
                 
-                # 2. Scenario Override Logic (The "Injector")
+                # ── Policy Event Override (checked first) ─────────────
+                policy_override = False
+                if active_policy_events and scenario_manager:
+                    for pe, phase in active_policy_events:
+                        if scenario_manager.should_account_react_to_policy(pe, phase, account):
+                            policy_event_id = pe.event_id
+                            policy_phase = phase.value
+                            stance = scenario_manager.get_policy_stance(phase, account_type)
+                            intent = scenario_manager.get_policy_intent(
+                                phase, risk_band, account_type
+                            ) or "frustration"
+                            if intent in ("mobilization", "coordination"):
+                                is_coordination = True
+                            policy_override = True
+                            break  # first matching policy event wins
+
+                # ── Crisis Scenario Override ───────────────────────────
                 scenario_override = False
-                for event in active_events:
-                    # Check targeting mapping
-                    county_match = not event["target_counties"] or home_county in event["target_counties"]
-                    risk_match = not event["target_risk"] or risk_band in event["target_risk"]
-                    
-                    if county_match and risk_match and random.random() < event["intensity"]:
-                        intent = event["type"]
-                        scenario_override = True
-                        if event["type"] in ["mobilization", "migration_signal"]:
-                             is_coordination = True
-                        break # First matching event wins
+                if not policy_override:
+                    for event in active_events:
+                        # Check targeting mapping
+                        county_match = not event["target_counties"] or home_county in event["target_counties"]
+                        risk_match = not event["target_risk"] or risk_band in event["target_risk"]
+                        
+                        if county_match and risk_match and random.random() < event["intensity"]:
+                            intent = event["type"]
+                            scenario_override = True
+                            if event["type"] in ["mobilization", "migration_signal"]:
+                                 is_coordination = True
+                            break # First matching event wins
                 
-                if not scenario_override:
+                if not policy_override and not scenario_override:
                     # Default logic fallback
                     if state == "ESCALATING":
                         rand = random.random()
@@ -126,7 +159,10 @@ class BehaviorSimulator:
                     "timestamp": post_time,
                     "intent": intent,
                     "is_coordination": is_coordination,
-                    "state": state
+                    "state": state,
+                    "policy_event_id": policy_event_id,
+                    "policy_phase": policy_phase,
+                    "stance": stance,
                 })
             
             current_time += timedelta(days=1)

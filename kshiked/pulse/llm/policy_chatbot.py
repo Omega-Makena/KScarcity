@@ -121,10 +121,13 @@ class PolicyChatbot:
         self._searcher = PolicySearchEngine(self._embeddings)
         self._predictor = PolicyPredictor(self._provider)
 
-        # Health check
+        # Health check and warm-up
         healthy = await self._provider.health_check()
         if not healthy:
             logger.warning("Ollama not reachable — chatbot will have limited functionality")
+        else:
+            # Pre-load model into memory to eliminate cold-start on first query
+            await self._provider.warm_model()
 
         self._initialized = True
         logger.info("PolicyChatbot initialized")
@@ -200,21 +203,32 @@ class PolicyChatbot:
             session.add_assistant_message(response)
             return response
 
-        # Search for evidence
+        # Search for evidence and generate prediction in parallel
+        evidence = None
+        prediction = None
         try:
-            evidence = await self._searcher.search_all(bill)
-            session.evidence = evidence
+            evidence_task = asyncio.create_task(self._searcher.search_all(bill))
+            prediction_task = asyncio.create_task(self._predictor.predict(bill, None))
+            
+            # Wait for both concurrently
+            evidence_result, prediction_result = await asyncio.gather(
+                evidence_task, prediction_task, return_exceptions=True
+            )
+            
+            if not isinstance(evidence_result, Exception):
+                evidence = evidence_result
+                session.evidence = evidence
+            else:
+                logger.warning(f"Evidence search failed: {evidence_result}")
+            
+            if not isinstance(prediction_result, Exception):
+                prediction = prediction_result
+                session.prediction = prediction
+            else:
+                logger.warning(f"Prediction failed: {prediction_result}")
+                
         except Exception as e:
-            logger.warning(f"Evidence search failed: {e}")
-            evidence = None
-
-        # Generate prediction
-        try:
-            prediction = await self._predictor.predict(bill, evidence)
-            session.prediction = prediction
-        except Exception as e:
-            logger.warning(f"Prediction failed: {e}")
-            prediction = None
+            logger.warning(f"Parallel analysis failed: {e}")
 
         # Format response
         response = self._format_bill_analysis(bill, prediction, evidence)

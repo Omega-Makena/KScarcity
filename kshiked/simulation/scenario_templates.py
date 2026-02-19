@@ -14,6 +14,192 @@ from dataclasses import dataclass, field
 import numpy as np
 
 
+# =============================================================================
+# Data-driven registries — fully extensible, nothing hardcoded
+# =============================================================================
+
+SHOCK_REGISTRY: Dict[str, Dict[str, Any]] = {
+    "demand_shock": {
+        "label": "Demand Shock",
+        "description": "Aggregate demand contraction or expansion (e.g. consumer spending, exports)",
+        "min": -0.30, "max": 0.30, "default": 0.0, "step": 0.01,
+        "unit": "ratio",
+        "examples": "Tourism collapse (-0.10), Export boom (+0.08), Consumer confidence drop (-0.05)",
+    },
+    "supply_shock": {
+        "label": "Supply Shock",
+        "description": "Production capacity disruption (e.g. oil prices, drought, input costs)",
+        "min": -0.30, "max": 0.30, "default": 0.0, "step": 0.01,
+        "unit": "ratio",
+        "examples": "Oil spike (+0.08), Drought (+0.12), Technology boost (-0.05)",
+    },
+    "fiscal_shock": {
+        "label": "Fiscal Shock",
+        "description": "Government revenue/spending shock (e.g. aid cuts, windfall, debt crisis)",
+        "min": -0.20, "max": 0.20, "default": 0.0, "step": 0.01,
+        "unit": "ratio",
+        "examples": "Aid cut (-0.04), Stimulus (+0.06), Debt crisis (-0.08)",
+    },
+    "fx_shock": {
+        "label": "FX / External Shock",
+        "description": "Exchange rate or capital flow pressure (e.g. depreciation, capital flight)",
+        "min": -0.20, "max": 0.20, "default": 0.0, "step": 0.01,
+        "unit": "ratio",
+        "examples": "KES depreciation (+0.10), Capital inflow (-0.05)",
+    },
+}
+
+POLICY_INSTRUMENT_REGISTRY: Dict[str, Dict[str, Any]] = {
+    "custom_rate": {
+        "label": "Central Bank Rate",
+        "description": "Policy interest rate set by the central bank",
+        "min": 0.01, "max": 0.25, "default": 0.07, "step": 0.0025,
+        "unit": "%", "display_scale": 100,
+        "category": "Monetary",
+    },
+    "crr": {
+        "label": "Cash Reserve Ratio",
+        "description": "Required reserve ratio for commercial banks",
+        "min": 0.0, "max": 0.15, "default": 0.0525, "step": 0.0025,
+        "unit": "%", "display_scale": 100,
+        "category": "Monetary",
+    },
+    "rate_cap": {
+        "label": "Interest Rate Cap",
+        "description": "Maximum lending rate ceiling (None = no cap)",
+        "min": 0.05, "max": 0.30, "default": 0.11, "step": 0.005,
+        "unit": "%", "display_scale": 100,
+        "category": "Monetary",
+    },
+    "custom_tax_rate": {
+        "label": "Tax Rate",
+        "description": "Effective tax rate as share of GDP",
+        "min": 0.05, "max": 0.35, "default": 0.156, "step": 0.005,
+        "unit": "%", "display_scale": 100,
+        "category": "Fiscal",
+    },
+    "custom_spending_ratio": {
+        "label": "Govt Spending / GDP",
+        "description": "Government consumption expenditure as share of GDP",
+        "min": 0.05, "max": 0.35, "default": 0.13, "step": 0.005,
+        "unit": "%", "display_scale": 100,
+        "category": "Fiscal",
+    },
+    "subsidy_rate": {
+        "label": "Subsidies / GDP",
+        "description": "Government subsidies as share of GDP",
+        "min": 0.0, "max": 0.10, "default": 0.008, "step": 0.001,
+        "unit": "%", "display_scale": 100,
+        "category": "Fiscal",
+    },
+}
+
+SHOCK_SHAPES = ["step", "pulse", "ramp", "decay"]
+
+
+def merge_shock_vectors(
+    scenarios: List["ScenarioTemplate"],
+    custom_shocks: Optional[List[Dict[str, Any]]] = None,
+    steps: int = 50,
+) -> Dict[str, np.ndarray]:
+    """
+    Merge N scenario shock vectors by additive superposition.
+
+    Each scenario's build_shock_vectors() output is summed element-wise.
+    Then custom_shocks (list of dicts with key, magnitude, onset, duration,
+    shape) are added on top.
+
+    Args:
+        scenarios: List of ScenarioTemplate objects to combine
+        custom_shocks: List of custom shock dicts, each with:
+            - key: shock type key (e.g. "demand_shock")
+            - magnitude: float
+            - onset: int (quarter)
+            - duration: int (0 = permanent)
+            - shape: str ("step", "pulse", "ramp", "decay")
+        steps: Simulation length in quarters
+
+    Returns:
+        Dict[str, np.ndarray] suitable for SFCConfig.shock_vectors
+    """
+    merged: Dict[str, np.ndarray] = {}
+
+    # Layer 1: Preset scenarios
+    for scenario in scenarios:
+        for key, vec in scenario.build_shock_vectors(steps).items():
+            if key in merged:
+                merged[key] = merged[key] + vec
+            else:
+                merged[key] = vec.copy()
+
+    # Layer 2: Custom shocks (each is an independent shock event)
+    if custom_shocks:
+        for cs in custom_shocks:
+            key = cs.get("key", "demand_shock")
+            magnitude = float(cs.get("magnitude", 0.0))
+            onset = int(cs.get("onset", 5))
+            duration = int(cs.get("duration", 0))
+            shape = cs.get("shape", "step")
+
+            if abs(magnitude) < 1e-9:
+                continue
+
+            # Build individual shock vector using same logic as ScenarioTemplate
+            temp = ScenarioTemplate(
+                id=f"custom_{key}",
+                name=f"Custom {key}",
+                description="User-defined custom shock",
+                category="Custom",
+                shocks={key: magnitude},
+                shock_onset=onset,
+                shock_duration=duration,
+                shock_shape=shape,
+            )
+            for k, v in temp.build_shock_vectors(steps).items():
+                if k in merged:
+                    merged[k] = merged[k] + v
+                else:
+                    merged[k] = v.copy()
+
+    return merged
+
+
+def merge_policy_instruments(
+    preset_keys: List[str],
+    custom_instruments: Optional[List[Dict[str, Any]]] = None,
+) -> Dict[str, Any]:
+    """
+    Merge N policy presets + custom instruments into a single overrides dict.
+
+    Later presets override earlier ones for the same key.
+    Custom instruments override everything.
+
+    Args:
+        preset_keys: List of POLICY_TEMPLATES keys to layer
+        custom_instruments: List of dicts with 'key' and 'value'
+
+    Returns:
+        Dict of config overrides for SFCConfig
+    """
+    merged: Dict[str, Any] = {}
+
+    # Layer 1: Preset policies (in order)
+    for pk in preset_keys:
+        tmpl = POLICY_TEMPLATES.get(pk, {})
+        instruments = tmpl.get("instruments", {})
+        merged.update(instruments)
+
+    # Layer 2: Custom instruments override everything
+    if custom_instruments:
+        for ci in custom_instruments:
+            key = ci.get("key", "")
+            value = ci.get("value")
+            if key and value is not None:
+                merged[key] = value
+
+    return merged
+
+
 @dataclass
 class ScenarioTemplate:
     """A named, realistic economic scenario with shocks and suggested policy."""
@@ -40,6 +226,14 @@ class ScenarioTemplate:
 
     # Real-world context / narrative for the user
     context: str = ""
+
+    def __hash__(self):
+        return hash(self.id)
+
+    def __eq__(self, other):
+        if isinstance(other, ScenarioTemplate):
+            return self.id == other.id
+        return NotImplemented
 
     def build_shock_vectors(self, steps: int = 50) -> Dict[str, np.ndarray]:
         """
@@ -149,8 +343,7 @@ POLICY_TEMPLATES = {
         "description": "Government caps fuel and food prices to control cost of living",
         "policy_mode": "custom",
         "instruments": {
-            "price_controls": {"fuel": 1.05, "food": 1.03},
-            "subsidy_rate": 0.02,  # Need subsidies to fund the caps
+            "subsidy_rate": 0.03,  # Subsidies to fund the price caps
         },
     },
 }

@@ -18,21 +18,15 @@ except ImportError:
 
 def render_impact(theme, data):
     """Render the policy impact page."""
-    st.markdown('<div class="section-header">POLICY IMPACT INTELLIGENCE</div>', unsafe_allow_html=True)
     
-    if data is None:
-        st.info("Data not loaded. Please wait...")
-        return
-    
-    # System Primitives
-    st.markdown("#### System Primitives")
-    _render_system_primitives(data, theme)
-    
-    st.markdown("---")
-    
-    # Economic Satisfaction
-    st.markdown("#### Economic Satisfaction Index")
-    _render_economic_indicators(data, theme)
+    # Redesigned: No tabs, Chat is main view, Metrics moved to sidebar (via data arg)
+    try:
+        # Explicit absolute import to avoid confusion
+        from kshiked.ui.sentinel.policy_chat import render_policy_chat_interface
+        # Pass data to the chat interface so it can render metrics in side panel
+        render_policy_chat_interface(theme, sidebar_enabled=True, show_title=True, data=data)
+    except ImportError as e:
+        st.error(f"Policy Chat module could not be loaded: {e}")
 
 
 def _render_system_primitives(data, theme):

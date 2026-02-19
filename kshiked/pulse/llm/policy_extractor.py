@@ -35,7 +35,7 @@ logger = logging.getLogger(__name__)
 
 # Try importing PDF libraries (optional)
 try:
-    import fitz as pymupdf  # PyMuPDF
+    import fitz as pymupdf  # type: ignore[import-untyped]  # PyMuPDF
     HAS_PYMUPDF = True
 except ImportError:
     HAS_PYMUPDF = False
@@ -47,7 +47,7 @@ except ImportError:
     HAS_PDFPLUMBER = False
 
 try:
-    from bs4 import BeautifulSoup
+    from bs4 import BeautifulSoup  # type: ignore[import-untyped]
     HAS_BS4 = True
 except ImportError:
     HAS_BS4 = False
@@ -216,7 +216,7 @@ class PolicyExtractor:
             BillAnalysis with extracted provisions
         """
         # Truncate very long texts to fit context window
-        max_chars = 12000
+        max_chars = 24000
         truncated = text[:max_chars]
         if len(text) > max_chars:
             truncated += f"\n\n[... truncated, {len(text) - max_chars} chars omitted ...]"
@@ -299,12 +299,26 @@ Return the full JSON structure with provisions."""
         text = await self._scrape_url(url)
         if not text or len(text.strip()) < 50:
             logger.warning(f"URL scrape yielded minimal text from {url}")
+            # Fall back to title-based analysis if we have a title
+            if title:
+                logger.info(f"Falling back to title-based analysis for: {title}")
+                bill = await self.extract_from_title(title)
+                bill.summary = (
+                    f"Note: Could not extract text from {url} "
+                    f"(page may require JavaScript or login). "
+                    f"Analysis below is based on the bill title.\n\n"
+                    + (bill.summary or "")
+                )
+                bill.source_type = "url"
+                return bill
             return BillAnalysis(
                 title=title or url,
                 source_type="url",
                 summary=f"Could not extract readable text from {url}. "
-                        "The page may require JavaScript or login.",
+                        "The page may require JavaScript or login. "
+                        "Try pasting the bill text directly instead.",
             )
+        logger.info(f"URL extraction successful: {len(text)} chars from {url}")
         return await self.extract_from_text(text, title=title, source_type="url")
 
     # ─── PDF Handling ────────────────────────────────────────────────────
@@ -340,28 +354,56 @@ Return the full JSON structure with provisions."""
     # ─── URL Scraping ────────────────────────────────────────────────────
 
     async def _scrape_url(self, url: str) -> str:
-        """Scrape text content from a URL."""
+        """Scrape text content from a URL using a real browser UA."""
         try:
             import aiohttp
             timeout = aiohttp.ClientTimeout(total=30)
+            headers = {
+                "User-Agent": (
+                    "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
+                    "AppleWebKit/537.36 (KHTML, like Gecko) "
+                    "Chrome/120.0.0.0 Safari/537.36"
+                ),
+                "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
+                "Accept-Language": "en-US,en;q=0.9",
+            }
             async with aiohttp.ClientSession(timeout=timeout) as session:
-                async with session.get(url, headers={
-                    "User-Agent": "KShield-PolicyBot/1.0"
-                }) as resp:
+                async with session.get(url, headers=headers, allow_redirects=True) as resp:
                     if resp.status != 200:
-                        logger.warning(f"URL returned HTTP {resp.status}")
+                        logger.warning(f"URL returned HTTP {resp.status} for {url}")
                         return ""
                     html = await resp.text()
 
+            if not html or len(html) < 100:
+                return ""
+
             if HAS_BS4:
                 soup = BeautifulSoup(html, "html.parser")
-                # Remove script/style elements
-                for tag in soup(["script", "style", "nav", "header", "footer"]):
+
+                # Remove non-content elements
+                for tag in soup(["script", "style", "nav", "header", "footer",
+                                 "aside", "form", "iframe", "noscript", "svg"]):
                     tag.decompose()
-                # Get text
-                text = soup.get_text(separator="\n", strip=True)
+
+                # Try to find the main article content first
+                article = (
+                    soup.find("article")
+                    or soup.find("main")
+                    or soup.find("div", class_=re.compile(r"content|article|body|post|entry", re.I))
+                    or soup.find("div", id=re.compile(r"content|article|body|main", re.I))
+                )
+
+                target = article if article else soup.body or soup
+
+                # Extract text from the target
+                text = target.get_text(separator="\n", strip=True)
                 # Clean excessive whitespace
                 text = re.sub(r"\n{3,}", "\n\n", text)
+                # Remove very short lines (likely UI elements)
+                lines = [l for l in text.split("\n") if len(l.strip()) > 20 or l.strip() == ""]
+                text = "\n".join(lines)
+
+                logger.info(f"URL scrape extracted {len(text)} chars from {url}")
                 return text
             else:
                 # Basic HTML tag stripping
@@ -370,7 +412,7 @@ Return the full JSON structure with provisions."""
                 return text.strip()
 
         except Exception as e:
-            logger.error(f"URL scrape failed: {e}")
+            logger.error(f"URL scrape failed for {url}: {e}")
             return ""
 
     # ─── Parse LLM Output ───────────────────────────────────────────────

@@ -469,17 +469,6 @@ class PulseConnector:
         # Initialize Synthetic Driver (Auto-detects missing keys -> Synthetic Mode)
         client = TwitterClient(TwitterConfig())
         
-        # Pre-seed with some real data if available
-        base_pool = []
-        try:
-            from kshiked.ui.pulse_data_loader import PulseDataLoader
-            loader = PulseDataLoader()
-            df = loader.load_combined_data()
-            if not df.empty:
-                 base_pool = list(zip(df['text'].astype(str), df['signal_type'].astype(str)))
-        except Exception as e:
-            logger.warning(f"Could not load PulseDataLoader: {e}")
-
         # Async helper for the thread
         def run_async(coro):
             try:
@@ -491,6 +480,19 @@ class PulseConnector:
 
         def streamer():
             self._streaming = True
+            
+            # MOVED: Initialize Data Loader in background thread (was blocking main thread)
+            base_pool = []
+            try:
+                from kshiked.ui.pulse_data_loader import PulseDataLoader
+                loader = PulseDataLoader()
+                df = loader.load_combined_data()
+                if not df.empty:
+                     base_pool = list(zip(df['text'].astype(str), df['signal_type'].astype(str)))
+                logger.info(f"Loaded {len(base_pool)} base posts for stream injection")
+            except Exception as e:
+                logger.warning(f"Could not load PulseDataLoader in background: {e}")
+
             # Authenticate once
             run_async(client.authenticate())
             
@@ -787,15 +789,30 @@ class PulseConnector:
         # Use Pulse state scarcity values mapped to satisfaction
         state = self._sensor.state
         try:
+            from kshiked.pulse.primitives import ResourceDomain
+            
+            # Check if we have data, otherwise fallback
+            if not state.scarcity:
+                 return self._get_demo_esi()
+
             return {
-                "Food": max(0, 1.0 - state.scarcity.get_by_name("food")),
-                "Fuel": max(0, 1.0 - state.scarcity.get_by_name("fuel")),
-                "Housing": max(0, 1.0 - state.scarcity.get_by_name("housing")),
-                "Healthcare": max(0, 1.0 - state.scarcity.get_by_name("medicine")),
-                "Transport": max(0, 1.0 - state.scarcity.get_by_name("transport")),
+                "Food": max(0, 1.0 - state.scarcity.get(ResourceDomain.FOOD, 0.5)),
+                "Fuel": max(0, 1.0 - state.scarcity.get(ResourceDomain.FUEL, 0.5)),
+                "Housing": max(0, 1.0 - state.scarcity.get(ResourceDomain.HOUSING, 0.5)),
+                "Healthcare": max(0, 1.0 - state.scarcity.get(ResourceDomain.HEALTHCARE, 0.5)),
+                "Transport": max(0, 1.0 - state.scarcity.get(ResourceDomain.EMPLOYMENT, 0.5)),
             }
-        except Exception:
+        except Exception as e:
+            logger.warning(f"Error getting ESI: {e}")
             return self._get_demo_esi()
+
+        return {
+            "Food": 0.45,
+            "Fuel": 0.30,
+            "Housing": 0.60,
+            "Healthcare": 0.55,
+            "Transport": 0.40,
+        }
     
     def get_primitives(self) -> Dict[str, Any]:
         """Get pulse engine primitives (scarcity, stress, bonds)."""
@@ -1199,11 +1216,16 @@ def get_dashboard_data(force_causal: bool = False) -> DashboardData:
     federation = FederationConnector()
     simulation = SimulationConnector()
     
-    # 2. Connect (Sequential for safety, could be parallelized)
-    scarcity.connect()
-    pulse.connect()
-    federation.connect()
-    simulation.connect()
+    # 2. Connect in parallel (each connector is independent)
+    from concurrent.futures import ThreadPoolExecutor, as_completed
+    connectors = [scarcity, pulse, federation, simulation]
+    with ThreadPoolExecutor(max_workers=4) as pool:
+        futures = {pool.submit(c.connect): c for c in connectors}
+        for fut in as_completed(futures):
+            try:
+                fut.result()
+            except Exception as exc:
+                logger.warning(f"Connector failed: {exc}")
     
     # 3. Fetch Data
     # Pulse (Real-time signals)

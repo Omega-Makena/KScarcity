@@ -1,7 +1,8 @@
 import random
 from scarcity.synthetic.vocabulary import (
     THREAT_LEXICON, SLANG_CATEGORIES, POLITICAL_SPECIFIC, 
-    HATE_TERMS, TEMPLATES, PRONOUNS, VERBS_FAIL, SATIRE_TERMS
+    HATE_TERMS, TEMPLATES, PRONOUNS, VERBS_FAIL, SATIRE_TERMS,
+    POLICY_STANCE_WORDS, POLICY_TEMPLATES, POLICY_IMPACT_CONSEQUENCES,
 )
 
 class ContentGenerator:
@@ -155,4 +156,149 @@ class ContentGenerator:
             scores["threat_score"] = max(scores["threat_score"], 0.3)
             scores["urgency_rate"] = max(scores["urgency_rate"], 0.5)
             
+        return scores
+
+    # =================================================================
+    # Policy-Reaction Tweet Generation
+    # =================================================================
+
+    def generate_policy_tweet(self, account, policy_event, phase, stance):
+        """
+        Generate a tweet reacting to a specific policy event.
+
+        Args:
+            account:      Account dict (persona info)
+            policy_event: PolicyEvent instance
+            phase:        PolicyPhase (leak, announce, react, mobilize, implement, impact, settle)
+            stance:       "anti", "pro", or "neutral"
+
+        Returns:
+            str: Generated tweet text
+        """
+        phase_name = phase.value  # e.g. "leak", "announce", etc.
+
+        # Pick template key: e.g. "leak_anti", "announce_pro", "settle"
+        if phase_name == "settle":
+            template_key = "settle"
+        else:
+            template_key = f"{phase_name}_{stance}"
+
+        templates = POLICY_TEMPLATES.get(template_key)
+        if not templates:
+            # Fallback: use the anti version or settle
+            template_key = f"{phase_name}_anti"
+            templates = POLICY_TEMPLATES.get(template_key, POLICY_TEMPLATES["settle"])
+
+        template = random.choice(templates)
+
+        # Fill policy-specific placeholders
+        text = self._fill_policy_template(template, policy_event, phase, stance)
+
+        # Also fill standard placeholders (entity, slang, etc.)
+        text = self._fill_template(text, "frustration" if stance == "anti" else "casual")
+
+        # Inject Kenyan slang for realism (40% chance)
+        if random.random() < 0.4:
+            text = self._inject_slang(text, "frustration" if stance == "anti" else "casual")
+
+        return text
+
+    def _fill_policy_template(self, template, policy_event, phase, stance):
+        """Fill policy-specific placeholders in a template."""
+        text = template
+
+        # {policy_keyword} — pick from event keywords (mix sw/en)
+        if "{policy_keyword}" in text:
+            pool = policy_event.keywords_sw + policy_event.keywords_en
+            if pool:
+                text = text.replace("{policy_keyword}", random.choice(pool))
+            else:
+                text = text.replace("{policy_keyword}", policy_event.name)
+
+        # {hashtag} — pick from event hashtags
+        if "{hashtag}" in text:
+            if policy_event.hashtags:
+                text = text.replace("{hashtag}", random.choice(policy_event.hashtags))
+            else:
+                text = text.replace("{hashtag}", "")
+
+        # Stance-specific words
+        stance_words = POLICY_STANCE_WORDS.get(stance, POLICY_STANCE_WORDS["neutral"])
+
+        if "{anti_phrase}" in text:
+            text = text.replace("{anti_phrase}", random.choice(
+                POLICY_STANCE_WORDS["anti"]["phrases"]))
+        if "{pro_phrase}" in text:
+            text = text.replace("{pro_phrase}", random.choice(
+                POLICY_STANCE_WORDS["pro"]["phrases"]))
+        if "{neutral_phrase}" in text:
+            text = text.replace("{neutral_phrase}", random.choice(
+                POLICY_STANCE_WORDS["neutral"]["phrases"]))
+
+        if "{anti_verb}" in text:
+            text = text.replace("{anti_verb}", random.choice(
+                POLICY_STANCE_WORDS["anti"]["verbs"]))
+        if "{pro_verb}" in text:
+            text = text.replace("{pro_verb}", random.choice(
+                POLICY_STANCE_WORDS["pro"]["verbs"]))
+        if "{neutral_verb}" in text:
+            text = text.replace("{neutral_verb}", random.choice(
+                POLICY_STANCE_WORDS["neutral"]["verbs"]))
+
+        if "{anti_adj}" in text:
+            text = text.replace("{anti_adj}", random.choice(
+                POLICY_STANCE_WORDS["anti"]["adjectives"]))
+        if "{pro_adj}" in text:
+            text = text.replace("{pro_adj}", random.choice(
+                POLICY_STANCE_WORDS["pro"]["adjectives"]))
+
+        # {impact_consequence}
+        if "{impact_consequence}" in text:
+            text = text.replace("{impact_consequence}", random.choice(
+                POLICY_IMPACT_CONSEQUENCES))
+
+        # {react_day} — days since announcement
+        if "{react_day}" in text:
+            text = text.replace("{react_day}", str(random.randint(1, 3)))
+
+        return text
+
+    def calculate_policy_scores(self, text, policy_event, phase, stance):
+        """
+        Calculate extended scores for a policy-reaction tweet.
+        Returns base scores + policy-specific fields.
+        """
+        # Start with base scores
+        intent_map = {
+            "leak": "rumor_mill",
+            "announce": "frustration",
+            "react": "escalation" if stance == "anti" else "casual",
+            "mobilize": "mobilization",
+            "implement": "infrastructure_stress",
+            "impact": "frustration",
+            "settle": "casual",
+        }
+        mapped_intent = intent_map.get(phase.value, "casual")
+        scores = self.calculate_scores(text, mapped_intent)
+
+        # Add policy-specific scores
+        # Sentiment score: [-1, 1] based on stance + phase intensity
+        stance_base = {"anti": -0.7, "neutral": 0.0, "pro": 0.6}
+        phase_mult = phase.tweet_intensity  # 0.2 to 1.8
+        sentiment = stance_base.get(stance, 0.0) * min(phase_mult, 1.0)
+        # Add noise
+        sentiment += random.uniform(-0.15, 0.15)
+        sentiment = max(-1.0, min(1.0, sentiment))
+        scores["sentiment_score"] = round(sentiment, 3)
+
+        # Stance score: -1 (anti), 0 (neutral), +1 (pro)
+        stance_numeric = {"anti": -1.0, "neutral": 0.0, "pro": 1.0}
+        scores["stance_score"] = stance_numeric.get(stance, 0.0)
+
+        # Policy event metadata
+        scores["policy_event_id"] = policy_event.event_id
+        scores["policy_phase"] = phase.value
+        scores["topic_cluster"] = policy_event.sector.value
+        scores["policy_severity"] = policy_event.severity
+
         return scores

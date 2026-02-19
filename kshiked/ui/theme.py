@@ -143,6 +143,13 @@ def generate_css(theme: ThemeColors, is_dark: bool = True) -> str:
         font-family: 'Space Mono', 'Courier New', monospace;
     }}
     
+    /* Compact the main content area */
+    .main .block-container {{
+        max-width: 100% !important;
+        padding-left: 2rem !important;
+        padding-right: 2rem !important;
+    }}
+    
     /* Hide Streamlit Branding */
     #MainMenu {{visibility: hidden;}}
     footer {{visibility: hidden;}}

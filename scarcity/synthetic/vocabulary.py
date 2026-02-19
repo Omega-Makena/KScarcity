@@ -278,6 +278,191 @@ VERBS_FAIL = [
 ]
 
 # ==========================================
+# 9. POLICY-REACTION VOCABULARY
+# ==========================================
+
+POLICY_STANCE_WORDS = {
+    "anti": {
+        "verbs": [
+            "reject", "oppose", "resist", "boycott", "refuse", "kataa",
+            "tunasema hapana", "hatutaki", "we say no", "must be scrapped",
+            "withdraw", "itolewe", "reverse", "rudisha"
+        ],
+        "adjectives": [
+            "unfair", "unjust", "punitive", "exploitative", "corrupt",
+            "mbaya", "si haki", "oppressive", "crushing", "heartless",
+            "greedy", "selfish", "anti-poor", "anti-people", "ya uonevu"
+        ],
+        "phrases": [
+            "this bill will kill us", "wananchi hawataki", "sisi hatupo ready",
+            "how are we supposed to survive", "tunakufa na bei",
+            "they don't care about mwananchi", "enough is enough",
+            "serikali haiskii", "they are tone deaf",
+            "punishing the poor to feed the rich"
+        ],
+    },
+    "pro": {
+        "verbs": [
+            "support", "endorse", "welcome", "appreciate", "tunaunga mkono",
+            "it's a good move", "necessary", "needed", "tunahitaji",
+            "let's give it a chance", "trust the process"
+        ],
+        "adjectives": [
+            "progressive", "bold", "historic", "transformative",
+            "necessary", "overdue", "nzuri", "ya maendeleo",
+            "beneficial", "forward-looking", "inclusive"
+        ],
+        "phrases": [
+            "this is development", "we must sacrifice for progress",
+            "the economy needs this", "serikali inajua",
+            "trust the plan", "bottom-up is working",
+            "we voted for this", "hii ni maendeleo",
+            "short term pain for long term gain"
+        ],
+    },
+    "neutral": {
+        "verbs": [
+            "waiting to see", "let's observe", "time will tell",
+            "tunaangalia", "we shall see", "tutaona"
+        ],
+        "adjectives": [
+            "unclear", "mixed", "complicated", "complex",
+            "haijulikani", "uncertain", "debatable"
+        ],
+        "phrases": [
+            "I don't know what to think yet", "both sides have a point",
+            "let me read the details first", "bado tusome",
+            "not sure about this one", "naangalia tu",
+            "this could go either way", "we need more information"
+        ],
+    },
+}
+
+POLICY_TEMPLATES = {
+    # ── LEAK phase: rumor / speculation ────────────────────────────────
+    "leak_anti": [
+        "Wasee I heard {entity} is planning {policy_keyword}. Hii itakuwa mbaya. {hashtag}",
+        "Sources say {policy_keyword} is coming. {anti_phrase}. {hashtag}",
+        "Kuna mchezo inaendelea about {policy_keyword}. {slang_frustration}",
+        "They're quietly pushing {policy_keyword}. {anti_adj} move. Thread 🧵",
+        "Nimesikia serikali wants {policy_keyword}. {anti_verb} this before it's too late!",
+    ],
+    "leak_neutral": [
+        "Anyone heard about the {policy_keyword} rumors? What's the deal?",
+        "Apparently {policy_keyword} might happen. {neutral_phrase}",
+        "Is it true about {policy_keyword}? {slang_internet} help me understand.",
+        "Breaking: {policy_keyword} possibly in the works. Developing story...",
+    ],
+    "leak_pro": [
+        "Finally! {policy_keyword} is being considered. {pro_phrase}. {hashtag}",
+        "Good news on {policy_keyword}. {pro_adj} step. {slang_urban}",
+    ],
+
+    # ── ANNOUNCE phase: official reaction ─────────────────────────────
+    "announce_anti": [
+        "BREAKING: {entity} just announced {policy_keyword}. {anti_phrase}! {hashtag}",
+        "{entity} has done it. {policy_keyword} is real. {anti_verb} this NOW! {hashtag}",
+        "So they really went ahead with {policy_keyword}. {slang_frustration}. {anti_adj}!",
+        "Haha {satire_nickname} has announced {policy_keyword}. {slang_sarcastic}. {hashtag}",
+        "Wakenya, {policy_keyword} is official. {imperative}! {anti_phrase} {hashtag}",
+    ],
+    "announce_neutral": [
+        "Govt has announced {policy_keyword}. Let's read the fine print first.",
+        "{policy_keyword} is now official. {neutral_phrase}. {slang_internet}",
+        "So {policy_keyword} is happening. What do you all think? {hashtag}",
+    ],
+    "announce_pro": [
+        "{entity} announces {policy_keyword}. {pro_phrase}. {hashtag}",
+        "Good move on {policy_keyword}. {pro_adj} decision. We support.",
+        "Finally {policy_keyword}. {pro_phrase}. Let's give it a chance. {hashtag}",
+    ],
+
+    # ── REACT phase: emotional response wave ──────────────────────────
+    "react_anti": [
+        "{anti_phrase}! {policy_keyword} will destroy us. {slang_escalation} {hashtag}",
+        "Day {react_day} of {policy_keyword} and watu wamechoka already. {anti_verb}! {hashtag}",
+        "{slang_frustration}. {policy_keyword} must be reversed. {imperative}. {hashtag}",
+        "My mama just asked me what {policy_keyword} means for her. {anti_phrase}. {hashtag}",
+        "Calculate how much {policy_keyword} costs you per month. {slang_internet}. It's {anti_adj}. {hashtag}",
+        "{entity} thinks we will accept {policy_keyword}? {threat_like}. {hashtag}",
+    ],
+    "react_pro": [
+        "People overreacting about {policy_keyword}. {pro_phrase}. {hashtag}",
+        "Calm down about {policy_keyword}. {pro_adj} reform needs time. {hashtag}",
+    ],
+    "react_neutral": [
+        "Still processing {policy_keyword}. {neutral_phrase}.",
+        "The experts are divided on {policy_keyword}. {slang_internet}",
+    ],
+
+    # ── MOBILIZE phase: organization and action ───────────────────────
+    "mobilize_anti": [
+        "{crowd}! {mobilization} against {policy_keyword}. {coordination}. {hashtag}",
+        "Tuesday we march against {policy_keyword}. {location}. {imperative}! {hashtag}",
+        "{urgency} {anti_verb} {policy_keyword}! Share this poster 👇 {hashtag}",
+        "Every Kenyan must oppose {policy_keyword}. {slang_protest}. {hashtag}",
+        "Gen Z + Millennials + Everyone: {anti_verb} {policy_keyword}. {persistence}. {hashtag}",
+        "Organizers: {coordination}. Target is {policy_keyword}. {slang_coordination}. {hashtag}",
+    ],
+    "mobilize_pro": [
+        "Don't let the opposition mislead you about {policy_keyword}. {pro_phrase}. {hashtag}",
+        "Silent majority supports {policy_keyword}. Don't be swayed by noise. {hashtag}",
+    ],
+
+    # ── IMPLEMENT phase: policy takes effect ──────────────────────────
+    "implement_anti": [
+        "Day 1 of {policy_keyword} and already {slang_frustration}. {anti_phrase}. {hashtag}",
+        "{policy_keyword} just hit my payslip. {anti_adj}. {slang_escalation}. {hashtag}",
+        "Watu wanalia about {policy_keyword} everywhere. Check the math. {hashtag}",
+        "First M-Pesa statement since {policy_keyword}... {slang_sarcastic}. {anti_phrase}.",
+    ],
+    "implement_neutral": [
+        "First experience with {policy_keyword}. {neutral_phrase}. We shall see.",
+        "{policy_keyword} is now live. Anyone noticed a difference? {slang_internet}",
+    ],
+    "implement_pro": [
+        "{policy_keyword} rollout going smoothly. {pro_phrase}. {hashtag}",
+        "Give {policy_keyword} time. {pro_adj} reforms take patience.",
+    ],
+
+    # ── IMPACT phase: visible consequences ────────────────────────────
+    "impact_anti": [
+        "Because of {policy_keyword}: {impact_consequence}. {anti_phrase}. {hashtag}",
+        "3 weeks of {policy_keyword} and {impact_consequence}. {slang_frustration}. {hashtag}",
+        "{impact_consequence}. This is what {policy_keyword} gave us. {entity} must answer. {hashtag}",
+        "My neighbor lost {impact_consequence} because of {policy_keyword}. {anti_adj}.",
+    ],
+    "impact_pro": [
+        "{policy_keyword} is already showing results. {pro_phrase}. {hashtag}",
+        "Revenue collections up since {policy_keyword}. {pro_adj}. Economy growing.",
+    ],
+    "impact_neutral": [
+        "{policy_keyword} impact is mixed. {neutral_phrase}.",
+        "Some benefiting, some hurting from {policy_keyword}. {slang_internet}.",
+    ],
+
+    # ── SETTLE phase: fatigue / normalization ─────────────────────────
+    "settle": [
+        "Remember when {policy_keyword} was the biggest issue? {slang_sarcastic}",
+        "We moved on from {policy_keyword}. {gen_z_proverb}.",
+        "The new normal after {policy_keyword}. {slang_urban}.",
+        "{policy_keyword} is old news. But the effects remain. {neutral_phrase}.",
+    ],
+}
+
+POLICY_IMPACT_CONSEQUENCES = [
+    "transport costs up 30%", "matatu fare doubled", "food prices soaring",
+    "small businesses closing", "kiosks shutting down", "workers laid off",
+    "M-Pesa transactions dropped", "hawkers displaced from CBD",
+    "hospital bills unpaid", "students dropping out",
+    "farmers dumping produce", "factories closing",
+    "rent defaulters increasing", "digital businesses relocating",
+    "informal sector workers suffering", "jua kali affected",
+    "cost of unga through the roof", "power outages increased",
+    "loan defaults rising", "savings wiped out"
+]
+
+# ==========================================
 # 7. GEOLOCATION DEFINITIONS (County Level)
 # ==========================================
 
