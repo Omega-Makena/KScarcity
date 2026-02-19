@@ -59,6 +59,18 @@ INSTAGRAM_USERNAME=xxx
 INSTAGRAM_PASSWORD=xxx
 FACEBOOK_EMAIL=xxx
 FACEBOOK_PASSWORD=xxx
+
+# X backend routing (default: web primary, legacy fallback)
+X_BACKEND_MODE=web_primary
+X_WEB_USERNAME=xxx
+X_WEB_PASSWORD=xxx
+X_WEB_EMAIL=xxx
+X_WEB_PROXIES=http://proxy1:8080,http://proxy2:8080
+X_WEB_SESSION_COOKIES=data/pulse/.x_cookies.json,data/pulse/.x_cookies_2.json
+X_WEB_CHECKPOINT_PATH=data/pulse/x_scraper_checkpoint.json
+X_WEB_RESUME_FROM_CHECKPOINT=true
+X_WEB_DETECTION_COOLDOWN_HOURS=24
+X_WEB_EXPORT_CSV=true
 ```
 
 ### 3. Run Pipeline
@@ -80,7 +92,7 @@ print(result["threat_summary"])
 
 | Platform | Library | Auth Required |
 |----------|---------|---------------|
-| X/Twitter | twscrape + ntscraper | Optional (Nitter fallback) |
+| X/Twitter | Twikit (primary) + twscrape/ntscraper (fallback) | Optional (cookies/session auth) |
 | Reddit | PRAW | Yes (free API) |
 | Telegram | Telethon | Yes (API ID/Hash) |
 | Instagram | Instaloader | Optional |
@@ -156,6 +168,21 @@ async with IngestionOrchestrator(config) as orchestrator:
     
     # Run continuously
     await orchestrator.run(duration_hours=24)
+```
+
+X backend modes for orchestrator:
+- `web_primary` (default): Twikit path first, then automatic legacy fallback.
+- `web_only`: Twikit only, fail fast if unavailable.
+- `legacy_default`: twscrape/ntscraper first, then Twikit fallback.
+- `legacy_only`: legacy only.
+
+For X runs, orchestrator now keeps both:
+- DB ingestion via `ScraperResult -> SocialPost`
+- CSV artifacts at `data/pulse/x_kenya_tweets.csv`, `data/pulse/x_kenya_accounts.csv`, `data/pulse/x_kenya_dashboard.csv`.
+
+Verification command:
+```bash
+pytest -q tests/test_x_web_scraper.py tests/test_x_pipeline_integration.py
 ```
 
 ### PipelineIntegration

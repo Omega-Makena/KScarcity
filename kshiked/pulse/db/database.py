@@ -349,6 +349,18 @@ class Database:
             result = await session.execute(stmt)
             count = result.scalar()
             return count > 0
+
+    async def get_post(self, platform: str, platform_id: str) -> Optional[SocialPost]:
+        """Fetch a single post by (platform, platform_id)."""
+        from sqlalchemy import select
+
+        async with self.session() as session:
+            stmt = select(SocialPost).where(
+                SocialPost.platform == platform,
+                SocialPost.platform_id == platform_id,
+            ).limit(1)
+            result = await session.execute(stmt)
+            return result.scalar_one_or_none()
     
     async def get_unprocessed_posts(
         self, 

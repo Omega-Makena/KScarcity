@@ -2,13 +2,15 @@
 X (Twitter) Scraper for KShield Pulse
 
 Multi-strategy X scraper:
-1. Official API via existing x_client.py (if bearer token configured)
+1. Twikit web scraper (`x_web_scraper.py`) with session/proxy rotation
 2. twscrape - Uses X accounts for scraping (no API key needed)
 3. ntscraper - Scrapes via Nitter instances (no auth required)
+4. Official API via existing x_client.py (if bearer token configured)
 
 Usage:
     config = XScraperConfig(
-        # For twscrape (recommended)
+        backend_mode="web_primary",
+        # For twscrape/legacy
         accounts=[
             XAccount(username="account1", password="pass1", email="email1@example.com"),
         ],
@@ -29,16 +31,20 @@ from __future__ import annotations
 import asyncio
 import logging
 import re
+from pathlib import Path
 from dataclasses import dataclass, field
 from datetime import datetime
-from typing import Optional, List, Dict, Any
+from typing import Optional, List, Dict, Any, TYPE_CHECKING
 
 from .base import (
     BaseScraper, ScraperResult, ScraperError, RateLimitError,
-    BlockedError, AuthenticationError, Platform, RateLimiter, RetryPolicy,
+    AuthenticationError, Platform, RateLimiter, RetryPolicy,
 )
 
 logger = logging.getLogger("kshield.pulse.scrapers.x")
+
+if TYPE_CHECKING:
+    from .x_web_scraper import KenyaXScraper, ScrapedTweet
 
 
 # =============================================================================
@@ -59,11 +65,15 @@ class XScraperConfig:
     """
     Configuration for X scraper.
     
-    Supports three modes:
-    1. API mode: Uses bearer_token with existing x_client.py
-    2. twscrape mode: Uses accounts list for authenticated scraping
-    3. ntscraper mode: Uses Nitter instances (no auth required)
+    Backend modes:
+    1. web_primary: Twikit first, fallback to legacy backends
+    2. web_only: Twikit only (raise on web failure)
+    3. legacy_default: Legacy first, fallback to Twikit
+    4. legacy_only: Legacy only
     """
+    # Backend routing mode
+    backend_mode: str = "web_primary"
+
     # For API mode (plug in when available)
     api_key: str = ""
     api_secret: str = ""
@@ -91,6 +101,29 @@ class XScraperConfig:
     # Rate limiting
     requests_per_minute: float = 20
 
+    # Web backend auth/session/proxy/checkpoint controls
+    web_username: str = ""
+    web_password: str = ""
+    web_email: str = ""
+    web_cookie_path: str = ""
+    web_output_dir: str = ""
+    web_session_config_path: str = ""
+    web_proxies: List[str] = field(default_factory=list)
+    web_session_cookies: List[str] = field(default_factory=list)
+    web_checkpoint_path: str = "data/pulse/x_scraper_checkpoint.json"
+    web_enable_checkpoint: bool = True
+    web_resume_from_checkpoint: bool = True
+    web_checkpoint_every_pages: int = 1
+    web_rotate_on_rate_limit: bool = True
+    web_rotate_on_detection: bool = True
+    web_request_delay_s: float = 1.2
+    web_query_delay_s: float = 3.0
+    web_request_jitter_s: float = 0.0
+    web_query_jitter_s: float = 0.0
+    web_detection_cooldown_hours: float = 24.0
+    web_wait_if_cooldown_active: bool = False
+    web_export_csv: bool = True
+
 
 # =============================================================================
 # X Scraper Implementation
@@ -100,10 +133,7 @@ class XScraper(BaseScraper):
     """
     X (Twitter) scraper with multiple fallback strategies.
     
-    Strategy order:
-    1. If bearer_token configured → Use official API (x_client.py)
-    2. If accounts configured → Use twscrape
-    3. Fallback → Use ntscraper (Nitter)
+    Strategy is controlled by `XScraperConfig.backend_mode`.
     """
     
     def __init__(
@@ -124,22 +154,136 @@ class XScraper(BaseScraper):
         self._twscrape_api = None
         self._ntscraper = None
         self._x_client = None
-    
+        self._web_scraper: Optional["KenyaXScraper"] = None
+        self._web_export_cache: Dict[str, "ScrapedTweet"] = {}
+
+    @staticmethod
+    def _resolve_path(path_value: str) -> Optional[Path]:
+        if not path_value:
+            return None
+        return Path(path_value).expanduser()
+
+    @staticmethod
+    def _split_csv_field(value: Optional[str]) -> List[str]:
+        if not value:
+            return []
+        return [item.strip() for item in value.split(",") if item and item.strip()]
+
     @property
     def platform(self) -> Platform:
         return Platform.TWITTER
-    
+
     async def _initialize(self) -> None:
         """Initialize available scraping backends."""
-        # Try to initialize twscrape if accounts configured
+        mode = (self.config.backend_mode or "web_primary").lower()
+        web_enabled = mode in {"web_primary", "web_only", "legacy_default"}
+        legacy_enabled = mode in {"web_primary", "legacy_default", "legacy_only"}
+
+        if web_enabled:
+            await self._init_web_scraper()
+
+        if legacy_enabled:
+            await self._init_legacy_backends()
+
+        if mode == "web_only" and not self._web_scraper:
+            raise ScraperError("web_only backend mode requested, but web backend failed to initialize.")
+
+        if mode == "legacy_only" and not self._has_legacy_backend():
+            raise ScraperError("legacy_only backend mode requested, but no legacy backend initialized.")
+
+        if mode == "web_primary" and not (self._web_scraper or self._has_legacy_backend()):
+            raise ScraperError("No X backend available (web and legacy both unavailable).")
+
+        if mode == "legacy_default" and not (self._has_legacy_backend() or self._web_scraper):
+            raise ScraperError("No X backend available (legacy and web both unavailable).")
+
+        logger.info(
+            "X scraper initialized: mode=%s web=%s twscrape=%s ntscraper=%s",
+            mode,
+            self._web_scraper is not None,
+            self._twscrape_api is not None,
+            self._ntscraper is not None,
+        )
+
+    async def _init_web_scraper(self) -> None:
+        """Initialize Twikit-based web scraper backend."""
+        try:
+            from .x_web_scraper import (
+                KenyaXScraper,
+                _load_session_configs_from_file,
+            )
+        except Exception as e:
+            if (self.config.backend_mode or "").lower() == "web_only":
+                raise ScraperError(f"Failed to import web backend: {e}") from e
+            logger.warning("Web backend unavailable (import failed): %s", e)
+            return
+
+        session_configs = None
+        if self.config.web_session_config_path:
+            config_path = self._resolve_path(self.config.web_session_config_path)
+            if config_path:
+                try:
+                    base_cookie = self._resolve_path(self.config.web_cookie_path) or Path(
+                        "data/pulse/.x_cookies.json"
+                    )
+                    session_configs = _load_session_configs_from_file(
+                        path=config_path,
+                        default_username=self.config.web_username,
+                        default_password=self.config.web_password,
+                        default_email=self.config.web_email,
+                        base_cookie_path=base_cookie,
+                    )
+                except Exception as e:
+                    if (self.config.backend_mode or "").lower() == "web_only":
+                        raise ScraperError(f"Failed to load web session config: {e}") from e
+                    logger.warning("Failed to load web session config '%s': %s", config_path, e)
+
+        session_cookie_paths = [
+            self._resolve_path(raw)
+            for raw in self.config.web_session_cookies
+            if self._resolve_path(raw) is not None
+        ]
+
+        try:
+            self._web_scraper = KenyaXScraper(
+                username=self.config.web_username,
+                password=self.config.web_password,
+                email=self.config.web_email,
+                cookie_path=self._resolve_path(self.config.web_cookie_path),
+                output_dir=self._resolve_path(self.config.web_output_dir),
+                session_configs=session_configs,
+                proxies=[p for p in self.config.web_proxies if p],
+                session_cookie_paths=session_cookie_paths or None,
+                checkpoint_path=self._resolve_path(self.config.web_checkpoint_path),
+                enable_checkpoint=self.config.web_enable_checkpoint,
+                resume_from_checkpoint=self.config.web_resume_from_checkpoint,
+                checkpoint_every_pages=self.config.web_checkpoint_every_pages,
+                rotate_on_rate_limit=self.config.web_rotate_on_rate_limit,
+                rotate_on_detection=self.config.web_rotate_on_detection,
+                request_delay_s=self.config.web_request_delay_s,
+                query_delay_s=self.config.web_query_delay_s,
+                request_jitter_s=self.config.web_request_jitter_s,
+                query_jitter_s=self.config.web_query_jitter_s,
+                detection_cooldown_hours=self.config.web_detection_cooldown_hours,
+                wait_if_cooldown_active=self.config.web_wait_if_cooldown_active,
+            )
+            await self._web_scraper.initialize()
+            logger.info("Web backend initialized")
+        except Exception as e:
+            self._web_scraper = None
+            if (self.config.backend_mode or "").lower() == "web_only":
+                raise ScraperError(f"Web backend initialization failed: {e}") from e
+            logger.warning("Web backend initialization failed: %s", e)
+
+    async def _init_legacy_backends(self) -> None:
+        """Initialize legacy backends (twscrape + ntscraper)."""
         if self.config.accounts:
             await self._init_twscrape()
-        
-        # ntscraper is always available as fallback
         self._init_ntscraper()
-        
-        logger.info(f"X scraper initialized. twscrape={self._twscrape_api is not None}, ntscraper={self._ntscraper is not None}")
-    
+
+    def _has_legacy_backend(self) -> bool:
+        return self._twscrape_api is not None or self._ntscraper is not None
+
     async def _init_twscrape(self) -> None:
         """Initialize twscrape with configured accounts."""
         try:
@@ -193,28 +337,144 @@ class XScraper(BaseScraper):
         since: Optional[datetime] = None,
     ) -> List[ScraperResult]:
         """
-        Scrape X using best available method.
-        
-        Tries in order:
-        1. twscrape (if accounts configured)
-        2. ntscraper (Nitter fallback)
+        Scrape X using configured backend routing.
         """
-        # Try twscrape first
+        mode = (self.config.backend_mode or "web_primary").lower()
+
+        if mode == "web_only":
+            return await self._scrape_web(query, limit, since)
+
+        if mode == "legacy_only":
+            return await self._scrape_legacy(query, limit, since)
+
+        if mode == "legacy_default":
+            try:
+                return await self._scrape_legacy(query, limit, since)
+            except Exception as e:
+                logger.warning("Legacy backend failed: %s, trying web backend", e)
+                return await self._scrape_web(query, limit, since)
+
+        # default: web_primary
+        try:
+            return await self._scrape_web(query, limit, since)
+        except Exception as e:
+            logger.warning("Web backend failed: %s, falling back to legacy backend", e)
+            return await self._scrape_legacy(query, limit, since)
+
+    async def _scrape_web(
+        self,
+        query: str,
+        limit: int,
+        since: Optional[datetime] = None,
+    ) -> List[ScraperResult]:
+        """Scrape using Twikit-based web backend."""
+        if not self._web_scraper:
+            raise ScraperError("Web scraper is not initialized")
+
+        try:
+            tweets = await self._web_scraper.search_tweets(query, limit=limit)
+        except Exception as e:
+            if "rate" in str(e).lower() or "429" in str(e):
+                raise RateLimitError(f"Web scraper rate limit hit: {e}") from e
+            raise ScraperError(f"Web scraper error: {e}") from e
+
+        results: List[ScraperResult] = []
+        for tweet in tweets:
+            mapped = self._parse_web_tweet(tweet)
+            if not mapped:
+                continue
+            if since and mapped.posted_at < since:
+                continue
+            results.append(mapped)
+            if len(results) >= limit:
+                break
+
+        if self.config.web_export_csv:
+            try:
+                for tweet in tweets:
+                    self._web_export_cache[tweet.tweet_id] = tweet
+                self._web_scraper.save_tweets_csv(tweets)
+                self._web_scraper.save_accounts_csv(self._web_scraper.get_accounts())
+                self._web_scraper.export_dashboard_csv(list(self._web_export_cache.values()))
+            except Exception as e:
+                logger.warning("Failed exporting web CSV artifacts: %s", e)
+
+        logger.info("Web backend returned %s tweets for '%s'", len(results), query)
+        return results
+
+    def _parse_web_tweet(self, tweet: "ScrapedTweet") -> Optional[ScraperResult]:
+        """Convert x_web_scraper ScrapedTweet to ScraperResult."""
+        try:
+            posted_at = tweet.created_at
+            if not isinstance(posted_at, datetime):
+                posted_at = datetime.utcnow()
+
+            scraped_at = datetime.utcnow()
+            if tweet.scraped_at:
+                try:
+                    scraped_at = datetime.fromisoformat(tweet.scraped_at.replace("Z", "+00:00"))
+                except Exception:
+                    scraped_at = datetime.utcnow()
+
+            return ScraperResult(
+                platform=Platform.TWITTER,
+                platform_id=str(tweet.tweet_id),
+                text=tweet.text,
+                language=tweet.language or "en",
+                author_id=tweet.author_id or None,
+                author_username=tweet.author_username or None,
+                author_display_name=tweet.author_display_name or None,
+                author_followers=tweet.author_followers or None,
+                author_verified=bool(tweet.author_verified),
+                likes=int(tweet.like_count or 0),
+                shares=int(tweet.retweet_count or 0),
+                replies=int(tweet.reply_count or 0),
+                views=int(tweet.view_count or 0),
+                hashtags=self._split_csv_field(tweet.hashtags),
+                mentions=self._split_csv_field(tweet.mentions),
+                urls=self._split_csv_field(tweet.urls),
+                media_urls=self._split_csv_field(tweet.media_urls),
+                geo_location=tweet.location_county or None,
+                mentioned_locations=self._split_csv_field(tweet.mentioned_counties),
+                reply_to_id=tweet.reply_to_tweet_id or None,
+                conversation_id=tweet.conversation_id or None,
+                posted_at=posted_at,
+                scraped_at=scraped_at,
+                raw_data={
+                    "source": tweet.source,
+                    "reply_to_user": tweet.reply_to_user,
+                    "is_retweet": bool(tweet.is_retweet),
+                    "is_quote": bool(tweet.is_quote),
+                    "latitude": tweet.latitude,
+                    "longitude": tweet.longitude,
+                    "author_location": tweet.author_location,
+                    "author_bio": tweet.author_bio,
+                },
+            )
+        except Exception as e:
+            logger.warning("Failed to parse web tweet: %s", e)
+            return None
+
+    async def _scrape_legacy(
+        self,
+        query: str,
+        limit: int,
+        since: Optional[datetime] = None,
+    ) -> List[ScraperResult]:
+        """Scrape using legacy backends (twscrape then ntscraper)."""
         if self._twscrape_api:
             try:
                 return await self._scrape_twscrape(query, limit, since)
             except Exception as e:
-                logger.warning(f"twscrape failed: {e}, falling back to ntscraper")
-        
-        # Fallback to ntscraper
+                logger.warning("twscrape failed: %s, falling back to ntscraper", e)
+
         if self._ntscraper:
             try:
                 return await self._scrape_ntscraper(query, limit, since)
             except Exception as e:
-                logger.error(f"ntscraper also failed: {e}")
-                raise ScraperError(f"All X scraping methods failed: {e}")
-        
-        raise ScraperError("No X scraping backend available. Install twscrape or ntscraper.")
+                raise ScraperError(f"Legacy X scraping failed: {e}") from e
+
+        raise ScraperError("No legacy X backend available. Install twscrape or ntscraper.")
     
     async def _scrape_twscrape(
         self,
@@ -456,6 +716,17 @@ class XScraper(BaseScraper):
     
     async def close(self) -> None:
         """Clean up resources."""
+        if self._web_scraper:
+            try:
+                close_method = getattr(self._web_scraper, "close", None)
+                if callable(close_method):
+                    result = close_method()
+                    if asyncio.iscoroutine(result):
+                        await result
+            except Exception:
+                pass
+            self._web_scraper = None
+
         if self._twscrape_api:
             # twscrape doesn't need explicit cleanup
             self._twscrape_api = None
@@ -476,6 +747,7 @@ def create_x_scraper(
     accounts: Optional[List[Dict[str, str]]] = None,
     nitter_instances: Optional[List[str]] = None,
     bearer_token: Optional[str] = None,
+    backend_mode: str = "web_primary",
 ) -> XScraper:
     """
     Create X scraper with specified configuration.
@@ -484,6 +756,7 @@ def create_x_scraper(
         accounts: List of account dicts with username, password, email.
         nitter_instances: List of Nitter instance URLs.
         bearer_token: Official API bearer token (if available).
+        backend_mode: Backend routing mode for X scraping.
         
     Returns:
         Configured XScraper instance.
@@ -501,6 +774,7 @@ def create_x_scraper(
         ]
     
     config = XScraperConfig(
+        backend_mode=backend_mode,
         accounts=account_objs,
         nitter_instances=nitter_instances or XScraperConfig().nitter_instances,
         bearer_token=bearer_token or "",

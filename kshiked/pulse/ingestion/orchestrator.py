@@ -25,6 +25,7 @@ Usage:
 from __future__ import annotations
 
 import asyncio
+import json
 import logging
 import os
 from dataclasses import dataclass, field
@@ -33,7 +34,7 @@ from typing import Optional, List, Dict, Any, Callable
 
 from ..db import Database, DatabaseConfig, SocialPost, PriceSnapshot
 from ..scrapers.base import BaseScraper, ScraperResult
-from ..scrapers.x_scraper import XScraper, XScraperConfig
+from ..scrapers.x_scraper import XScraper, XScraperConfig, XAccount
 from ..scrapers.reddit_scraper import RedditScraper, RedditScraperConfig
 from ..scrapers.telegram_scraper import TelegramScraper, TelegramScraperConfig
 from ..scrapers.instagram_scraper import InstagramScraper, InstagramScraperConfig
@@ -66,6 +67,28 @@ class IngestionConfig:
         "https://nitter.net",
     ])
     x_bearer_token: str = ""
+    x_backend_mode: str = "web_primary"
+    x_web_username: str = ""
+    x_web_password: str = ""
+    x_web_email: str = ""
+    x_web_cookie_path: str = ""
+    x_web_output_dir: str = ""
+    x_web_session_config_path: str = ""
+    x_web_proxies: List[str] = field(default_factory=list)
+    x_web_session_cookies: List[str] = field(default_factory=list)
+    x_web_checkpoint_path: str = "data/pulse/x_scraper_checkpoint.json"
+    x_web_enable_checkpoint: bool = True
+    x_web_resume_from_checkpoint: bool = True
+    x_web_checkpoint_every_pages: int = 1
+    x_web_rotate_on_rate_limit: bool = True
+    x_web_rotate_on_detection: bool = True
+    x_web_request_delay_s: float = 1.2
+    x_web_query_delay_s: float = 3.0
+    x_web_request_jitter_s: float = 0.0
+    x_web_query_jitter_s: float = 0.0
+    x_web_detection_cooldown_hours: float = 24.0
+    x_web_wait_if_cooldown_active: bool = False
+    x_web_export_csv: bool = True
     
     # Reddit
     reddit_client_id: str = ""
@@ -124,9 +147,60 @@ class IngestionConfig:
     @classmethod
     def from_env(cls) -> "IngestionConfig":
         """Load configuration from environment variables."""
+        def _split_csv(raw: str) -> List[str]:
+            return [item.strip() for item in raw.split(",") if item.strip()]
+
+        def _env_bool(name: str, default: bool) -> bool:
+            raw = os.getenv(name)
+            if raw is None:
+                return default
+            return raw.strip().lower() in {"1", "true", "yes", "y", "on"}
+
+        x_accounts: List[Dict[str, str]] = []
+        raw_accounts = os.getenv("X_ACCOUNTS_JSON", "").strip()
+        if raw_accounts:
+            try:
+                parsed = json.loads(raw_accounts)
+                if isinstance(parsed, list):
+                    x_accounts = [acc for acc in parsed if isinstance(acc, dict)]
+            except Exception:
+                logger.warning("Failed to parse X_ACCOUNTS_JSON, ignoring.")
+
+        x_nitter_instances = _split_csv(os.getenv("X_NITTER_INSTANCES", ""))
+        x_web_proxies = _split_csv(
+            os.getenv("X_WEB_PROXIES", os.getenv("X_PROXIES", ""))
+        )
+        x_web_session_cookies = _split_csv(
+            os.getenv("X_WEB_SESSION_COOKIES", os.getenv("X_SESSION_COOKIES", ""))
+        )
+
         return cls(
             database_url=os.getenv("DATABASE_URL"),
+            x_accounts=x_accounts,
             x_bearer_token=os.getenv("X_BEARER_TOKEN", ""),
+            x_nitter_instances=x_nitter_instances or cls().x_nitter_instances,
+            x_backend_mode=os.getenv("X_BACKEND_MODE", "web_primary"),
+            x_web_username=os.getenv("X_WEB_USERNAME", os.getenv("X_USERNAME", "")),
+            x_web_password=os.getenv("X_WEB_PASSWORD", os.getenv("X_PASSWORD", "")),
+            x_web_email=os.getenv("X_WEB_EMAIL", os.getenv("X_EMAIL", "")),
+            x_web_cookie_path=os.getenv("X_WEB_COOKIE_PATH", ""),
+            x_web_output_dir=os.getenv("X_WEB_OUTPUT_DIR", ""),
+            x_web_session_config_path=os.getenv("X_WEB_SESSION_CONFIG_PATH", os.getenv("X_SESSION_CONFIG", "")),
+            x_web_proxies=x_web_proxies,
+            x_web_session_cookies=x_web_session_cookies,
+            x_web_checkpoint_path=os.getenv("X_WEB_CHECKPOINT_PATH", "data/pulse/x_scraper_checkpoint.json"),
+            x_web_enable_checkpoint=_env_bool("X_WEB_ENABLE_CHECKPOINT", True),
+            x_web_resume_from_checkpoint=_env_bool("X_WEB_RESUME_FROM_CHECKPOINT", True),
+            x_web_checkpoint_every_pages=max(1, int(os.getenv("X_WEB_CHECKPOINT_EVERY_PAGES", "1"))),
+            x_web_rotate_on_rate_limit=_env_bool("X_WEB_ROTATE_ON_RATE_LIMIT", True),
+            x_web_rotate_on_detection=_env_bool("X_WEB_ROTATE_ON_DETECTION", True),
+            x_web_request_delay_s=float(os.getenv("X_WEB_REQUEST_DELAY_S", "1.2")),
+            x_web_query_delay_s=float(os.getenv("X_WEB_QUERY_DELAY_S", "3.0")),
+            x_web_request_jitter_s=float(os.getenv("X_WEB_REQUEST_JITTER_S", "0.0")),
+            x_web_query_jitter_s=float(os.getenv("X_WEB_QUERY_JITTER_S", "0.0")),
+            x_web_detection_cooldown_hours=float(os.getenv("X_WEB_DETECTION_COOLDOWN_HOURS", "24.0")),
+            x_web_wait_if_cooldown_active=_env_bool("X_WEB_WAIT_IF_COOLDOWN_ACTIVE", False),
+            x_web_export_csv=_env_bool("X_WEB_EXPORT_CSV", True),
             reddit_client_id=os.getenv("REDDIT_CLIENT_ID", ""),
             reddit_client_secret=os.getenv("REDDIT_CLIENT_SECRET", ""),
             telegram_api_id=int(os.getenv("TELEGRAM_API_ID", "0")),
@@ -195,10 +269,48 @@ class IngestionOrchestrator:
     
     async def _init_scrapers(self) -> None:
         """Initialize social media scrapers."""
+        x_accounts = []
+        for acc in self.config.x_accounts:
+            username = str(acc.get("username", "")).strip()
+            password = str(acc.get("password", "")).strip()
+            email = str(acc.get("email", "")).strip()
+            if username and password and email:
+                x_accounts.append(
+                    XAccount(
+                        username=username,
+                        password=password,
+                        email=email,
+                        email_password=str(acc.get("email_password", "")).strip() or None,
+                    )
+                )
+
         # X/Twitter scraper
         x_config = XScraperConfig(
+            backend_mode=self.config.x_backend_mode,
+            accounts=x_accounts,
             bearer_token=self.config.x_bearer_token,
             nitter_instances=self.config.x_nitter_instances,
+            web_username=self.config.x_web_username,
+            web_password=self.config.x_web_password,
+            web_email=self.config.x_web_email,
+            web_cookie_path=self.config.x_web_cookie_path,
+            web_output_dir=self.config.x_web_output_dir,
+            web_session_config_path=self.config.x_web_session_config_path,
+            web_proxies=self.config.x_web_proxies,
+            web_session_cookies=self.config.x_web_session_cookies,
+            web_checkpoint_path=self.config.x_web_checkpoint_path,
+            web_enable_checkpoint=self.config.x_web_enable_checkpoint,
+            web_resume_from_checkpoint=self.config.x_web_resume_from_checkpoint,
+            web_checkpoint_every_pages=self.config.x_web_checkpoint_every_pages,
+            web_rotate_on_rate_limit=self.config.x_web_rotate_on_rate_limit,
+            web_rotate_on_detection=self.config.x_web_rotate_on_detection,
+            web_request_delay_s=self.config.x_web_request_delay_s,
+            web_query_delay_s=self.config.x_web_query_delay_s,
+            web_request_jitter_s=self.config.x_web_request_jitter_s,
+            web_query_jitter_s=self.config.x_web_query_jitter_s,
+            web_detection_cooldown_hours=self.config.x_web_detection_cooldown_hours,
+            web_wait_if_cooldown_active=self.config.x_web_wait_if_cooldown_active,
+            web_export_csv=self.config.x_web_export_csv,
         )
         self._scrapers["x"] = XScraper(x_config)
         

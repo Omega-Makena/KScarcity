@@ -328,6 +328,53 @@ scace4/
 - **News Pipeline:** full-content extraction + URL traceability (`extracted_text`, hashes, error/status, evidence excerpts, trace pointers).
 - **Federation / Federated Databases:** first-class `federated_databases/` module with UI controls, sync metrics, route deep links, and audit logging.
 
+## X Scraper Updates
+
+`scripts/scrape_x_kenya.py` / `kshiked/pulse/scrapers/x_web_scraper.py` now support:
+- collecting unique posts across deep pagination up to the requested limit,
+- rotating sessions/proxies on rate limits and detection challenges,
+- periodic checkpointing and resume from `data/pulse/x_scraper_checkpoint.json`,
+- detection cooldown windows (default 24h) with checkpointed resume time.
+- `kshiked/pulse/scrapers/x_scraper.py` now uses `web_primary` mode by default:
+  Twikit/web path first, then automatic fallback to legacy `twscrape/ntscraper`.
+- `kshiked/pulse/ingestion/orchestrator.py` now passes X web session/proxy/checkpoint
+  controls through `IngestionConfig`, while preserving DB ingestion and X CSV exports.
+
+CLI examples:
+```bash
+# Resume scraping with checkpoint
+python scripts/scrape_x_kenya.py --limit 500 --resume
+
+# Use proxy rotation from CLI
+python scripts/scrape_x_kenya.py --proxy http://proxy1:8080 --proxy http://proxy2:8080
+
+# Use multi-session JSON config (each session can set cookie_path + proxy)
+python scripts/scrape_x_kenya.py --session-config config/x_sessions.json --resume
+
+# One-command ops runner (Linux/macOS shell)
+bash scripts/run_x_scrape_resume.sh --limit 500
+
+# One-command ops runner (PowerShell)
+powershell -ExecutionPolicy Bypass -File scripts/run_x_scrape_resume.ps1 --limit 500
+
+# Conservative pacing + 24h cooldown after detection/challenge
+python scripts/scrape_x_kenya.py --resume --conservative-mode --detection-cooldown-hours 24
+```
+
+Config templates:
+- `config/x_sessions.example.json` (copy to `config/x_sessions.json`)
+- `config/x_proxies.example.txt` (copy to `config/x_proxies.txt`)
+
+Environment variables:
+- `X_PROXIES` comma-separated proxy URLs
+- `X_SESSION_COOKIES` comma-separated cookie file paths
+- `X_SESSION_CONFIG` JSON session config path
+- `X_CHECKPOINT_PATH` checkpoint file path
+- `X_RESUME_CHECKPOINT` set `1` / `true` to resume
+- `X_WAIT_COOLDOWN=1` make ops runner wait until cooldown expires
+- `X_BACKEND_MODE` one of `web_primary`, `web_only`, `legacy_default`, `legacy_only`
+- `X_WEB_*` vars in ingestion mode (e.g. `X_WEB_USERNAME`, `X_WEB_PROXIES`, `X_WEB_CHECKPOINT_PATH`)
+
 ##  Documentation
 
 | Document | Description |
