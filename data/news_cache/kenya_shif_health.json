@@ -1,0 +1,47 @@
+{
+  "articles": [
+    {
+      "title": "SHIF Phase 2 rollout faces implementation challenges",
+      "description": "SHIF Phase 2 rollout faces implementation challenges. SHIF Phase 2 Implementation continues to dominate Kenyan policy discourse as stakeholders weigh in on the implications for ordinary citizens.",
+      "url": "https://news.example.com/kenya/kenya_shif_health/1",
+      "source": "Daily Nation",
+      "publishedAt": "2026-02-16T15:25:24.594880",
+      "content": "SHIF Phase 2 rollout faces implementation challenges. The SHIF Phase 2 Implementation has been a subject of intense debate across Kenya. Analysts say the policy will have significant implications for the health sector. Various stakeholders including civil society groups, business associations, and county governments have expressed diverse opinions on the matter."
+    },
+    {
+      "title": "Kenyans struggle to register for new SHIF health coverage",
+      "description": "Kenyans struggle to register for new SHIF health coverage. SHIF Phase 2 Implementation continues to dominate Kenyan policy discourse as stakeholders weigh in on the implications for ordinary citizens.",
+      "url": "https://news.example.com/kenya/kenya_shif_health/2",
+      "source": "Daily Nation",
+      "publishedAt": "2026-02-17T16:25:24.594880",
+      "content": "Kenyans struggle to register for new SHIF health coverage. The SHIF Phase 2 Implementation has been a subject of intense debate across Kenya. Analysts say the policy will have significant implications for the health sector. Various stakeholders including civil society groups, business associations, and county governments have expressed diverse opinions on the matter."
+    },
+    {
+      "title": "Hospitals turn away patients amid SHA transition confusion",
+      "description": "Hospitals turn away patients amid SHA transition confusion. SHIF Phase 2 Implementation continues to dominate Kenyan policy discourse as stakeholders weigh in on the implications for ordinary citizens.",
+      "url": "https://news.example.com/kenya/kenya_shif_health/3",
+      "source": "Citizen Digital",
+      "publishedAt": "2026-02-17T18:25:24.594880",
+      "content": "Hospitals turn away patients amid SHA transition confusion. The SHIF Phase 2 Implementation has been a subject of intense debate across Kenya. Analysts say the policy will have significant implications for the health sector. Various stakeholders including civil society groups, business associations, and county governments have expressed diverse opinions on the matter."
+    },
+    {
+      "title": "Government defends SHIF as superior to old NHIF system",
+      "description": "Government defends SHIF as superior to old NHIF system. SHIF Phase 2 Implementation continues to dominate Kenyan policy discourse as stakeholders weigh in on the implications for ordinary citizens.",
+      "url": "https://news.example.com/kenya/kenya_shif_health/4",
+      "source": "People Daily",
+      "publishedAt": "2026-02-16T02:25:24.594880",
+      "content": "Government defends SHIF as superior to old NHIF system. The SHIF Phase 2 Implementation has been a subject of intense debate across Kenya. Analysts say the policy will have significant implications for the health sector. Various stakeholders including civil society groups, business associations, and county governments have expressed diverse opinions on the matter."
+    },
+    {
+      "title": "Health workers union demands clarity on SHIF payment structure",
+      "description": "Health workers union demands clarity on SHIF payment structure. SHIF Phase 2 Implementation continues to dominate Kenyan policy discourse as stakeholders weigh in on the implications for ordinary citizens.",
+      "url": "https://news.example.com/kenya/kenya_shif_health/5",
+      "source": "Citizen Digital",
+      "publishedAt": "2026-02-17T16:25:24.594880",
+      "content": "Health workers union demands clarity on SHIF payment structure. The SHIF Phase 2 Implementation has been a subject of intense debate across Kenya. Analysts say the policy will have significant implications for the health sector. Various stakeholders including civil society groups, business associations, and county governments have expressed diverse opinions on the matter."
+    }
+  ],
+  "last_fetched": "2026-02-19T02:25:24.594880",
+  "status": "ok",
+  "query": "SHIF Phase 2 Implementation"
+}

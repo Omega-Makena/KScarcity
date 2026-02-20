@@ -1,0 +1,47 @@
+{
+  "articles": [
+    {
+      "title": "Government expands security operations in northern counties",
+      "description": "Government expands security operations in northern counties. Security Operations Expansion continues to dominate Kenyan policy discourse as stakeholders weigh in on the implications for ordinary citizens.",
+      "url": "https://news.example.com/kenya/kenya_security/1",
+      "source": "People Daily",
+      "publishedAt": "2026-02-18T03:25:24.594880",
+      "content": "Government expands security operations in northern counties. The Security Operations Expansion has been a subject of intense debate across Kenya. Analysts say the policy will have significant implications for the security sector. Various stakeholders including civil society groups, business associations, and county governments have expressed diverse opinions on the matter."
+    },
+    {
+      "title": "Police reform commission tables new accountability measures",
+      "description": "Police reform commission tables new accountability measures. Security Operations Expansion continues to dominate Kenyan policy discourse as stakeholders weigh in on the implications for ordinary citizens.",
+      "url": "https://news.example.com/kenya/kenya_security/2",
+      "source": "Citizen Digital",
+      "publishedAt": "2026-02-18T12:25:24.594880",
+      "content": "Police reform commission tables new accountability measures. The Security Operations Expansion has been a subject of intense debate across Kenya. Analysts say the policy will have significant implications for the security sector. Various stakeholders including civil society groups, business associations, and county governments have expressed diverse opinions on the matter."
+    },
+    {
+      "title": "Security budget increase draws mixed reactions",
+      "description": "Security budget increase draws mixed reactions. Security Operations Expansion continues to dominate Kenyan policy discourse as stakeholders weigh in on the implications for ordinary citizens.",
+      "url": "https://news.example.com/kenya/kenya_security/3",
+      "source": "Citizen Digital",
+      "publishedAt": "2026-02-17T11:25:24.594880",
+      "content": "Security budget increase draws mixed reactions. The Security Operations Expansion has been a subject of intense debate across Kenya. Analysts say the policy will have significant implications for the security sector. Various stakeholders including civil society groups, business associations, and county governments have expressed diverse opinions on the matter."
+    },
+    {
+      "title": "Human rights groups monitor security operation conduct",
+      "description": "Human rights groups monitor security operation conduct. Security Operations Expansion continues to dominate Kenyan policy discourse as stakeholders weigh in on the implications for ordinary citizens.",
+      "url": "https://news.example.com/kenya/kenya_security/4",
+      "source": "People Daily",
+      "publishedAt": "2026-02-16T09:25:24.594880",
+      "content": "Human rights groups monitor security operation conduct. The Security Operations Expansion has been a subject of intense debate across Kenya. Analysts say the policy will have significant implications for the security sector. Various stakeholders including civil society groups, business associations, and county governments have expressed diverse opinions on the matter."
+    },
+    {
+      "title": "Community policing initiative launched in 15 counties",
+      "description": "Community policing initiative launched in 15 counties. Security Operations Expansion continues to dominate Kenyan policy discourse as stakeholders weigh in on the implications for ordinary citizens.",
+      "url": "https://news.example.com/kenya/kenya_security/5",
+      "source": "Daily Nation",
+      "publishedAt": "2026-02-18T00:25:24.594880",
+      "content": "Community policing initiative launched in 15 counties. The Security Operations Expansion has been a subject of intense debate across Kenya. Analysts say the policy will have significant implications for the security sector. Various stakeholders including civil society groups, business associations, and county governments have expressed diverse opinions on the matter."
+    }
+  ],
+  "last_fetched": "2026-02-19T02:25:24.594880",
+  "status": "ok",
+  "query": "Security Operations Expansion"
+}

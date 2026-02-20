@@ -174,7 +174,7 @@ def render_sentinel_dashboard():
         "K-SHIELD": "KSHIELD",
         "Simulation (Legacy)": "SIMULATION",
         "Escalation Pathways": "ESCALATION",
-        "Federation / Federated Databases": "FEDERATION",
+        "Federation / Federated Data Access": "FEDERATION",
         "Operations": "OPERATIONS",
         "System Guide": "SYSTEM_GUIDE",
         "Document Intelligence": "DOCS",

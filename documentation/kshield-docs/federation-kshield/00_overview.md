@@ -13,6 +13,9 @@ The KShield Federation module (codenamed **Aegis Protocol**) provides defense-se
 - **Security hardening** for classified environments
 - **Schema exchange** for inter-agency data models
 
+For K-Collab architectural guardrails (federated access/virtualization, not storage replacement), see `03_architecture_clarification.md`.
+For production coordination flow (compatibility, baskets, walkthrough), see `04_production_coordination.md`.
+
 ---
 
 ## Distinction from `scarcity.federation`

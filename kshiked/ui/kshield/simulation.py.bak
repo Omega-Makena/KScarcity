@@ -1,0 +1,3568 @@
+"""
+K-SHIELD: Simulations — Economic Scenario Engine
+
+Matches the card layout pattern of Causal and Terrain:
+    section-header -> nav radio (Workspace / Guide) -> data source radio
+    -> model configuration expander -> analysis tabs
+
+Integrates:
+    - kshiked.simulation.kenya_calibration  (data-driven SFC params)
+    - kshiked.simulation.scenario_templates  (9 named scenarios + 8 policies)
+    - scarcity.simulation.sfc               (SFC engine)
+    - Shared K-SHIELD Dataset infrastructure (cross-card data sharing)
+"""
+
+from __future__ import annotations
+
+import os
+import logging
+from pathlib import Path
+from typing import Any, Dict, List, Optional, Tuple
+
+import streamlit as st
+
+logger = logging.getLogger("sentinel.kshield.simulation")
+
+try:
+    import pandas as pd
+    import numpy as np
+    HAS_DATA_STACK = True
+except ImportError:
+    pd = None
+    np = None
+    HAS_DATA_STACK = False
+
+try:
+    import plotly.graph_objects as go
+    from plotly.subplots import make_subplots
+    HAS_PLOTLY = True
+except ImportError:
+    go = None
+    HAS_PLOTLY = False
+
+try:
+    import streamlit.components.v1 as components
+    HAS_COMPONENTS = True
+except ImportError:
+    HAS_COMPONENTS = False
+
+# ── Shared dataset keys (same as causal.py / terrain.py) ─────────────────────
+SHARED_DF_KEY = "kshield_shared_df"
+SHARED_SOURCE_KEY = "kshield_shared_source"
+SHARED_OWNER_KEY = "kshield_shared_owner"
+
+
+def _set_shared_dataset(df: "pd.DataFrame", source: str, owner: str) -> None:
+    if not HAS_DATA_STACK or df is None or df.empty:
+        return
+    st.session_state[SHARED_DF_KEY] = df.copy(deep=True)
+    st.session_state[SHARED_SOURCE_KEY] = source
+    st.session_state[SHARED_OWNER_KEY] = owner
+
+
+def _get_shared_dataset() -> Tuple[Optional["pd.DataFrame"], str]:
+    if not HAS_DATA_STACK:
+        return None, ""
+    candidate = st.session_state.get(SHARED_DF_KEY)
+    if isinstance(candidate, pd.DataFrame) and not candidate.empty:
+        source = str(st.session_state.get(SHARED_SOURCE_KEY, "Unknown source"))
+        owner = str(st.session_state.get(SHARED_OWNER_KEY, "Unknown card"))
+        return candidate, f"{source} via {owner}"
+    return None, ""
+
+
+# ── Data loading (reuse same World Bank CSV as causal/terrain) ────────────────
+
+@st.cache_data(ttl=3600, show_spinner="Loading World Bank data ...")
+def _load_world_bank_data() -> "pd.DataFrame":
+    csv_path = _find_csv()
+    if csv_path is None:
+        return pd.DataFrame()
+    raw = pd.read_csv(csv_path, skiprows=4, encoding="utf-8-sig")
+    return _pivot_world_bank(raw)
+
+
+def _pivot_world_bank(raw: "pd.DataFrame") -> "pd.DataFrame":
+    if "Indicator Name" not in raw.columns:
+        return pd.DataFrame()
+    year_cols = [c for c in raw.columns if c.strip().isdigit()
+                 and 1900 <= int(c.strip()) <= 2100]
+    if not year_cols:
+        return pd.DataFrame()
+    melted = raw.melt(
+        id_vars=["Indicator Name"], value_vars=year_cols,
+        var_name="Year", value_name="Value",
+    )
+    melted["Year"] = melted["Year"].astype(int)
+    melted["Value"] = pd.to_numeric(melted["Value"], errors="coerce")
+    pivoted = melted.pivot_table(index="Year", columns="Indicator Name", values="Value")
+    pivoted = pivoted.sort_index()
+    good_cols = pivoted.columns[pivoted.notna().sum() >= 15]
+    pivoted = pivoted[good_cols]
+    pivoted = pivoted.interpolate(method="linear", limit=3)
+    return pivoted
+
+
+def _find_csv() -> Optional[str]:
+    candidates = [
+        Path(__file__).resolve().parents[3] / "data" / "simulation" / "API_KEN_DS2_en_csv_v2_14659.csv",
+        Path(os.getcwd()) / "data" / "simulation" / "API_KEN_DS2_en_csv_v2_14659.csv",
+    ]
+    for p in candidates:
+        if p.exists():
+            return str(p)
+    return None
+
+
+def _validate_and_load_upload(uploaded_file) -> Tuple[Optional["pd.DataFrame"], Optional[str]]:
+    try:
+        raw = pd.read_csv(uploaded_file, encoding="utf-8-sig")
+    except Exception as e:
+        return None, f"Could not parse CSV: {e}"
+    if "Indicator Name" in raw.columns:
+        year_cols = [c for c in raw.columns if c.strip().isdigit()
+                     and 1900 <= int(c.strip()) <= 2100]
+        if year_cols:
+            df = _pivot_world_bank(raw)
+            if df.empty:
+                return None, "World Bank format detected but no usable indicator data."
+            return df, None
+    if len(raw.columns) < 2:
+        return None, "CSV must have at least 2 columns."
+    df = raw.copy()
+    idx_col = df.columns[0]
+    try:
+        idx_vals = pd.to_numeric(df[idx_col], errors="coerce")
+        if idx_vals.notna().sum() > 0.5 * len(idx_vals):
+            df[idx_col] = idx_vals
+            df = df.set_index(idx_col)
+        else:
+            try:
+                df[idx_col] = pd.to_datetime(df[idx_col])
+                df = df.set_index(idx_col)
+                df.index = df.index.year
+            except Exception:
+                return None, f"First column '{idx_col}' must be numeric years or dates."
+    except Exception:
+        return None, f"Could not parse index column '{idx_col}'."
+    df = df.sort_index()
+    numeric_cols = df.select_dtypes(include=[np.number]).columns.tolist()
+    if len(numeric_cols) < 2:
+        return None, "Need at least 2 numeric data columns."
+    df = df[numeric_cols]
+    good_cols = df.columns[df.notna().sum() >= 10]
+    if len(good_cols) < 2:
+        return None, "Not enough data. Each column needs at least 10 non-empty values."
+    df = df[good_cols].interpolate(method="linear", limit=3)
+    return df, None
+
+
+# ── Consistent Plotly layout ─────────────────────────────────────────────────
+
+PALETTE = [
+    "#00ff88", "#00aaff", "#f5d547", "#ff3366", "#8b5cf6",
+    "#14b8a6", "#f97316", "#ec4899", "#a3e635", "#06b6d4",
+]
+
+
+def _base_layout(theme, height=400, **extra):
+    layout = dict(
+        height=height,
+        margin=dict(l=40, r=20, t=30, b=40),
+        paper_bgcolor="rgba(0,0,0,0)",
+        plot_bgcolor="rgba(0,0,0,0)",
+        font=dict(family="Space Mono, monospace", color=theme.text_muted, size=11),
+        xaxis=dict(gridcolor="rgba(255,255,255,0.05)", linecolor=theme.border_default,
+                   tickfont=dict(color=theme.text_muted)),
+        yaxis=dict(gridcolor="rgba(255,255,255,0.05)", linecolor=theme.border_default,
+                   tickfont=dict(color=theme.text_muted)),
+        legend=dict(font=dict(color=theme.text_muted, size=10)),
+        hovermode="x unified",
+    )
+    layout.update(extra)
+    return layout
+
+
+# ── Dynamic dimension discovery ──────────────────────────────────────────────
+
+def _discover_dimensions(trajectory):
+    """
+    Auto-discover ALL available dimension categories and keys from trajectory
+    frames.  Returns {category_name: [sorted list of keys]}.
+    Categories scanned: outcomes, channels, flows, sector_balances,
+    policy_vector, shock_vector.
+    """
+    categories = {}
+    vector_keys = [
+        "outcomes", "channels", "flows", "sector_balances",
+        "policy_vector", "shock_vector",
+    ]
+    for cat in vector_keys:
+        keys = sorted({
+            k for f in trajectory
+            for k in (f.get(cat, {}) if isinstance(f.get(cat), dict) else {})
+        })
+        if keys:
+            categories[cat] = keys
+    return categories
+
+
+def _dim_label(raw: str) -> str:
+    """Convert 'gdp_growth' -> 'Gdp Growth' for display."""
+    return raw.replace("_", " ").title()
+
+
+def _extract_dim(dim_str: str, frame: dict) -> float:
+    """Extract a value from a frame using 'category::key' notation."""
+    cat, key = dim_str.split("::", 1)
+    container = frame.get(cat, {})
+    if isinstance(container, dict):
+        return float(container.get(key, 0))
+    return 0.0
+
+
+def _flat_dim_options(dims: dict) -> list:
+    """Flatten discovered dimensions into 'category::key' strings for selectors."""
+    options = []
+    for cat, keys in dims.items():
+        for k in keys:
+            options.append(f"{cat}::{k}")
+    return options
+
+
+# ═════════════════════════════════════════════════════════════════════════════
+#  GUIDE & TUTORIAL
+# ═════════════════════════════════════════════════════════════════════════════
+
+def _render_simulation_guide(theme):
+    st.markdown(
+        '<div class="section-header">SIMULATION GUIDE &mdash; FULL TUTORIAL</div>',
+        unsafe_allow_html=True,
+    )
+    nav_col, content_col = st.columns([1, 3])
+    sections = [
+        "1) What this card does",
+        "2) Scenarios explained",
+        "3) Policy templates",
+        "4) How the SFC engine works",
+        "5) Reading the results",
+        "6) Sensitivity & heatmaps",
+        "7) Comparing trajectories",
+        "8) Connecting to Causal & Terrain",
+        "9) Tips & common mistakes",
+    ]
+    with nav_col:
+        st.markdown("**Guide Navigation**")
+        section = st.radio("Jump to", sections, key="sim_guide_section",
+                           label_visibility="collapsed")
+    with content_col:
+        if section == sections[0]:
+            st.markdown("""
+            This card runs **forward-looking economic simulations** using Kenya's
+            calibrated Stock-Flow Consistent (SFC) model.
+
+            You pick a shock scenario (e.g. oil crisis, drought), choose a policy
+            response (CBK tightening, fiscal stimulus, etc.), select which outcome
+            dimensions to watch, and run the simulation over 20-100 quarters.
+
+            The engine is calibrated from **available economic data** or
+            generic middle-income defaults if no external data is loaded.
+            This ensures the simulation always runs, regardless of data availability.
+            """)
+        elif section == sections[1]:
+            st.markdown("""
+            **9 pre-built scenarios** cover Kenya's real risk landscape:
+
+            | Category | Scenario | Key Shocks |
+            |----------|----------|------------|
+            | Supply | Oil Price Spike (+30%) | supply + FX |
+            | Supply | Severe Drought (-20% Agri) | supply + demand |
+            | Supply | Food Price Surge (+25%) | supply (ramped) |
+            | External | Shilling Depreciation (-15%) | FX |
+            | External | Global Recession | demand + FX |
+            | External | Foreign Aid Cut (-30%) | fiscal |
+            | Fiscal | Sovereign Debt Crisis | fiscal + FX |
+            | Combined | Perfect Storm | supply + demand + FX |
+            | Fiscal | Government Stimulus Boom | fiscal |
+
+            Each includes a **context narrative** explaining real-world precedents.
+            You can also build **custom scenarios** with your own shock magnitudes.
+            """)
+        elif section == sections[2]:
+            st.markdown("""
+            **8 policy templates** model real Government / CBK responses:
+
+            - **Do Nothing** — let markets adjust
+            - **CBK Tightening** — raise rates +2pp
+            - **Aggressive Tightening** — major rate hike + CRR increase
+            - **Fiscal Stimulus** — more spending + subsidies
+            - **Austerity / IMF Package** — spending cuts + tax hikes
+            - **Kenya 2016 Rate Cap** — interest rate cap at 11%
+            - **Expansionary Mix** — lower rates + targeted subsidies
+            - **Price Controls** — cap fuel + food prices
+
+            Each template pre-fills the monetary and fiscal instrument sliders.
+            You can override any slider after selecting a template.
+            """)
+        elif section == sections[3]:
+            st.markdown("""
+            The **SFC (Stock-Flow Consistent)** engine models 4 sectors:
+            Households, Firms, Government, and Banking.
+
+            Key equations:
+            - **Phillips Curve** (New Keynesian): inflation responds to output gap
+              with anchoring to prevent runaway spirals
+            - **Taylor Rule**: interest rate responds to inflation and output gaps
+            - **Fiscal block**: taxes, spending, subsidies, deficit, debt accumulation
+            - **Household block**: consumption, savings, welfare
+            - **Financial stability**: credit growth, leverage, banking health score
+
+            All parameters are **calibrated from available data** (or generic
+            middle-income defaults) using `kenya_calibration.py`.
+            """)
+        elif section == sections[4]:
+            st.markdown("""
+            After running, you'll see:
+
+            1. **Impact delta cards** — final value + change for each watched dimension
+            2. **Trajectory chart** — time-series of all selected dimensions
+            3. **Shock onset marker** — vertical line showing when the shock hits
+
+            Interpretation tips:
+            - Green arrows (up for growth, down for inflation) = good outcomes
+            - Red arrows = concerning movements
+            - The shock onset marker helps you see lag effects
+            """)
+        elif section == sections[5]:
+            st.markdown("""
+            The **Sensitivity tab** shows a policy-outcome correlation heatmap:
+            - Blue = policy instrument correlated with positive outcome
+            - Red = correlated with negative outcome
+            - Near zero = low sensitivity
+
+            This helps identify which policy levers have the strongest effect
+            on which outcomes, based on the simulation's trajectory data.
+            """)
+        elif section == sections[6]:
+            st.markdown("""
+            The **Compare tab** lets you run multiple scenarios back-to-back
+            and overlay their trajectories on a single chart. This is useful for:
+
+            - Comparing "do nothing" vs active policy response
+            - Testing mild vs aggressive policy actions
+            - Checking whether combined shocks are worse than sum of parts
+            """)
+        elif section == sections[7]:
+            st.markdown("""
+            All three K-SHIELD cards share the same data infrastructure:
+
+            - **Causal** discovers relationships between indicators
+            - **Terrain** maps the policy landscape and stability regions
+            - **Simulation** runs forward scenarios with calibrated models
+
+            When you load data in any card, it's shared via the
+            "Shared K-SHIELD Dataset" option. If no external data is loaded,
+            the simulation uses generic middle-income calibration defaults
+            so you can always run scenarios.
+            """)
+        elif section == sections[8]:
+            st.markdown("""
+            **Tips:**
+            - Start with a named scenario before building custom ones
+            - Use "Do Nothing" policy first to see the raw shock effect
+            - Then compare with an active policy to measure the difference
+            - Watch at least 5 dimensions for a holistic view
+            - 50 quarters (12.5 years) is usually enough to see full dynamics
+
+            **Common mistakes:**
+            - Running too few quarters (< 20) — dynamics haven't played out
+            - Ignoring the shock onset — effects lag by 2-4 quarters
+            - Comparing scenarios with different step counts
+            - Not checking calibration confidence (shown in results header)
+            """)
+
+
+# ═════════════════════════════════════════════════════════════════════════════
+#  DATA PROFILE (matches terrain pattern)
+# ═════════════════════════════════════════════════════════════════════════════
+
+def _render_data_profile(df: "pd.DataFrame", theme):
+    n_rows, n_cols = df.shape
+    coverage = f"{df.index.min()}" + " - " + f"{df.index.max()}" if len(df) > 0 else "N/A"
+    completeness = f"{df.notna().mean().mean():.0%}"
+
+    st.markdown(f"""
+    <div style="display: flex; gap: 2rem; padding: 0.6rem 0; font-size: 0.78rem;
+                color: {theme.text_muted}; flex-wrap: wrap;">
+        <span>Rows: <b style="color:{theme.text_primary}">{n_rows}</b></span>
+        <span>Columns: <b style="color:{theme.text_primary}">{n_cols}</b></span>
+        <span>Coverage: <b style="color:{theme.text_primary}">{coverage}</b></span>
+        <span>Completeness: <b style="color:{theme.text_primary}">{completeness}</b></span>
+    </div>
+    """, unsafe_allow_html=True)
+
+
+# ═════════════════════════════════════════════════════════════════════════════
+#  SCENARIO CONFIGURATION PANEL
+# ═════════════════════════════════════════════════════════════════════════════
+
+def _render_scenario_config(theme, scenario_library, policy_templates,
+                            get_scenario_by_id, build_custom_scenario,
+                            outcome_dimensions, default_dimensions,
+                            shock_registry=None, policy_instrument_registry=None,
+                            shock_shapes=None):
+    """
+    Model Configuration expander — multi-shock & multi-policy builder.
+
+    Returns a dict with:
+        selected_scenarios, custom_shocks, selected_policy_keys,
+        custom_instruments, selected_dims, steps
+    """
+    if shock_registry is None:
+        shock_registry = {}
+    if policy_instrument_registry is None:
+        policy_instrument_registry = {}
+    if shock_shapes is None:
+        shock_shapes = ["step", "pulse", "ramp", "decay"]
+
+    with st.expander("Scenario Configuration", expanded=True):
+
+        # ─── SECTION 1: PRESET SCENARIO SHOCKS ────────────────────────────
+        st.markdown(f"<div style='color:{theme.accent_primary}; font-weight:700; "
+                    f"font-size:0.85rem; margin-bottom:0.3rem;'>"
+                    f"SHOCK EVENTS</div>", unsafe_allow_html=True)
+        st.caption("Select multiple preset scenarios and/or add custom shocks. "
+                   "All shocks stack additively — just like real economies.")
+
+        # Preset multi-select
+        scenario_options = {s.id: f"{s.name}  ({s.category})" for s in scenario_library}
+        selected_scenario_ids = st.multiselect(
+            "Preset Scenarios (stack multiple)",
+            options=list(scenario_options.keys()),
+            format_func=lambda x: scenario_options[x],
+            key="sim_preset_scenarios",
+            help="Each selected scenario adds its shocks on top of the others",
+        )
+        selected_scenarios = [get_scenario_by_id(sid) for sid in selected_scenario_ids
+                              if get_scenario_by_id(sid) is not None]
+
+        # Show combined context + EDITABLE shock magnitudes for each preset
+        if selected_scenarios:
+            contexts = [s.context for s in selected_scenarios if s.context]
+            if contexts:
+                st.markdown(f"""
+                <div style="background: rgba(0,243,255,0.05); border-left: 3px solid {theme.accent_primary};
+                            padding: 0.5rem 0.8rem; margin: 0.3rem 0; border-radius: 0 8px 8px 0;
+                            font-size: 0.78rem; color: {theme.text_muted};">
+                    <b>Combined scenario context:</b><br>
+                    {'<br>• '.join(contexts)}
+                </div>
+                """, unsafe_allow_html=True)
+
+            # Editable sliders for each scenario's shocks
+            st.markdown(f"<div style='color:{theme.text_muted}; font-weight:600; "
+                        f"font-size:0.78rem; margin-top:0.5rem; margin-bottom:0.3rem;'>"
+                        f"ADJUST PRESET MAGNITUDES</div>", unsafe_allow_html=True)
+
+            # Initialize override storage
+            if "sim_preset_overrides" not in st.session_state:
+                st.session_state["sim_preset_overrides"] = {}
+            preset_overrides = st.session_state["sim_preset_overrides"]
+
+            for s in selected_scenarios:
+                if s.id not in preset_overrides:
+                    preset_overrides[s.id] = dict(s.shocks)
+                st.markdown(f"<div style='font-size:0.75rem; color:{theme.accent_primary}; "
+                            f"font-weight:600; margin-top:0.3rem;'>{s.name}</div>",
+                            unsafe_allow_html=True)
+                shock_keys = list(s.shocks.keys())
+                cols = st.columns(len(shock_keys)) if shock_keys else []
+                for idx, sk in enumerate(shock_keys):
+                    reg = shock_registry.get(sk, {})
+                    default_val = s.shocks[sk]
+                    with cols[idx]:
+                        new_val = st.slider(
+                            reg.get("label", sk),
+                            min_value=float(reg.get("min", -0.30)),
+                            max_value=float(reg.get("max", 0.30)),
+                            value=float(preset_overrides[s.id].get(sk, default_val)),
+                            step=float(reg.get("step", 0.01)),
+                            key=f"preset_{s.id}_{sk}",
+                            help=f"Default: {default_val:+.2f}. {reg.get('examples', '')}",
+                        )
+                        preset_overrides[s.id][sk] = new_val
+
+            st.session_state["sim_preset_overrides"] = preset_overrides
+
+            # Clean up overrides for deselected scenarios
+            for old_id in list(preset_overrides.keys()):
+                if old_id not in selected_scenario_ids:
+                    del preset_overrides[old_id]
+
+            # Show combined shock summary after user edits
+            shock_summary = {}
+            for s in selected_scenarios:
+                overrides = preset_overrides.get(s.id, s.shocks)
+                for k, v in overrides.items():
+                    shock_summary[k] = shock_summary.get(k, 0) + v
+            if shock_summary:
+                parts = [f"{shock_registry.get(k, {{}}).get('label', k)}: "
+                         f"<b>{v:+.2f}</b>" for k, v in shock_summary.items()]
+                st.markdown(f"<div style='font-size:0.75rem; color:{theme.text_muted};'>"
+                            f"Combined shocks: {' | '.join(parts)}</div>",
+                            unsafe_allow_html=True)
+
+        # ─── CUSTOM SHOCKS ────────────────────────────────────────────────
+        st.markdown(f"<div style='color:{theme.text_muted}; font-weight:600; "
+                    f"font-size:0.78rem; margin-top:0.6rem;'>CUSTOM SHOCKS</div>",
+                    unsafe_allow_html=True)
+
+        # Initialize custom shocks list in session state
+        if "sim_custom_shocks" not in st.session_state:
+            st.session_state["sim_custom_shocks"] = []
+
+        custom_shocks = list(st.session_state["sim_custom_shocks"])
+
+        # Render existing custom shocks
+        shocks_to_remove = []
+        shock_type_keys = list(shock_registry.keys()) if shock_registry else ["demand_shock", "supply_shock", "fiscal_shock", "fx_shock"]
+        shock_type_labels = {k: v.get("label", k) for k, v in shock_registry.items()} if shock_registry else {k: k for k in shock_type_keys}
+
+        for i, cs in enumerate(custom_shocks):
+            cols = st.columns([2, 2, 1.5, 1.5, 1.5, 0.5])
+            with cols[0]:
+                cs_key = cs.get("key", "demand_shock")
+                cs["key"] = st.selectbox(
+                    "Type", shock_type_keys,
+                    index=shock_type_keys.index(cs_key) if cs_key in shock_type_keys else 0,
+                    format_func=lambda k, _labels=shock_type_labels: _labels.get(k, k),
+                    key=f"cs_type_{i}",
+                )
+            reg = shock_registry.get(cs["key"], {})
+            with cols[1]:
+                cs["magnitude"] = st.slider(
+                    "Magnitude", float(reg.get("min", -0.30)), float(reg.get("max", 0.30)),
+                    float(cs.get("magnitude", 0.0)), float(reg.get("step", 0.01)),
+                    key=f"cs_mag_{i}",
+                    help=reg.get("examples", ""),
+                )
+            with cols[2]:
+                cs["onset"] = st.number_input(
+                    "Onset Q", 1, 100, int(cs.get("onset", 5)), key=f"cs_onset_{i}",
+                )
+            with cols[3]:
+                cs["duration"] = st.number_input(
+                    "Duration", 0, 50, int(cs.get("duration", 0)), key=f"cs_dur_{i}",
+                    help="0 = permanent",
+                )
+            with cols[4]:
+                cs_shape = cs.get("shape", "step")
+                cs["shape"] = st.selectbox(
+                    "Shape", shock_shapes,
+                    index=shock_shapes.index(cs_shape) if cs_shape in shock_shapes else 0,
+                    key=f"cs_shape_{i}",
+                )
+            with cols[5]:
+                st.markdown("<div style='padding-top:1.6rem;'></div>", unsafe_allow_html=True)
+                if st.button("X", key=f"cs_rm_{i}", help="Remove this shock"):
+                    shocks_to_remove.append(i)
+
+        # Remove marked shocks
+        if shocks_to_remove:
+            for idx in sorted(shocks_to_remove, reverse=True):
+                if idx < len(custom_shocks):
+                    custom_shocks.pop(idx)
+            st.session_state["sim_custom_shocks"] = custom_shocks
+            st.rerun()
+
+        # Add shock button
+        if st.button("+ Add Custom Shock", key="sim_add_shock"):
+            custom_shocks.append({
+                "key": "demand_shock", "magnitude": 0.0,
+                "onset": 5, "duration": 0, "shape": "step",
+            })
+            st.session_state["sim_custom_shocks"] = custom_shocks
+            st.rerun()
+
+        # Update session state
+        st.session_state["sim_custom_shocks"] = custom_shocks
+
+        # ─── SECTION 2: POLICY RESPONSES ──────────────────────────────────
+        st.markdown("---")
+        st.markdown(f"<div style='color:{theme.accent_warning}; font-weight:700; "
+                    f"font-size:0.85rem; margin-bottom:0.3rem;'>"
+                    f"POLICY RESPONSES</div>", unsafe_allow_html=True)
+        st.caption("Select multiple preset policies and/or add custom instruments. "
+                   "Later selections override earlier ones for the same instrument.")
+
+        # Preset policy multi-select
+        policy_keys_available = [k for k in policy_templates.keys() if k != "do_nothing"]
+        selected_policy_keys = st.multiselect(
+            "Preset Policies (layer multiple)",
+            options=policy_keys_available,
+            format_func=lambda k: policy_templates[k]["name"],
+            key="sim_preset_policies",
+            help="Each policy layers its instruments. Later policies override earlier ones.",
+        )
+
+        # Show combined policy instruments
+        if selected_policy_keys:
+            combined_instruments = {}
+            for pk in selected_policy_keys:
+                tmpl = policy_templates.get(pk, {})
+                for k, v in tmpl.get("instruments", {}).items():
+                    combined_instruments[k] = v
+            if combined_instruments:
+                parts = []
+                for k, v in combined_instruments.items():
+                    reg = policy_instrument_registry.get(k, {})
+                    label = reg.get("label", k)
+                    scale = reg.get("display_scale", 1)
+                    if isinstance(v, (int, float)):
+                        parts.append(f"{label}: <b>{v * scale:.1f}%</b>")
+                    else:
+                        parts.append(f"{label}: <b>{v}</b>")
+                st.markdown(f"<div style='font-size:0.75rem; color:{theme.text_muted};'>"
+                            f"Combined policy instruments: {' | '.join(parts)}</div>",
+                            unsafe_allow_html=True)
+
+        # ─── CUSTOM POLICY INSTRUMENTS ────────────────────────────────────
+        st.markdown(f"<div style='color:{theme.text_muted}; font-weight:600; "
+                    f"font-size:0.78rem; margin-top:0.6rem;'>CUSTOM INSTRUMENTS</div>",
+                    unsafe_allow_html=True)
+
+        if "sim_custom_instruments" not in st.session_state:
+            st.session_state["sim_custom_instruments"] = []
+
+        custom_instruments = list(st.session_state["sim_custom_instruments"])
+
+        inst_type_keys = list(policy_instrument_registry.keys()) if policy_instrument_registry else []
+        inst_type_labels = {k: v.get("label", k) for k, v in policy_instrument_registry.items()} if policy_instrument_registry else {}
+
+        insts_to_remove = []
+        for i, ci in enumerate(custom_instruments):
+            cols = st.columns([3, 4, 0.5])
+            with cols[0]:
+                ci_key = ci.get("key", "custom_rate")
+                ci["key"] = st.selectbox(
+                    "Instrument", inst_type_keys,
+                    index=inst_type_keys.index(ci_key) if ci_key in inst_type_keys else 0,
+                    format_func=lambda k, _labels=inst_type_labels: _labels.get(k, k),
+                    key=f"ci_type_{i}",
+                )
+            reg = policy_instrument_registry.get(ci["key"], {})
+            scale = reg.get("display_scale", 1)
+            with cols[1]:
+                raw_val = st.slider(
+                    f"{reg.get('label', ci['key'])} ({reg.get('unit', '')})",
+                    float(reg.get("min", 0) * scale),
+                    float(reg.get("max", 0.25) * scale),
+                    float(ci.get("value", reg.get("default", 0.07)) * scale),
+                    float(reg.get("step", 0.01) * scale),
+                    key=f"ci_val_{i}",
+                    help=reg.get("description", ""),
+                )
+                ci["value"] = raw_val / scale if scale != 0 else raw_val
+            with cols[2]:
+                st.markdown("<div style='padding-top:1.6rem;'></div>", unsafe_allow_html=True)
+                if st.button("X", key=f"ci_rm_{i}", help="Remove this instrument"):
+                    insts_to_remove.append(i)
+
+        if insts_to_remove:
+            for idx in sorted(insts_to_remove, reverse=True):
+                if idx < len(custom_instruments):
+                    custom_instruments.pop(idx)
+            st.session_state["sim_custom_instruments"] = custom_instruments
+            st.rerun()
+
+        if inst_type_keys and st.button("+ Add Custom Instrument", key="sim_add_instrument"):
+            custom_instruments.append({
+                "key": "custom_rate", "value": 0.07,
+            })
+            st.session_state["sim_custom_instruments"] = custom_instruments
+            st.rerun()
+
+        # Update session state
+        st.session_state["sim_custom_instruments"] = custom_instruments
+
+        # ── No-policy fallback
+        if not selected_policy_keys and not custom_instruments:
+            st.info("No policy selected — simulation will run with **no policy intervention** "
+                    "(baseline / do-nothing mode).")
+
+        # ─── SECTION 3: SIMULATION PARAMS ─────────────────────────────────
+        st.markdown("---")
+        c1, c2 = st.columns(2)
+        with c1:
+            st.markdown(f"<div style='color:{theme.accent_success}; font-weight:600; "
+                        f"font-size:0.8rem; margin-bottom:0.3rem;'>SIMULATION</div>",
+                        unsafe_allow_html=True)
+            steps = st.slider("Quarters", 20, 100, 50, 5, key="sim_steps")
+
+        # ─── SECTION 4: OUTCOME DIMENSIONS ────────────────────────────────
+        with c2:
+            st.markdown(f"<div style='color:{theme.text_muted}; font-weight:600; "
+                        f"font-size:0.8rem; margin-bottom:0.3rem;'>OUTCOME DIMENSIONS</div>",
+                        unsafe_allow_html=True)
+
+        # Collect suggested dims from all selected scenarios
+        all_suggested = set()
+        for s in selected_scenarios:
+            all_suggested.update(s.suggested_dimensions)
+        defaults = list(all_suggested) if all_suggested else list(default_dimensions)
+
+        categories = {}
+        for key, meta in outcome_dimensions.items():
+            cat = meta.get("category", "Other")
+            categories.setdefault(cat, []).append((key, meta))
+
+        selected_dims = []
+        dim_cols = st.columns(min(len(categories), 5))
+        for i, (cat, dims) in enumerate(categories.items()):
+            with dim_cols[i % len(dim_cols)]:
+                st.markdown(f"<div style='color:{theme.text_muted}; font-weight:600; "
+                            f"font-size:0.72rem;'>{cat}</div>", unsafe_allow_html=True)
+                for key, meta in dims:
+                    if st.checkbox(meta["label"], value=key in defaults,
+                                   key=f"sim_dim_{key}", help=meta["description"]):
+                        selected_dims.append(key)
+        if not selected_dims:
+            selected_dims = list(default_dimensions)
+
+    # Store scenario obj for IRF tab (use first selected, or None)
+    st.session_state["_sim_scenario_obj"] = selected_scenarios[0] if selected_scenarios else None
+
+    return {
+        "selected_scenarios": selected_scenarios,
+        "custom_shocks": custom_shocks,
+        "selected_policy_keys": selected_policy_keys,
+        "custom_instruments": custom_instruments,
+        "selected_dims": selected_dims,
+        "steps": steps,
+    }
+
+
+# ═════════════════════════════════════════════════════════════════════════════
+#  SIMULATION EXECUTION (Multi-Shock / Multi-Policy)
+# ═════════════════════════════════════════════════════════════════════════════
+
+def _run_simulation(theme, SFCEconomy, SFCConfig, calibrate_from_data,
+                    scenario_cfg, merge_shock_vectors_fn, merge_policy_instruments_fn):
+    """Execute button + SFC simulation with merged multi-shock/multi-policy.
+
+    Args:
+        scenario_cfg: dict from _render_scenario_config with keys:
+            selected_scenarios, custom_shocks, selected_policy_keys,
+            custom_instruments, selected_dims, steps
+        merge_shock_vectors_fn: merge_shock_vectors from scenario_templates
+        merge_policy_instruments_fn: merge_policy_instruments from scenario_templates
+    """
+    selected_scenarios = scenario_cfg["selected_scenarios"]
+    custom_shocks = scenario_cfg["custom_shocks"]
+    selected_policy_keys = scenario_cfg["selected_policy_keys"]
+    custom_instruments = scenario_cfg["custom_instruments"]
+    selected_dims = scenario_cfg["selected_dims"]
+    steps = scenario_cfg["steps"]
+
+    col_r1, col_r2 = st.columns([3, 1])
+    with col_r1:
+        # Calibration confidence badge
+        calib_cached = st.session_state.get("sim_calibration")
+        if calib_cached:
+            conf = calib_cached.overall_confidence
+            cc = theme.accent_success if conf > 0.6 else theme.accent_warning if conf > 0.3 else theme.accent_danger
+            n_data = sum(1 for p in calib_cached.params.values() if p.source == "data")
+            st.markdown(f"""
+            <div style="font-size:0.75rem; color:{theme.text_muted}; padding-top:0.5rem;">
+                Calibration: <span style="color:{cc}; font-weight:600;">{conf:.0%}</span>
+                &nbsp;|&nbsp; {n_data}/{len(calib_cached.params)} params from data
+            </div>
+            """, unsafe_allow_html=True)
+
+        # Show active configuration summary
+        summary_parts = []
+        if selected_scenarios:
+            scenario_names = [s.name for s in selected_scenarios]
+            summary_parts.append(f"Shocks: {' + '.join(scenario_names)}")
+        if custom_shocks:
+            n_custom = len([cs for cs in custom_shocks if abs(cs.get('magnitude', 0)) > 1e-9])
+            if n_custom:
+                summary_parts.append(f"+{n_custom} custom shock(s)")
+        if selected_policy_keys:
+            summary_parts.append(f"Policy: {' + '.join(selected_policy_keys)}")
+        if custom_instruments:
+            summary_parts.append(f"+{len(custom_instruments)} custom instrument(s)")
+        if not summary_parts:
+            summary_parts.append("No shocks / No policy (baseline)")
+
+        st.markdown(f"<div style='font-size:0.72rem; color:{theme.text_muted};'>"
+                    f"{'  |  '.join(summary_parts)}</div>",
+                    unsafe_allow_html=True)
+
+    with col_r2:
+        run_clicked = st.button("RUN SIMULATION", type="primary", use_container_width=True)
+
+    if run_clicked:
+        with st.spinner("Calibrating from data and running simulation..."):
+            try:
+                # Determine policy mode
+                has_policy = bool(selected_policy_keys) or bool(custom_instruments)
+                policy_mode = "custom" if has_policy else "off"
+
+                # Merge policy instruments
+                merged_instruments = merge_policy_instruments_fn(
+                    selected_policy_keys, custom_instruments,
+                )
+                config_overrides = {
+                    k: v for k, v in merged_instruments.items()
+                    if k in SFCConfig.__dataclass_fields__
+                }
+
+                # Calibrate
+                calib = calibrate_from_data(
+                    steps=steps, policy_mode=policy_mode, overrides=config_overrides,
+                )
+                cfg = calib.config
+
+                # Merge shock vectors (additive superposition)
+                # Apply user-edited magnitude overrides from sliders
+                preset_overrides = st.session_state.get("sim_preset_overrides", {})
+                effective_scenarios = []
+                for s in selected_scenarios:
+                    if s.id in preset_overrides:
+                        from copy import copy as _copy
+                        s_copy = _copy(s)
+                        s_copy.shocks = dict(preset_overrides[s.id])
+                        effective_scenarios.append(s_copy)
+                    else:
+                        effective_scenarios.append(s)
+
+                merged_shocks = merge_shock_vectors_fn(
+                    effective_scenarios, custom_shocks, steps,
+                )
+                if merged_shocks:
+                    cfg.shock_vectors = merged_shocks
+
+                # Run
+                econ = SFCEconomy(cfg)
+                econ.initialize()
+                trajectory = econ.run(steps)
+
+                # Store results
+                st.session_state["sim_trajectory"] = trajectory
+                st.session_state["sim_selected_dims"] = selected_dims
+                st.session_state["sim_calibration"] = calib
+                st.session_state["sim_steps"] = steps
+                st.session_state["sim_state"] = econ
+
+                # Build descriptive label
+                label_parts = []
+                if selected_scenarios:
+                    label_parts.append(" + ".join(s.name for s in selected_scenarios))
+                n_custom_shocks = len([cs for cs in custom_shocks if abs(cs.get('magnitude', 0)) > 1e-9])
+                if n_custom_shocks:
+                    label_parts.append(f"{n_custom_shocks} custom")
+                shock_label = " + ".join(label_parts) if label_parts else "Baseline"
+
+                policy_parts = list(selected_policy_keys)
+                if custom_instruments:
+                    policy_parts.append(f"{len(custom_instruments)} custom")
+                policy_label = " + ".join(policy_parts) if policy_parts else "No policy"
+
+                run_label = f"{shock_label} | {policy_label}"
+
+                # Store for comparison tab
+                history = st.session_state.get("sim_compare_history", [])
+                history.append({
+                    "label": run_label,
+                    "trajectory": trajectory,
+                    "dims": selected_dims,
+                })
+                st.session_state["sim_compare_history"] = history[-5:]
+
+            except Exception as e:
+                st.error(f"Simulation error: {e}")
+                import traceback
+                st.code(traceback.format_exc())
+
+    return run_clicked
+
+
+# ═════════════════════════════════════════════════════════════════════════════
+#  TAB 1: SCENARIO RUNNER — Impact cards + trajectory
+# ═════════════════════════════════════════════════════════════════════════════
+
+def _render_scenario_runner_tab(theme, outcome_dimensions, default_dimensions, run_clicked):
+    trajectory = st.session_state.get("sim_trajectory")
+    if not trajectory or len(trajectory) < 2:
+        if not run_clicked:
+            st.markdown(f"""
+            <div style="text-align:center; padding:3rem; color:{theme.text_muted};">
+                <div style="font-size:2rem; margin-bottom:0.5rem; opacity:0.3;">&#9654;</div>
+                <div style="font-size:0.9rem;">
+                    Configure your scenario above and click <b>RUN SIMULATION</b>
+                </div>
+            </div>
+            """, unsafe_allow_html=True)
+        return
+
+    sel_dims = st.session_state.get("sim_selected_dims", list(default_dimensions))
+    calib = st.session_state.get("sim_calibration")
+
+    # Calibration info
+    if calib:
+        conf = calib.overall_confidence
+        cc = theme.accent_success if conf > 0.6 else theme.accent_warning if conf > 0.3 else theme.accent_danger
+        n_data = sum(1 for p in calib.params.values() if p.source == "data")
+        st.markdown(f"""
+        <div style="font-size:0.75rem; color:{theme.text_muted}; margin-bottom:0.8rem;">
+            Engine: <span style="font-weight:600;">PARAMETRIC SFC</span>
+            &nbsp;|&nbsp; Calibration: <span style="color:{cc}; font-weight:600;">{conf:.0%}</span>
+            &nbsp;|&nbsp; {n_data}/{len(calib.params)} from data
+            &nbsp;|&nbsp; {len(trajectory)} frames
+        </div>
+        """, unsafe_allow_html=True)
+
+    # Impact summary table (compact)
+    _start = trajectory[0].get("outcomes", {})
+    _end = trajectory[-1].get("outcomes", {})
+    _rows = []
+    for dk in sel_dims:
+        m = outcome_dimensions.get(dk, {"label": dk, "format": ".2f", "higher_is": "better"})
+        sv, ev = _start.get(dk, 0), _end.get(dk, 0)
+        d = ev - sv
+        fmt = m.get("format", ".2f")
+        _rows.append({"Indicator": m.get("label", dk), "Start": f"{sv:{fmt}}",
+                       "End": f"{ev:{fmt}}", "Delta": f"{d:+{fmt}}"})
+    if _rows:
+        import pandas as _pd
+        st.dataframe(_pd.DataFrame(_rows), use_container_width=True, hide_index=True)
+    st.markdown("<div style='height:0.5rem;'></div>", unsafe_allow_html=True)
+
+    # Time-series trajectory
+    if HAS_PLOTLY:
+        _render_time_series(trajectory, sel_dims, outcome_dimensions, theme)
+
+
+def _render_time_series(trajectory, sel_dims, outcome_dimensions, theme):
+    fig = make_subplots(rows=1, cols=1)
+    t_vals = [f["t"] for f in trajectory]
+
+    for idx, dim_key in enumerate(sel_dims):
+        meta = outcome_dimensions.get(dim_key, {"label": dim_key})
+        vals = [f.get("outcomes", {}).get(dim_key, 0) for f in trajectory]
+
+        fmt = meta.get("format", ".2f")
+        suffix = " (%)" if "%" in fmt else ""
+        if "%" in fmt:
+            vals = [v * 100 for v in vals]
+
+        fig.add_trace(go.Scatter(
+            x=t_vals, y=vals, mode='lines',
+            name=f"{meta.get('label', dim_key)}{suffix}",
+            line=dict(color=PALETTE[idx % len(PALETTE)], width=2.5),
+            hovertemplate=f"{meta.get('label', dim_key)}: %{{y:.2f}}{suffix}<extra></extra>",
+        ))
+
+    # Shock onset marker
+    scenario = st.session_state.get("_sim_scenario_obj")
+    onset = scenario.shock_onset if scenario else 5
+    fig.add_vline(x=onset, line_dash="dash", line_color=theme.accent_danger,
+                  annotation_text="Shock", annotation_font_color=theme.accent_danger)
+
+    fig.update_layout(**_base_layout(theme, height=420,
+        title=dict(text="Trajectory Over Time", font=dict(color=theme.text_muted, size=13)),
+        xaxis=dict(title="Quarter"),
+        legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="left", x=0,
+                    bgcolor='rgba(0,0,0,0)'),
+    ))
+    st.plotly_chart(fig, use_container_width=True)
+
+
+# ═════════════════════════════════════════════════════════════════════════════
+#  TAB 2: SENSITIVITY — Policy-outcome heatmap
+# ═════════════════════════════════════════════════════════════════════════════
+
+def _render_sensitivity_tab(theme, outcome_dimensions):
+    trajectory = st.session_state.get("sim_trajectory")
+    if not trajectory or len(trajectory) < 6:
+        st.info("Run a simulation with at least 6 quarters to see sensitivity analysis.")
+        return
+
+    if not HAS_PLOTLY:
+        st.warning("Plotly required for heatmap visualization.")
+        return
+
+    policy_keys = sorted({k for f in trajectory for k in f.get("policy_vector", {})})
+    outcome_keys = sorted({k for f in trajectory for k in f.get("outcomes", {})})
+    if not policy_keys or not outcome_keys:
+        st.info("Policy/outcome vectors missing from simulation frames.")
+        return
+
+    impacts = []
+    for pol in policy_keys:
+        p = np.array([float(f.get("policy_vector", {}).get(pol, 0)) for f in trajectory])
+        row = []
+        for out in outcome_keys:
+            y = np.array([float(f.get("outcomes", {}).get(out, 0)) for f in trajectory])
+            if np.allclose(p.std(), 0) or np.allclose(y.std(), 0):
+                row.append(0.0)
+            else:
+                row.append(float(np.corrcoef(p, y)[0, 1]))
+        impacts.append(row)
+
+    fig = go.Figure(go.Heatmap(
+        z=impacts,
+        x=[o.replace("_", " ").title() for o in outcome_keys],
+        y=[p.replace("_", " ").title() for p in policy_keys],
+        colorscale=[[0, theme.accent_danger], [0.5, '#ffffff'], [1, theme.accent_success]],
+        zmin=-1, zmax=1,
+        text=[[f"{v:+.2f}" for v in row] for row in impacts],
+        texttemplate="%{text}",
+        showscale=True,
+    ))
+    fig.update_layout(**_base_layout(theme, height=400,
+        title=dict(text="Policy-Outcome Sensitivity Matrix",
+                   font=dict(color=theme.text_muted, size=13)),
+    ))
+    st.plotly_chart(fig, use_container_width=True)
+
+    # Plain-English interpretation
+    if impacts:
+        st.markdown(f"""
+        <div style="font-size:0.8rem; color:{theme.text_muted}; padding:0.5rem 0;">
+            <b>Reading:</b> Each cell shows the correlation between a policy instrument
+            and an outcome dimension over the simulation trajectory.
+            Values near <span style="color:{theme.accent_success}">+1.0</span> mean the
+            instrument is strongly positively associated;
+            <span style="color:{theme.accent_danger}">-1.0</span> means strongly negative.
+        </div>
+        """, unsafe_allow_html=True)
+
+
+# ═════════════════════════════════════════════════════════════════════════════
+#  TAB 3: STATE CUBE — Dynamic N-D sector view
+# ═════════════════════════════════════════════════════════════════════════════
+
+def _render_state_cube_tab(theme, outcome_dimensions):
+    trajectory = st.session_state.get("sim_trajectory")
+    if not trajectory or len(trajectory) < 4:
+        st.info("Run a simulation to see the state cube.")
+        return
+
+    if not HAS_PLOTLY:
+        st.warning("Plotly required for 3D visualization.")
+        return
+
+    dims = _discover_dimensions(trajectory)
+    all_opts = _flat_dim_options(dims)
+    if len(all_opts) < 3:
+        st.info("Need at least 3 discoverable dimensions for a 3D cube.")
+        return
+
+    c1, c2, c3, c4 = st.columns(4)
+    with c1:
+        x_dim = st.selectbox("X axis", all_opts, index=0, key="cube_x",
+                              format_func=lambda s: _dim_label(s.split("::")[-1]))
+    with c2:
+        y_dim = st.selectbox("Y axis", all_opts,
+                              index=min(1, len(all_opts) - 1), key="cube_y",
+                              format_func=lambda s: _dim_label(s.split("::")[-1]))
+    with c3:
+        z_dim = st.selectbox("Z axis", all_opts,
+                              index=min(2, len(all_opts) - 1), key="cube_z",
+                              format_func=lambda s: _dim_label(s.split("::")[-1]))
+    with c4:
+        color_opts = ["time"] + all_opts
+        color_dim = st.selectbox("Color", color_opts, index=0, key="cube_color",
+                                  format_func=lambda s: "Quarter" if s == "time"
+                                  else _dim_label(s.split("::")[-1]))
+
+    t_vals = [f.get("t", 0) for f in trajectory]
+    x_vals = [_extract_dim(x_dim, f) for f in trajectory]
+    y_vals = [_extract_dim(y_dim, f) for f in trajectory]
+    z_vals = [_extract_dim(z_dim, f) for f in trajectory]
+    c_vals = t_vals if color_dim == "time" else [_extract_dim(color_dim, f) for f in trajectory]
+    c_title = "Quarter" if color_dim == "time" else _dim_label(color_dim.split("::")[-1])
+
+    x_label = _dim_label(x_dim.split("::")[-1])
+    y_label = _dim_label(y_dim.split("::")[-1])
+    z_label = _dim_label(z_dim.split("::")[-1])
+
+    fig = go.Figure()
+    fig.add_trace(go.Scatter3d(
+        x=x_vals, y=y_vals, z=z_vals,
+        mode='lines+markers',
+        marker=dict(size=4, color=c_vals, colorscale='Plasma',
+                    colorbar=dict(title=c_title, len=0.6), opacity=0.9),
+        line=dict(color=theme.accent_primary, width=3),
+        hovertemplate=(
+            f"{x_label}: %{{x:.3f}}<br>"
+            f"{y_label}: %{{y:.3f}}<br>"
+            f"{z_label}: %{{z:.3f}}<extra></extra>"
+        ),
+        name="State Trajectory",
+    ))
+    # Start / End markers
+    fig.add_trace(go.Scatter3d(
+        x=[x_vals[0]], y=[y_vals[0]], z=[z_vals[0]],
+        mode='markers', marker=dict(size=10, color=theme.accent_success, symbol='diamond'),
+        name='Start', showlegend=True,
+    ))
+    fig.add_trace(go.Scatter3d(
+        x=[x_vals[-1]], y=[y_vals[-1]], z=[z_vals[-1]],
+        mode='markers', marker=dict(size=10, color=theme.accent_danger, symbol='diamond'),
+        name='End', showlegend=True,
+    ))
+
+    fig.update_layout(
+        scene=dict(
+            xaxis_title=x_label, yaxis_title=y_label, zaxis_title=z_label,
+            bgcolor="rgba(0,0,0,0)",
+        ),
+        **_base_layout(theme, height=550,
+            title=dict(text="3D State Cube — Dynamic Sector View",
+                       font=dict(color=theme.text_muted, size=13))),
+    )
+    st.plotly_chart(fig, use_container_width=True)
+
+    # Dynamic summary table for ALL discovered sector_balances
+    sector_keys = dims.get("sector_balances", [])
+    if sector_keys and len(trajectory) > 1:
+        final, initial = trajectory[-1], trajectory[0]
+        bal_data = []
+        for s in sector_keys:
+            init_v = initial.get("sector_balances", {}).get(s, 0)
+            fin_v = final.get("sector_balances", {}).get(s, 0)
+            bal_data.append({
+                "Sector": _dim_label(s),
+                "Initial": f"{init_v:.4f}",
+                "Final": f"{fin_v:.4f}",
+                "Change": f"{fin_v - init_v:+.4f}",
+            })
+        st.dataframe(pd.DataFrame(bal_data), use_container_width=True, hide_index=True)
+
+
+# ═════════════════════════════════════════════════════════════════════════════
+#  TAB 4: COMPARE — overlay multiple runs
+# ═════════════════════════════════════════════════════════════════════════════
+
+def _render_compare_tab(theme, outcome_dimensions, default_dimensions):
+    history = st.session_state.get("sim_compare_history", [])
+    if len(history) < 2:
+        st.info("Run at least 2 different scenarios to compare trajectories. "
+                "Each run is automatically saved for comparison (last 5 kept).")
+        if history:
+            st.caption(f"Currently stored: {len(history)}/5 runs — "
+                       f"{', '.join(h['label'] for h in history)}")
+        return
+
+    if not HAS_PLOTLY:
+        st.warning("Plotly required for comparison charts.")
+        return
+
+    # Let user pick which dimension to compare
+    all_dims = set()
+    for h in history:
+        all_dims.update(h.get("dims", []))
+    all_dims = sorted(all_dims)
+    if not all_dims:
+        all_dims = list(default_dimensions)
+
+    focus_dim = st.selectbox("Compare dimension", all_dims,
+                             format_func=lambda d: outcome_dimensions.get(d, {}).get("label", d),
+                             key="sim_compare_dim")
+    meta = outcome_dimensions.get(focus_dim, {"label": focus_dim, "format": ".2f"})
+    fmt = meta.get("format", ".2f")
+    is_pct = "%" in fmt
+
+    fig = go.Figure()
+    for i, h in enumerate(history):
+        traj = h["trajectory"]
+        t_vals = [f["t"] for f in traj]
+        vals = [f.get("outcomes", {}).get(focus_dim, 0) for f in traj]
+        if is_pct:
+            vals = [v * 100 for v in vals]
+        fig.add_trace(go.Scatter(
+            x=t_vals, y=vals, mode='lines',
+            name=h["label"],
+            line=dict(color=PALETTE[i % len(PALETTE)], width=2.5),
+        ))
+
+    suffix = " (%)" if is_pct else ""
+    fig.update_layout(**_base_layout(theme, height=420,
+        title=dict(text=f"Comparison: {meta.get('label', focus_dim)}{suffix}",
+                   font=dict(color=theme.text_muted, size=13)),
+        xaxis=dict(title="Quarter"),
+        legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="left", x=0,
+                    bgcolor='rgba(0,0,0,0)'),
+    ))
+    st.plotly_chart(fig, use_container_width=True)
+
+    # Summary table
+    rows = []
+    for h in history:
+        traj = h["trajectory"]
+        if len(traj) >= 2:
+            start_v = traj[0].get("outcomes", {}).get(focus_dim, 0)
+            end_v = traj[-1].get("outcomes", {}).get(focus_dim, 0)
+            mult = 100 if is_pct else 1
+            rows.append({
+                "Run": h["label"],
+                "Start": f"{start_v * mult:{fmt.replace('%', 'f')}}",
+                "End": f"{end_v * mult:{fmt.replace('%', 'f')}}",
+                "Delta": f"{(end_v - start_v) * mult:+.2f}",
+            })
+    if rows:
+        st.dataframe(pd.DataFrame(rows), use_container_width=True, hide_index=True)
+
+    # Clear button
+    if st.button("Clear comparison history", key="sim_clear_compare"):
+        st.session_state["sim_compare_history"] = []
+        st.rerun()
+
+
+# ═════════════════════════════════════════════════════════════════════════════
+#  TAB 5: DIAGNOSTICS — calibration & engine details (fully dynamic)
+# ═════════════════════════════════════════════════════════════════════════════
+
+def _render_diagnostics_tab(theme):
+    calib = st.session_state.get("sim_calibration")
+    trajectory = st.session_state.get("sim_trajectory")
+
+    if not calib:
+        st.info("Run a simulation to see engine diagnostics.")
+        return
+
+    # Calibration parameter table
+    st.markdown(f"<div style='color:{theme.accent_primary}; font-weight:600; "
+                f"font-size:0.85rem; margin-bottom:0.5rem;'>CALIBRATION PARAMETERS</div>",
+                unsafe_allow_html=True)
+
+    param_rows = []
+    for name, p in sorted(calib.params.items()):
+        param_rows.append({
+            "Parameter": name,
+            "Value": f"{p.value:.4f}" if isinstance(p.value, float) else str(p.value),
+            "Source": p.source,
+            "Confidence": f"{p.confidence:.0%}",
+            "Note": getattr(p, 'note', '') or "",
+        })
+    st.dataframe(pd.DataFrame(param_rows), use_container_width=True, hide_index=True)
+
+    # Dynamic SFC state summary — auto-discover ALL outcome dimensions
+    if trajectory and len(trajectory) > 1:
+        st.markdown(f"<div style='color:{theme.accent_warning}; font-weight:600; "
+                    f"font-size:0.85rem; margin-top:1rem; margin-bottom:0.5rem;'>"
+                    f"SFC ENGINE SUMMARY</div>", unsafe_allow_html=True)
+
+        final = trajectory[-1]
+        outcomes = final.get("outcomes", {})
+
+        st.text(f"Total frames: {len(trajectory)}")
+
+        # Dynamically render metrics for ALL discovered outcome dimensions
+        outcome_keys = sorted(outcomes.keys())
+        # Filter out internal breach flags
+        outcome_keys = [k for k in outcome_keys if not k.startswith("breach_")]
+
+        # Render as a compact table
+        _metric_rows = []
+        for key in outcome_keys:
+            val = outcomes[key]
+            if isinstance(val, float) and -1.0 <= val <= 2.0 and key not in ("financial_stability",):
+                _metric_rows.append({"Indicator": _dim_label(key), "Value": f"{val:.2%}"})
+            else:
+                _metric_rows.append({"Indicator": _dim_label(key), "Value": f"{val:.4f}"})
+        if _metric_rows:
+            st.dataframe(pd.DataFrame(_metric_rows), use_container_width=True, hide_index=True)
+
+        # Sector balance check (SFC consistency) — dynamic sector discovery
+        dims = _discover_dimensions(trajectory)
+        sector_keys = dims.get("sector_balances", [])
+        if sector_keys:
+            all_balances = [
+                sum(f.get("sector_balances", {}).get(s, 0) for s in sector_keys)
+                for f in trajectory
+            ]
+            max_imbalance = max(abs(b) for b in all_balances) if all_balances else 0
+            bal_ok = max_imbalance < 0.01
+            bc = theme.accent_success if bal_ok else theme.accent_danger
+            st.markdown(f"""
+            <div style="font-size:0.8rem; color:{theme.text_muted}; margin-top:0.5rem;">
+                SFC Balance Check: max sector imbalance =
+                <span style="color:{bc}; font-weight:600;">{max_imbalance:.6f}</span>
+                {'(PASS)' if bal_ok else '(WARNING: large imbalance)'}
+            </div>
+            """, unsafe_allow_html=True)
+
+        # Channel dynamics summary (also dynamic)
+        channel_keys = dims.get("channels", [])
+        if channel_keys:
+            st.markdown(f"<div style='color:{theme.accent_primary}; font-weight:600; "
+                        f"font-size:0.85rem; margin-top:1rem; margin-bottom:0.5rem;'>"
+                        f"CHANNEL DYNAMICS</div>", unsafe_allow_html=True)
+            _ch_rows = []
+            final_channels = final.get("channels", {})
+            for ck in channel_keys:
+                cv = final_channels.get(ck, 0)
+                _ch_rows.append({"Channel": _dim_label(ck), "Value": f"{cv:.4f}"})
+            if _ch_rows:
+                st.dataframe(pd.DataFrame(_ch_rows), use_container_width=True, hide_index=True)
+
+
+# ═════════════════════════════════════════════════════════════════════════════
+#  TAB 6: PHASE EXPLORER — 2D/3D trajectory through any state space
+# ═════════════════════════════════════════════════════════════════════════════
+
+def _render_phase_explorer_tab(theme):
+    trajectory = st.session_state.get("sim_trajectory")
+    if not trajectory or len(trajectory) < 4:
+        st.info("Run a simulation to explore phase diagrams.")
+        return
+    if not HAS_PLOTLY:
+        st.warning("Plotly required for phase diagrams.")
+        return
+
+    dims = _discover_dimensions(trajectory)
+    all_opts = _flat_dim_options(dims)
+    if len(all_opts) < 2:
+        st.info("Not enough discoverable dimensions for a phase diagram.")
+        return
+
+    c1, c2, c3 = st.columns(3)
+    with c1:
+        x_dim = st.selectbox("X axis", all_opts, index=0, key="phase_x",
+                              format_func=lambda s: _dim_label(s.split("::")[-1]))
+    with c2:
+        y_dim = st.selectbox("Y axis", all_opts,
+                              index=min(1, len(all_opts) - 1), key="phase_y",
+                              format_func=lambda s: _dim_label(s.split("::")[-1]))
+    with c3:
+        z_options = ["(2D — no Z axis)"] + all_opts
+        z_dim = st.selectbox("Z axis (optional)", z_options, index=0, key="phase_z",
+                              format_func=lambda s: "(2D)" if s.startswith("(")
+                              else _dim_label(s.split("::")[-1]))
+
+    t_vals = [f.get("t", 0) for f in trajectory]
+    x_vals = [_extract_dim(x_dim, f) for f in trajectory]
+    y_vals = [_extract_dim(y_dim, f) for f in trajectory]
+    x_label = _dim_label(x_dim.split("::")[-1])
+    y_label = _dim_label(y_dim.split("::")[-1])
+
+    is_3d = z_dim and not z_dim.startswith("(")
+
+    if is_3d:
+        z_vals = [_extract_dim(z_dim, f) for f in trajectory]
+        z_label = _dim_label(z_dim.split("::")[-1])
+
+        fig = go.Figure()
+        fig.add_trace(go.Scatter3d(
+            x=x_vals, y=y_vals, z=z_vals,
+            mode='lines+markers',
+            marker=dict(size=4, color=t_vals, colorscale='Plasma',
+                        colorbar=dict(title="Quarter", len=0.6), opacity=0.9),
+            line=dict(color=theme.accent_primary, width=3),
+            hovertemplate=(
+                f"{x_label}: %{{x:.3f}}<br>{y_label}: %{{y:.3f}}<br>"
+                f"{z_label}: %{{z:.3f}}<extra></extra>"
+            ),
+            name="Trajectory",
+        ))
+        fig.add_trace(go.Scatter3d(
+            x=[x_vals[0]], y=[y_vals[0]], z=[z_vals[0]],
+            mode='markers', marker=dict(size=10, color=theme.accent_success, symbol='diamond'),
+            name='Start', showlegend=True,
+        ))
+        fig.add_trace(go.Scatter3d(
+            x=[x_vals[-1]], y=[y_vals[-1]], z=[z_vals[-1]],
+            mode='markers', marker=dict(size=10, color=theme.accent_danger, symbol='diamond'),
+            name='End', showlegend=True,
+        ))
+        fig.update_layout(
+            scene=dict(xaxis_title=x_label, yaxis_title=y_label, zaxis_title=z_label,
+                       bgcolor="rgba(0,0,0,0)"),
+            **_base_layout(theme, height=560,
+                title=dict(text="3D Phase Space Trajectory",
+                           font=dict(color=theme.text_muted, size=13))),
+        )
+    else:
+        fig = go.Figure()
+        fig.add_trace(go.Scatter(
+            x=x_vals, y=y_vals, mode='lines+markers',
+            marker=dict(size=6, color=t_vals, colorscale='Plasma',
+                        colorbar=dict(title="Quarter"), opacity=0.8),
+            line=dict(color=theme.accent_primary, width=2),
+            hovertemplate=(
+                f"{x_label}: %{{x:.3f}}<br>{y_label}: %{{y:.3f}}<extra></extra>"
+            ),
+            name="Trajectory",
+        ))
+        fig.add_trace(go.Scatter(
+            x=[x_vals[0]], y=[y_vals[0]], mode='markers',
+            marker=dict(size=12, color=theme.accent_success, symbol='diamond'),
+            name='Start', showlegend=True,
+        ))
+        fig.add_trace(go.Scatter(
+            x=[x_vals[-1]], y=[y_vals[-1]], mode='markers',
+            marker=dict(size=12, color=theme.accent_danger, symbol='diamond'),
+            name='End', showlegend=True,
+        ))
+        fig.update_layout(**_base_layout(theme, height=480,
+            title=dict(text="2D Phase Diagram",
+                       font=dict(color=theme.text_muted, size=13)),
+            xaxis=dict(title=x_label), yaxis=dict(title=y_label)))
+
+    st.plotly_chart(fig, use_container_width=True)
+
+    st.markdown(f"""
+    <div style="font-size:0.78rem; color:{theme.text_muted}; padding:0.3rem 0;">
+        <b>Reading:</b>  The path traces how the economy evolves through the chosen
+        state space over time.  Colour encodes the quarter — early periods are dark,
+        later periods bright.  <span style="color:{theme.accent_success}">&#x25C6;</span>
+        = start, <span style="color:{theme.accent_danger}">&#x25C6;</span> = end.
+    </div>
+    """, unsafe_allow_html=True)
+
+
+# ═════════════════════════════════════════════════════════════════════════════
+#  TAB 7: IMPULSE RESPONSE FUNCTIONS — auto-detected deviation from baseline
+# ═════════════════════════════════════════════════════════════════════════════
+
+def _render_irf_tab(theme):
+    trajectory = st.session_state.get("sim_trajectory")
+    if not trajectory or len(trajectory) < 6:
+        st.info("Run a simulation with ≥ 6 quarters to see impulse responses.")
+        return
+    if not HAS_PLOTLY:
+        st.warning("Plotly required for IRF charts.")
+        return
+
+    # Determine shock onset dynamically
+    scenario = st.session_state.get("_sim_scenario_obj")
+    onset = scenario.shock_onset if scenario and hasattr(scenario, "shock_onset") else 5
+
+    # Auto-discover outcome dimensions
+    outcome_keys = sorted({k for f in trajectory for k in f.get("outcomes", {})
+                           if not k.startswith("breach_")})
+    if not outcome_keys:
+        st.info("No outcome dimensions found in trajectory frames.")
+        return
+
+    selected = st.multiselect(
+        "Dimensions to display", outcome_keys,
+        default=outcome_keys[:min(6, len(outcome_keys))],
+        format_func=_dim_label, key="irf_dims",
+    )
+    if not selected:
+        return
+
+    # Baseline = average of pre-shock frames
+    pre_shock = [f for f in trajectory if f["t"] < onset]
+    if not pre_shock:
+        pre_shock = trajectory[:3]
+
+    baseline = {}
+    for dim in selected:
+        vals = [f.get("outcomes", {}).get(dim, 0) for f in pre_shock]
+        baseline[dim] = float(np.mean(vals)) if vals else 0.0
+
+    post_shock = [f for f in trajectory if f["t"] >= onset]
+    t_relative = [f["t"] - onset for f in post_shock]
+
+    view_mode = st.radio("View", ["2D Lines", "3D Surface"], horizontal=True, key="irf_view")
+
+    if view_mode == "3D Surface" and len(selected) >= 2:
+        z_matrix = []
+        for dim in selected:
+            base = baseline.get(dim, 0)
+            irfs = [(f.get("outcomes", {}).get(dim, 0) - base) for f in post_shock]
+            if abs(base) > 1e-8:
+                irfs = [v / abs(base) * 100 for v in irfs]
+            z_matrix.append(irfs)
+
+        fig = go.Figure(go.Surface(
+            x=t_relative,
+            y=list(range(len(selected))),
+            z=z_matrix,
+            colorscale='RdBu_r',
+            colorbar=dict(title="% Dev"),
+            hovertemplate="t+%{x}<br>Dim idx: %{y}<br>IRF: %{z:.2f}%<extra></extra>",
+        ))
+        fig.update_layout(
+            scene=dict(
+                xaxis_title="Quarters After Shock",
+                yaxis_title="Dimension",
+                zaxis_title="% Deviation from Baseline",
+                yaxis=dict(
+                    tickvals=list(range(len(selected))),
+                    ticktext=[_dim_label(d)[:15] for d in selected],
+                ),
+                bgcolor="rgba(0,0,0,0)",
+            ),
+            **_base_layout(theme, height=560,
+                title=dict(text="3D Impulse Response Surface",
+                           font=dict(color=theme.text_muted, size=13))),
+        )
+    else:
+        fig = make_subplots(rows=1, cols=1)
+        for idx, dim in enumerate(selected):
+            base = baseline.get(dim, 0)
+            irfs = [(f.get("outcomes", {}).get(dim, 0) - base) for f in post_shock]
+            if abs(base) > 1e-8:
+                irfs = [v / abs(base) * 100 for v in irfs]
+            fig.add_trace(go.Scatter(
+                x=t_relative, y=irfs, mode='lines',
+                name=_dim_label(dim),
+                line=dict(color=PALETTE[idx % len(PALETTE)], width=2.5),
+            ))
+        fig.add_hline(y=0, line_dash="dot", line_color=theme.text_muted)
+        fig.update_layout(**_base_layout(theme, height=460,
+            title=dict(text="Impulse Response Functions (% deviation from baseline)",
+                       font=dict(color=theme.text_muted, size=13)),
+            xaxis=dict(title="Quarters After Shock"),
+            yaxis=dict(title="% Deviation"),
+            legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="left", x=0,
+                        bgcolor='rgba(0,0,0,0)')))
+
+    st.plotly_chart(fig, use_container_width=True)
+
+    st.markdown(f"""
+    <div style="font-size:0.78rem; color:{theme.text_muted}; padding:0.3rem 0;">
+        <b>Reading:</b> Each line shows how a dimension deviates from its pre-shock
+        baseline (t<{onset}).  Positive = above baseline, negative = below.
+        Values are normalised to percentage deviation where possible.
+    </div>
+    """, unsafe_allow_html=True)
+
+
+# ═════════════════════════════════════════════════════════════════════════════
+#  TAB 8: FLOW DYNAMICS — Sankey + waterfall + 3D surface
+# ═════════════════════════════════════════════════════════════════════════════
+
+def _render_flow_sankey_tab(theme):
+    trajectory = st.session_state.get("sim_trajectory")
+    if not trajectory or len(trajectory) < 2:
+        st.info("Run a simulation to see flow diagrams.")
+        return
+    if not HAS_PLOTLY:
+        st.warning("Plotly required for flow visualization.")
+        return
+
+    flow_keys = sorted({k for f in trajectory for k in f.get("flows", {})})
+    if not flow_keys:
+        st.info("No flow data found in simulation frames.")
+        return
+
+    # Time-step selector
+    max_t = len(trajectory) - 1
+    t_idx = st.slider("Snapshot quarter", 0, max_t, max_t, key="sankey_t")
+    frame = trajectory[t_idx]
+    flows = frame.get("flows", {})
+
+    # ── Waterfall bar chart ───────────────────────────────────────────────────
+    sorted_flows = sorted(
+        [(k, flows.get(k, 0)) for k in flow_keys],
+        key=lambda x: abs(x[1]), reverse=True,
+    )
+    names = [_dim_label(k) for k, _ in sorted_flows]
+    values = [v for _, v in sorted_flows]
+    colors = [theme.accent_success if v >= 0 else theme.accent_danger for v in values]
+
+    fig_bar = go.Figure(go.Bar(
+        x=names, y=values, marker_color=colors,
+        text=[f"{v:.4f}" for v in values], textposition='outside',
+    ))
+    fig_bar.update_layout(**_base_layout(theme, height=400,
+        title=dict(text=f"Economic Flows at Quarter {frame.get('t', t_idx)}",
+                   font=dict(color=theme.text_muted, size=13)),
+        xaxis=dict(title=""), yaxis=dict(title="Flow Magnitude")))
+    st.plotly_chart(fig_bar, use_container_width=True)
+
+    # ── Sankey diagram ────────────────────────────────────────────────────────
+    if len(flow_keys) >= 3:
+        all_nodes = ["Inflows", "Outflows"] + [_dim_label(k) for k in flow_keys]
+        node_idx = {n: i for i, n in enumerate(all_nodes)}
+        sources, targets, values_s, labels_s = [], [], [], []
+        for k in flow_keys:
+            v = flows.get(k, 0)
+            label = _dim_label(k)
+            mag = max(abs(v), 1e-8)
+            if v >= 0:
+                sources.append(node_idx["Inflows"])
+                targets.append(node_idx[label])
+            else:
+                sources.append(node_idx[label])
+                targets.append(node_idx["Outflows"])
+            values_s.append(mag)
+            labels_s.append(f"{label}: {v:.4f}")
+
+        fig_sankey = go.Figure(go.Sankey(
+            node=dict(
+                label=all_nodes,
+                color=[PALETTE[i % len(PALETTE)] for i in range(len(all_nodes))],
+                pad=15, thickness=20,
+            ),
+            link=dict(
+                source=sources, target=targets, value=values_s,
+                label=labels_s, color="rgba(100,100,100,0.3)",
+            ),
+        ))
+        fig_sankey.update_layout(**_base_layout(theme, height=450,
+            title=dict(text="Flow Sankey Diagram",
+                       font=dict(color=theme.text_muted, size=13))))
+        st.plotly_chart(fig_sankey, use_container_width=True)
+
+    # ── 3D Flow Surface (flows × time) ───────────────────────────────────────
+    if st.checkbox("Show 3D Flow Dynamics Surface", key="sankey_3d"):
+        z_matrix = []
+        t_vals = []
+        for fr in trajectory:
+            t_vals.append(fr.get("t", 0))
+            z_matrix.append([fr.get("flows", {}).get(k, 0) for k in flow_keys])
+
+        fig_3d = go.Figure(go.Surface(
+            x=list(range(len(flow_keys))),
+            y=t_vals,
+            z=z_matrix,
+            colorscale='Viridis',
+            colorbar=dict(title="Value"),
+        ))
+        fig_3d.update_layout(
+            scene=dict(
+                xaxis_title="Flow",
+                yaxis_title="Quarter",
+                zaxis_title="Magnitude",
+                xaxis=dict(
+                    tickvals=list(range(len(flow_keys))),
+                    ticktext=[_dim_label(k)[:12] for k in flow_keys],
+                ),
+                bgcolor="rgba(0,0,0,0)",
+            ),
+            **_base_layout(theme, height=560,
+                title=dict(text="3D Flow Dynamics Surface",
+                           font=dict(color=theme.text_muted, size=13))),
+        )
+        st.plotly_chart(fig_3d, use_container_width=True)
+
+
+# ═════════════════════════════════════════════════════════════════════════════
+#  TAB 9: MONTE CARLO — Fan charts with parameter jitter
+# ═════════════════════════════════════════════════════════════════════════════
+
+def _render_monte_carlo_tab(theme, SFCEconomy, SFCConfig,
+                            calibrate_from_data, build_custom_scenario):
+    trajectory = st.session_state.get("sim_trajectory")
+    if not trajectory or len(trajectory) < 4:
+        st.info("Run a base simulation first, then generate Monte Carlo uncertainty bands.")
+        return
+    if not HAS_PLOTLY:
+        st.warning("Plotly required for fan charts.")
+        return
+
+    # Auto-discover outcome dimensions
+    outcome_keys = sorted({k for f in trajectory for k in f.get("outcomes", {})
+                           if not k.startswith("breach_")})
+    if not outcome_keys:
+        st.info("No outcome dimensions found.")
+        return
+
+    c1, c2, c3 = st.columns(3)
+    with c1:
+        focus_dim = st.selectbox("Dimension", outcome_keys,
+                                  format_func=_dim_label, key="mc_dim")
+    with c2:
+        n_runs = st.slider("Number of runs", 10, 200, 50, 10, key="mc_runs")
+    with c3:
+        jitter_pct = st.slider("Parameter jitter (%)", 1, 25, 10, 1, key="mc_jitter")
+
+    if st.button("Run Monte Carlo", key="mc_go", type="primary"):
+        calib = st.session_state.get("sim_calibration")
+        steps = st.session_state.get("sim_steps", 50)
+        scenario = st.session_state.get("_sim_scenario_obj")
+
+        if not calib:
+            st.error("No calibration found. Run base simulation first.")
+            return
+
+        progress = st.progress(0, text="Running Monte Carlo simulations...")
+        mc_trajectories = []
+
+        for i in range(n_runs):
+            try:
+                # Jitter each numeric config field
+                cfg_dict = {}
+                for field_name in SFCConfig.__dataclass_fields__:
+                    val = getattr(calib.config, field_name, None)
+                    if isinstance(val, (int, float)) and field_name not in ("steps", "dt"):
+                        j = 1.0 + np.random.uniform(-jitter_pct / 100, jitter_pct / 100)
+                        cfg_dict[field_name] = val * j
+                    elif val is not None:
+                        cfg_dict[field_name] = val
+
+                cfg = SFCConfig(**{k: v for k, v in cfg_dict.items()
+                                   if k in SFCConfig.__dataclass_fields__})
+                cfg.steps = steps
+
+                if scenario and hasattr(scenario, 'build_shock_vectors'):
+                    cfg.shock_vectors = scenario.build_shock_vectors(steps)
+
+                econ = SFCEconomy(cfg)
+                econ.initialize()
+                traj = econ.run(steps)
+                mc_trajectories.append(traj)
+            except Exception:
+                pass
+
+            progress.progress((i + 1) / n_runs, text=f"Run {i + 1}/{n_runs}...")
+
+        progress.empty()
+
+        if len(mc_trajectories) < 5:
+            st.warning(f"Only {len(mc_trajectories)} successful runs. Try reducing jitter.")
+            return
+
+        st.session_state["mc_trajectories"] = mc_trajectories
+        st.session_state["mc_focus_dim"] = focus_dim
+
+    # ── Render fan chart if MC results exist ──────────────────────────────────
+    mc_trajs = st.session_state.get("mc_trajectories", [])
+    if not mc_trajs:
+        return
+
+    focus = st.session_state.get("mc_focus_dim", focus_dim)
+
+    max_len = max(len(t) for t in mc_trajs)
+    t_vals = list(range(max_len))
+
+    all_vals = []
+    for t_idx in range(max_len):
+        step_vals = []
+        for traj in mc_trajs:
+            if t_idx < len(traj):
+                step_vals.append(traj[t_idx].get("outcomes", {}).get(focus, 0))
+        all_vals.append(step_vals)
+
+    percentiles = [10, 25, 50, 75, 90]
+    bands = {p: [float(np.percentile(sv, p)) if sv else 0 for sv in all_vals]
+             for p in percentiles}
+
+    view_mode = st.radio("View", ["2D Fan Chart", "3D Uncertainty Surface"],
+                         horizontal=True, key="mc_view")
+
+    if view_mode == "3D Uncertainty Surface":
+        z_matrix = [bands[p] for p in percentiles]
+        fig = go.Figure(go.Surface(
+            x=t_vals, y=percentiles, z=z_matrix,
+            colorscale='Plasma', colorbar=dict(title="Value"), opacity=0.85,
+        ))
+        fig.update_layout(
+            scene=dict(
+                xaxis_title="Quarter", yaxis_title="Percentile",
+                zaxis_title=_dim_label(focus),
+                bgcolor="rgba(0,0,0,0)",
+            ),
+            **_base_layout(theme, height=560,
+                title=dict(text=f"3D Uncertainty Surface — {_dim_label(focus)}",
+                           font=dict(color=theme.text_muted, size=13))),
+        )
+    else:
+        fig = go.Figure()
+        band_pairs = [(10, 90, 0.15), (25, 75, 0.25)]
+        for lo, hi, opacity in band_pairs:
+            fig.add_trace(go.Scatter(
+                x=t_vals + t_vals[::-1],
+                y=bands[hi] + bands[lo][::-1],
+                fill='toself',
+                fillcolor=f"rgba(0,170,255,{opacity})",
+                line=dict(color='rgba(0,0,0,0)'),
+                name=f"{lo}th–{hi}th percentile",
+                showlegend=True,
+            ))
+        fig.add_trace(go.Scatter(
+            x=t_vals, y=bands[50], mode='lines',
+            name='Median', line=dict(color=theme.accent_primary, width=3),
+        ))
+        base_vals = [f.get("outcomes", {}).get(focus, 0) for f in trajectory]
+        fig.add_trace(go.Scatter(
+            x=list(range(len(base_vals))), y=base_vals, mode='lines',
+            name='Base Run', line=dict(color=theme.accent_warning, width=2, dash='dash'),
+        ))
+        fig.update_layout(**_base_layout(theme, height=480,
+            title=dict(text=f"Monte Carlo Fan Chart — {_dim_label(focus)} ({len(mc_trajs)} runs)",
+                       font=dict(color=theme.text_muted, size=13)),
+            xaxis=dict(title="Quarter"),
+            yaxis=dict(title=_dim_label(focus)),
+            legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="left", x=0,
+                        bgcolor='rgba(0,0,0,0)')))
+
+    st.plotly_chart(fig, use_container_width=True)
+
+    st.markdown(f"""
+    <div style="font-size:0.78rem; color:{theme.text_muted}; padding:0.3rem 0;">
+        {len(mc_trajs)} successful runs &nbsp;|&nbsp; Parameter jitter: &plusmn;{jitter_pct}%
+        &nbsp;|&nbsp; Bands: 10th–90th and 25th–75th percentiles
+    </div>
+    """, unsafe_allow_html=True)
+
+
+# ═════════════════════════════════════════════════════════════════════════════
+#  TAB 10: STRESS TEST MATRIX — all scenarios × all outcomes
+# ═════════════════════════════════════════════════════════════════════════════
+
+def _render_stress_matrix_tab(theme, scenario_library,
+                              SFCEconomy, SFCConfig, calibrate_from_data):
+    if not HAS_PLOTLY:
+        st.warning("Plotly required for stress test visualization.")
+        return
+
+    steps = st.session_state.get("sim_steps", 50)
+    policy_key = st.session_state.get("_sim_policy_key", "do_nothing")
+    policy_overrides = st.session_state.get("_sim_policy_overrides", {})
+
+    st.markdown(f"""
+    <div style="font-size:0.8rem; color:{theme.text_muted}; margin-bottom:0.5rem;">
+        Runs <b>every</b> scenario in the library with the currently selected policy
+        and shows the impact across <b>all auto-discovered</b> outcome dimensions.
+    </div>
+    """, unsafe_allow_html=True)
+
+    if st.button("Run All Scenarios Stress Test", key="stress_go", type="primary"):
+        progress = st.progress(0, text="Running stress tests...")
+        results = {}
+
+        for i, scenario in enumerate(scenario_library):
+            try:
+                policy_mode = "custom" if policy_key != "do_nothing" else "off"
+                config_overrides = {k: v for k, v in policy_overrides.items()
+                                    if k in SFCConfig.__dataclass_fields__}
+                calib = calibrate_from_data(
+                    steps=steps, policy_mode=policy_mode, overrides=config_overrides,
+                )
+                cfg = calib.config
+                cfg.shock_vectors = scenario.build_shock_vectors(steps)
+
+                econ = SFCEconomy(cfg)
+                econ.initialize()
+                traj = econ.run(steps)
+
+                if traj and len(traj) > 1:
+                    final = traj[-1].get("outcomes", {})
+                    initial = traj[0].get("outcomes", {})
+                    deltas = {k: final.get(k, 0) - initial.get(k, 0) for k in final}
+                    results[scenario.name] = {"final": final, "delta": deltas}
+            except Exception:
+                pass
+
+            progress.progress((i + 1) / len(scenario_library))
+
+        progress.empty()
+        st.session_state["stress_results"] = results
+
+    results = st.session_state.get("stress_results", {})
+    if not results:
+        st.info("Click the button above to generate the stress test matrix.")
+        return
+
+    # Auto-discover all outcome dimensions across all scenario runs
+    all_dims = sorted({k for r in results.values() for k in r.get("delta", {})
+                       if not k.startswith("breach_")})
+    scenarios = list(results.keys())
+
+    if not all_dims or not scenarios:
+        st.warning("No results to display.")
+        return
+
+    z_matrix = []
+    text_matrix = []
+    for s in scenarios:
+        row, text_row = [], []
+        for d in all_dims:
+            v = results[s].get("delta", {}).get(d, 0)
+            row.append(v)
+            text_row.append(f"{v:+.3f}")
+        z_matrix.append(row)
+        text_matrix.append(text_row)
+
+    fig = go.Figure(go.Heatmap(
+        z=z_matrix,
+        x=[_dim_label(d) for d in all_dims],
+        y=scenarios,
+        colorscale='RdYlGn',
+        text=text_matrix,
+        texttemplate="%{text}",
+        showscale=True,
+        colorbar=dict(title="Delta"),
+    ))
+    fig.update_layout(**_base_layout(theme, height=max(400, len(scenarios) * 55),
+        title=dict(text=f"Stress Matrix — {len(scenarios)} scenarios × {len(all_dims)} dimensions",
+                   font=dict(color=theme.text_muted, size=13))))
+    st.plotly_chart(fig, use_container_width=True)
+
+    # 3D Stress Surface
+    if st.checkbox("Show 3D Stress Surface", key="stress_3d"):
+        fig_3d = go.Figure(go.Surface(
+            x=list(range(len(all_dims))),
+            y=list(range(len(scenarios))),
+            z=z_matrix,
+            colorscale='RdYlGn',
+            colorbar=dict(title="Delta"),
+        ))
+        fig_3d.update_layout(
+            scene=dict(
+                xaxis_title="Dimension",
+                yaxis_title="Scenario",
+                zaxis_title="Impact (Delta)",
+                xaxis=dict(tickvals=list(range(len(all_dims))),
+                           ticktext=[_dim_label(d)[:12] for d in all_dims]),
+                yaxis=dict(tickvals=list(range(len(scenarios))),
+                           ticktext=[s[:15] for s in scenarios]),
+                bgcolor="rgba(0,0,0,0)",
+            ),
+            **_base_layout(theme, height=560,
+                title=dict(text="3D Stress Test Surface",
+                           font=dict(color=theme.text_muted, size=13))),
+        )
+        st.plotly_chart(fig_3d, use_container_width=True)
+
+
+# ═════════════════════════════════════════════════════════════════════════════
+#  TAB 11: PARAMETER RESPONSE SURFACE — 3D sweep
+# ═════════════════════════════════════════════════════════════════════════════
+
+def _render_parameter_surface_tab(theme, SFCEconomy, SFCConfig, calibrate_from_data):
+    trajectory = st.session_state.get("sim_trajectory")
+    if not trajectory or len(trajectory) < 4:
+        st.info("Run a base simulation first to enable parameter sweeps.")
+        return
+    if not HAS_PLOTLY:
+        st.warning("Plotly required for 3D surfaces.")
+        return
+
+    calib = st.session_state.get("sim_calibration")
+    if not calib:
+        st.info("No calibration available — run the simulation first.")
+        return
+
+    # Auto-discover tunable parameters from SFCConfig
+    tunable_params = sorted([
+        fn for fn in SFCConfig.__dataclass_fields__
+        if isinstance(getattr(calib.config, fn, None), float)
+        and fn not in ("steps", "dt")
+    ])
+    outcome_keys = sorted({k for f in trajectory for k in f.get("outcomes", {})
+                           if not k.startswith("breach_")})
+    if not tunable_params or not outcome_keys:
+        st.info("Need tunable parameters and outcome dimensions.")
+        return
+
+    c1, c2, c3 = st.columns(3)
+    with c1:
+        param = st.selectbox("Sweep parameter", tunable_params,
+                              format_func=_dim_label, key="surf_param")
+    with c2:
+        outcome = st.selectbox("Outcome dimension", outcome_keys,
+                                format_func=_dim_label, key="surf_outcome")
+    with c3:
+        n_sweep = st.slider("Sweep points", 5, 30, 15, key="surf_n")
+
+    base_val = getattr(calib.config, param, 0.1)
+    sweep_range = st.slider(
+        f"Range around base ({base_val:.4f})",
+        0.1, 2.0, 0.5, 0.1, key="surf_range",
+        help="Multiplier: 0.5 → sweep from 50% to 150% of base value",
+    )
+
+    if st.button("Generate Response Surface", key="surf_go", type="primary"):
+        lo = base_val * (1 - sweep_range)
+        hi = base_val * (1 + sweep_range)
+        param_vals = np.linspace(max(lo, 1e-6), hi, n_sweep).tolist()
+
+        scenario = st.session_state.get("_sim_scenario_obj")
+        steps = st.session_state.get("sim_steps", 50)
+
+        progress = st.progress(0, text="Sweeping parameter space...")
+        z_surface = []
+        valid_params = []
+
+        for i, pv in enumerate(param_vals):
+            try:
+                cfg_dict = {}
+                for fn in SFCConfig.__dataclass_fields__:
+                    cfg_dict[fn] = getattr(calib.config, fn)
+                cfg_dict[param] = pv
+                cfg_dict["steps"] = steps
+
+                cfg = SFCConfig(**{k: v for k, v in cfg_dict.items()
+                                   if k in SFCConfig.__dataclass_fields__})
+                if scenario and hasattr(scenario, 'build_shock_vectors'):
+                    cfg.shock_vectors = scenario.build_shock_vectors(steps)
+
+                econ = SFCEconomy(cfg)
+                econ.initialize()
+                traj = econ.run(steps)
+
+                row = [f.get("outcomes", {}).get(outcome, 0) for f in traj]
+                z_surface.append(row)
+                valid_params.append(pv)
+            except Exception:
+                pass
+
+            progress.progress((i + 1) / n_sweep)
+
+        progress.empty()
+        st.session_state["surf_z"] = z_surface
+        st.session_state["surf_params"] = valid_params
+        st.session_state["surf_outcome_name"] = outcome
+        st.session_state["surf_param_name"] = param
+
+    # ── Render the surface if data exists ─────────────────────────────────────
+    z_surface = st.session_state.get("surf_z")
+    valid_params = st.session_state.get("surf_params")
+
+    if not z_surface or not valid_params:
+        return
+
+    surf_outcome = st.session_state.get("surf_outcome_name", outcome)
+    surf_param = st.session_state.get("surf_param_name", param)
+
+    # Normalise row lengths
+    max_len = max(len(r) for r in z_surface)
+    for i, r in enumerate(z_surface):
+        if len(r) < max_len:
+            z_surface[i] = r + [r[-1]] * (max_len - len(r))
+
+    fig = go.Figure(go.Surface(
+        x=list(range(max_len)),
+        y=valid_params,
+        z=z_surface,
+        colorscale='Viridis',
+        colorbar=dict(title=_dim_label(surf_outcome)[:15]),
+        opacity=0.9,
+    ))
+    fig.update_layout(
+        scene=dict(
+            xaxis_title="Quarter",
+            yaxis_title=_dim_label(surf_param),
+            zaxis_title=_dim_label(surf_outcome),
+            bgcolor="rgba(0,0,0,0)",
+        ),
+        **_base_layout(theme, height=600,
+            title=dict(
+                text=f"Parameter Response Surface: {_dim_label(surf_param)} → {_dim_label(surf_outcome)}",
+                font=dict(color=theme.text_muted, size=13))),
+    )
+    st.plotly_chart(fig, use_container_width=True)
+
+    st.markdown(f"""
+    <div style="font-size:0.78rem; color:{theme.text_muted}; padding:0.3rem 0;">
+        X = time (quarters), Y = <b>{_dim_label(surf_param)}</b> swept from
+        {min(valid_params):.4f} to {max(valid_params):.4f},
+        Z = <b>{_dim_label(surf_outcome)}</b>.
+        {len(valid_params)} successful parameter values.
+    </div>
+    """, unsafe_allow_html=True)
+
+
+# ═════════════════════════════════════════════════════════════════════════════
+#  TAB 12: IO SECTORS — Multi-sector Leontief production
+# ═════════════════════════════════════════════════════════════════════════════
+
+def _render_io_sectors_tab(theme):
+    """Input-Output disaggregation across 5 Kenya sectors."""
+    trajectory = st.session_state.get("sim_research_trajectory")
+    research_econ = st.session_state.get("sim_research_econ")
+
+    if not trajectory or not research_econ:
+        st.info("Run the **Research Engine** tab first to see IO sector analysis.")
+        return
+    if not HAS_PLOTLY:
+        st.warning("Plotly required for sector charts.")
+        return
+
+    io_frames = [f.get("io_sectors", {}) for f in trajectory if f.get("io_sectors")]
+    if not io_frames:
+        st.warning("IO sector data not available. Enable IO module in Research Engine.")
+        return
+
+    sector_names = list(io_frames[0].keys())
+    t_vals = list(range(len(io_frames)))
+
+    # ── 1. LEONTIEF MATRIX HEATMAP ───────────────────────────────────────────
+    st.markdown(f"<div style='color:{theme.accent_primary}; font-weight:600; "
+                f"font-size:0.85rem; margin-bottom:0.5rem;'>LEONTIEF INPUT-OUTPUT MATRIX</div>",
+                unsafe_allow_html=True)
+    st.caption("Technical coefficients: A[i,j] = fraction of sector j's output used as input by sector i. "
+               "Darker = stronger inter-sector dependency.")
+
+    A_matrix = research_econ.io_model.A
+    L_matrix = research_econ.io_model.leontief_inverse
+    display_names = [n.title() for n in sector_names]
+
+    col_a, col_b = st.columns(2)
+    with col_a:
+        # Technical coefficient matrix (A)
+        fig_a = go.Figure(go.Heatmap(
+            z=A_matrix.tolist(),
+            x=display_names, y=display_names,
+            colorscale=[[0, 'rgba(0,0,0,0)'], [0.5, PALETTE[1]], [1, PALETTE[0]]],
+            text=[[f"{v:.3f}" for v in row] for row in A_matrix.tolist()],
+            texttemplate="%{text}", textfont=dict(size=11),
+            hovertemplate="From %{x} → To %{y}: %{z:.4f}<extra></extra>",
+            showscale=False,
+        ))
+        fig_a.update_layout(**_base_layout(theme, height=340,
+            title=dict(text="A Matrix (Technical Coefficients)", font=dict(color=theme.text_muted, size=12)),
+            xaxis=dict(title="Supplying Sector", side="bottom"),
+            yaxis=dict(title="Consuming Sector", autorange="reversed")))
+        st.plotly_chart(fig_a, use_container_width=True)
+
+    with col_b:
+        # Leontief inverse (I-A)^-1
+        fig_l = go.Figure(go.Heatmap(
+            z=L_matrix.tolist(),
+            x=display_names, y=display_names,
+            colorscale=[[0, 'rgba(0,0,0,0)'], [0.5, PALETTE[4]], [1, PALETTE[2]]],
+            text=[[f"{v:.3f}" for v in row] for row in L_matrix.tolist()],
+            texttemplate="%{text}", textfont=dict(size=11),
+            hovertemplate="From %{x} → To %{y}: %{z:.4f}<extra></extra>",
+            showscale=False,
+        ))
+        fig_l.update_layout(**_base_layout(theme, height=340,
+            title=dict(text="Leontief Inverse (I-A)⁻¹", font=dict(color=theme.text_muted, size=12)),
+            xaxis=dict(title="Final Demand", side="bottom"),
+            yaxis=dict(title="Gross Output", autorange="reversed")))
+        st.plotly_chart(fig_l, use_container_width=True)
+
+    # ── 2. INTER-SECTOR FLOW SANKEY ──────────────────────────────────────────
+    st.markdown(f"<div style='color:{theme.accent_warning}; font-weight:600; "
+                f"font-size:0.85rem; margin-top:1rem; margin-bottom:0.5rem;'>"
+                f"INTER-SECTOR FLOWS (Intermediate Inputs)</div>",
+                unsafe_allow_html=True)
+
+    last_io = io_frames[-1]
+    src_nodes, tgt_nodes, flow_vals, flow_labels = [], [], [], []
+    node_labels = display_names + [f"{n} (input)" for n in display_names]
+    node_colors = PALETTE[:len(sector_names)] + PALETTE[:len(sector_names)]
+
+    for i, from_name in enumerate(sector_names):
+        from_output = last_io.get(from_name, {}).get("output", 1)
+        for j, to_name in enumerate(sector_names):
+            coeff = A_matrix[j, i]
+            flow = coeff * from_output
+            if flow > 0.01:
+                src_nodes.append(i)
+                tgt_nodes.append(len(sector_names) + j)
+                flow_vals.append(flow)
+                flow_labels.append(f"{from_name.title()} → {to_name.title()}: {flow:.2f}")
+
+    if flow_vals:
+        fig_sankey = go.Figure(go.Sankey(
+            arrangement='snap',
+            node=dict(label=node_labels, color=node_colors, pad=15, thickness=18,
+                      line=dict(color=theme.border_default, width=0.5)),
+            link=dict(source=src_nodes, target=tgt_nodes, value=flow_vals,
+                      label=flow_labels,
+                      color=[PALETTE[s % len(PALETTE)] + '30' for s in src_nodes]),
+        ))
+        fig_sankey.update_layout(**_base_layout(theme, height=400,
+            title=dict(text="Intermediate Input Flows Between Sectors",
+                       font=dict(color=theme.text_muted, size=13))))
+        st.plotly_chart(fig_sankey, use_container_width=True)
+
+    # ── 3. OUTPUT SHARE EVOLUTION (Stacked Area) ─────────────────────────────
+    st.markdown(f"<div style='color:{theme.accent_primary}; font-weight:600; "
+                f"font-size:0.85rem; margin-top:1rem; margin-bottom:0.5rem;'>"
+                f"STRUCTURAL CHANGE: SECTOR OUTPUT SHARES</div>",
+                unsafe_allow_html=True)
+
+    fig_area = go.Figure()
+    for i, name in enumerate(sector_names):
+        shares = [f.get(name, {}).get("output_share", 0) * 100 for f in io_frames]
+        fig_area.add_trace(go.Scatter(
+            x=t_vals, y=shares, mode='lines', name=name.title(),
+            line=dict(color=PALETTE[i % len(PALETTE)], width=0),
+            stackgroup='one', groupnorm='percent',
+            hovertemplate=f"{name.title()}: %{{y:.1f}}%<extra></extra>",
+        ))
+    fig_area.update_layout(**_base_layout(theme, height=380,
+        title=dict(text="Sector Output Shares Over Time (Stacked %)",
+                   font=dict(color=theme.text_muted, size=13)),
+        xaxis=dict(title="Quarter"),
+        yaxis=dict(title="Share (%)", range=[0, 100]),
+        legend=dict(orientation="h", y=1.08, x=0, bgcolor='rgba(0,0,0,0)')))
+    st.plotly_chart(fig_area, use_container_width=True)
+
+    # ── 4. COMPARATIVE ADVANTAGE SCATTER ─────────────────────────────────────
+    st.markdown(f"<div style='color:{theme.accent_warning}; font-weight:600; "
+                f"font-size:0.85rem; margin-top:1rem; margin-bottom:0.5rem;'>"
+                f"COMPARATIVE ADVANTAGE: OUTPUT vs EMPLOYMENT</div>",
+                unsafe_allow_html=True)
+
+    emp_shares_cfg = research_econ.io_cfg.employment_shares or {}
+    output_shares_final = [last_io.get(n, {}).get("output_share", 0) * 100 for n in sector_names]
+    emp_shares_final = [emp_shares_cfg.get(n, 0.2) * 100 for n in sector_names]
+    gross_outputs = [last_io.get(n, {}).get("output", 0) for n in sector_names]
+
+    fig_scatter = go.Figure()
+    fig_scatter.add_trace(go.Scatter(
+        x=emp_shares_final, y=output_shares_final,
+        mode='markers+text',
+        marker=dict(size=[max(15, v * 0.6) for v in gross_outputs],
+                    color=PALETTE[:len(sector_names)],
+                    line=dict(width=2, color='white')),
+        text=display_names, textposition='top center',
+        textfont=dict(color=theme.text_primary, size=11),
+        hovertemplate="%{text}<br>Employment: %{x:.1f}%<br>Output: %{y:.1f}%<extra></extra>",
+    ))
+    # 45-degree line (output = employment share)
+    max_val = max(max(output_shares_final, default=60), max(emp_shares_final, default=60)) + 5
+    fig_scatter.add_trace(go.Scatter(
+        x=[0, max_val], y=[0, max_val], mode='lines',
+        line=dict(color=theme.text_muted, dash='dash', width=1),
+        name='Equal Productivity', showlegend=True,
+    ))
+    fig_scatter.update_layout(**_base_layout(theme, height=400,
+        title=dict(text="Sector Efficiency: Above line = high productivity, Below = labor-intensive",
+                   font=dict(color=theme.text_muted, size=12)),
+        xaxis=dict(title="Employment Share (%)", range=[0, max_val]),
+        yaxis=dict(title="Output Share (%)", range=[0, max_val]),
+        legend=dict(orientation="h", y=1.08, x=0, bgcolor='rgba(0,0,0,0)')))
+    st.plotly_chart(fig_scatter, use_container_width=True)
+
+    # ── 5. OUTPUT MULTIPLIERS & LINKAGES BAR CHART ───────────────────────────
+    st.markdown(f"<div style='color:{theme.accent_primary}; font-weight:600; "
+                f"font-size:0.85rem; margin-top:1rem; margin-bottom:0.5rem;'>"
+                f"OUTPUT MULTIPLIERS &amp; LINKAGES</div>",
+                unsafe_allow_html=True)
+
+    multipliers = research_econ.io_model.output_multipliers()
+    backward = research_econ.io_model.backward_linkages()
+    forward = research_econ.io_model.forward_linkages()
+
+    fig_mult = go.Figure()
+    fig_mult.add_trace(go.Bar(x=display_names, y=multipliers.tolist(), name="Output Multiplier",
+                               marker_color=PALETTE[0], text=[f"{v:.2f}" for v in multipliers],
+                               textposition='auto'))
+    fig_mult.add_trace(go.Bar(x=display_names, y=backward.tolist(), name="Backward Linkage",
+                               marker_color=PALETTE[1], text=[f"{v:.2f}" for v in backward],
+                               textposition='auto'))
+    fig_mult.add_trace(go.Bar(x=display_names, y=forward.tolist(), name="Forward Linkage",
+                               marker_color=PALETTE[4], text=[f"{v:.2f}" for v in forward],
+                               textposition='auto'))
+    fig_mult.add_hline(y=1.0, line_dash="dash", line_color=theme.text_muted,
+                       annotation_text="Average (1.0)")
+    fig_mult.update_layout(**_base_layout(theme, height=380,
+        title=dict(text="Sector Multipliers & Linkage Strength",
+                   font=dict(color=theme.text_muted, size=13)),
+        barmode='group', yaxis=dict(title="Index Value"),
+        legend=dict(orientation="h", y=1.08, x=0, bgcolor='rgba(0,0,0,0)')))
+    st.plotly_chart(fig_mult, use_container_width=True)
+
+    st.markdown(f"<div style='font-size:0.75rem; color:{theme.text_muted}; padding:0.3rem 0;'>"
+                f"<b>Output Multiplier:</b> total output effect per unit of final demand. "
+                f"<b>Backward:</b> how much a sector's demand pulls from all sectors. "
+                f"<b>Forward:</b> how much a sector's output feeds into all sectors.</div>",
+                unsafe_allow_html=True)
+
+
+# ═════════════════════════════════════════════════════════════════════════════
+#  TAB 13: INEQUALITY — Heterogeneous agents / Gini / quintile dynamics
+# ═════════════════════════════════════════════════════════════════════════════
+
+def _render_inequality_tab(theme):
+    """Distributional analysis across income quintiles."""
+    trajectory = st.session_state.get("sim_research_trajectory")
+    research_econ = st.session_state.get("sim_research_econ")
+
+    if not trajectory or not research_econ:
+        st.info("Run the **Research Engine** tab first to see inequality analysis.")
+        return
+    if not HAS_PLOTLY:
+        st.warning("Plotly required.")
+        return
+
+    ineq_frames = [f.get("inequality", {}) for f in trajectory if f.get("inequality")]
+    if not ineq_frames:
+        st.warning("Inequality data not available. Enable heterogeneous agents in Research Engine.")
+        return
+
+    t_vals = list(range(len(ineq_frames)))
+    quintile_keys = list(ineq_frames[0].get("quintile_incomes", {}).keys())
+    gini_vals = [f.get("gini", 0) for f in ineq_frames]
+    palma_vals = [f.get("palma", 0) for f in ineq_frames]
+
+    # ── 1. GINI & PALMA GAUGES ───────────────────────────────────────────────
+    st.markdown(f"<div style='color:{theme.accent_primary}; font-weight:600; "
+                f"font-size:0.85rem; margin-bottom:0.5rem;'>INEQUALITY INDICATORS</div>",
+                unsafe_allow_html=True)
+
+    col_g, col_p = st.columns(2)
+    with col_g:
+        gini_now = gini_vals[-1]
+        # Gauge: 0 = perfect equality, 0.63 = Kenya's historical worst
+        fig_gini = go.Figure(go.Indicator(
+            mode="gauge+number+delta",
+            value=gini_now,
+            number=dict(suffix="", valueformat=".4f", font=dict(color=theme.text_primary)),
+            delta=dict(reference=gini_vals[0], valueformat=".4f",
+                       increasing=dict(color=PALETTE[3]),
+                       decreasing=dict(color=PALETTE[0])),
+            gauge=dict(
+                axis=dict(range=[0, 0.7], tickfont=dict(color=theme.text_muted, size=9)),
+                bar=dict(color=PALETTE[0]),
+                bgcolor='rgba(255,255,255,0.05)',
+                bordercolor=theme.border_default,
+                steps=[
+                    dict(range=[0, 0.30], color='rgba(0,255,136,0.1)'),
+                    dict(range=[0.30, 0.45], color='rgba(245,213,71,0.1)'),
+                    dict(range=[0.45, 0.70], color='rgba(255,51,102,0.1)'),
+                ],
+                threshold=dict(line=dict(color=PALETTE[3], width=3), thickness=0.8, value=0.408),
+            ),
+            title=dict(text="Gini Coefficient<br><span style='font-size:0.65rem'>Kenya benchmark: 0.408</span>",
+                       font=dict(size=13, color=theme.text_muted)),
+        ))
+        fig_gini.update_layout(**_base_layout(theme, height=280, margin=dict(l=30, r=30, t=60, b=10)))
+        st.plotly_chart(fig_gini, use_container_width=True)
+
+    with col_p:
+        palma_now = palma_vals[-1]
+        fig_palma = go.Figure(go.Indicator(
+            mode="gauge+number+delta",
+            value=palma_now,
+            number=dict(suffix="", valueformat=".2f", font=dict(color=theme.text_primary)),
+            delta=dict(reference=palma_vals[0], valueformat=".2f",
+                       increasing=dict(color=PALETTE[3]),
+                       decreasing=dict(color=PALETTE[0])),
+            gauge=dict(
+                axis=dict(range=[0, 5], tickfont=dict(color=theme.text_muted, size=9)),
+                bar=dict(color=PALETTE[1]),
+                bgcolor='rgba(255,255,255,0.05)',
+                bordercolor=theme.border_default,
+                steps=[
+                    dict(range=[0, 1.5], color='rgba(0,255,136,0.1)'),
+                    dict(range=[1.5, 3.0], color='rgba(245,213,71,0.1)'),
+                    dict(range=[3.0, 5.0], color='rgba(255,51,102,0.1)'),
+                ],
+                threshold=dict(line=dict(color=PALETTE[3], width=3), thickness=0.8, value=2.5),
+            ),
+            title=dict(text="Palma Ratio<br><span style='font-size:0.65rem'>Top 10% / Bottom 40%</span>",
+                       font=dict(size=13, color=theme.text_muted)),
+        ))
+        fig_palma.update_layout(**_base_layout(theme, height=280, margin=dict(l=30, r=30, t=60, b=10)))
+        st.plotly_chart(fig_palma, use_container_width=True)
+
+    # ── 2. QUINTILE INCOME SHARE STACKED AREA ────────────────────────────────
+    st.markdown(f"<div style='color:{theme.accent_warning}; font-weight:600; "
+                f"font-size:0.85rem; margin-top:1rem; margin-bottom:0.5rem;'>"
+                f"INCOME DISTRIBUTION: QUINTILE SHARES OVER TIME</div>",
+                unsafe_allow_html=True)
+
+    if quintile_keys:
+        fig_qarea = go.Figure()
+        q_labels = ["Q1 (Poorest 20%)", "Q2 (Lower)", "Q3 (Middle)", "Q4 (Upper)", "Q5 (Richest 20%)"]
+        q_colors = [PALETTE[3], PALETTE[6], PALETTE[2], PALETTE[1], PALETTE[0]]
+
+        for i, qk in enumerate(quintile_keys):
+            all_incomes_by_step = []
+            for f in ineq_frames:
+                q_incomes = f.get("quintile_incomes", {})
+                total = sum(q_incomes.values()) or 1.0
+                all_incomes_by_step.append(q_incomes.get(qk, 0) / total * 100)
+            label = q_labels[i] if i < len(q_labels) else qk.upper()
+            fig_qarea.add_trace(go.Scatter(
+                x=t_vals, y=all_incomes_by_step, mode='lines',
+                name=label,
+                line=dict(color=q_colors[i % len(q_colors)], width=0),
+                stackgroup='one',
+                hovertemplate=f"{label}: %{{y:.1f}}%<extra></extra>",
+            ))
+
+        fig_qarea.update_layout(**_base_layout(theme, height=400,
+            title=dict(text="Income Share by Quintile (%)", font=dict(color=theme.text_muted, size=13)),
+            xaxis=dict(title="Quarter"),
+            yaxis=dict(title="Income Share (%)", range=[0, 100]),
+            legend=dict(orientation="h", y=1.08, x=0, bgcolor='rgba(0,0,0,0)')))
+        st.plotly_chart(fig_qarea, use_container_width=True)
+
+    # ── 3. PRO-POOR GROWTH BAR CHART ─────────────────────────────────────────
+    st.markdown(f"<div style='color:{theme.accent_primary}; font-weight:600; "
+                f"font-size:0.85rem; margin-top:1rem; margin-bottom:0.5rem;'>"
+                f"INCOME GROWTH BY QUINTILE (% change start → end)</div>",
+                unsafe_allow_html=True)
+
+    if quintile_keys and len(ineq_frames) > 1:
+        first_incomes = ineq_frames[0].get("quintile_incomes", {})
+        last_incomes = ineq_frames[-1].get("quintile_incomes", {})
+        growth_pcts = []
+        bar_colors = []
+
+        for qk in quintile_keys:
+            start_v = first_incomes.get(qk, 1)
+            end_v = last_incomes.get(qk, 1)
+            pct = ((end_v - start_v) / max(abs(start_v), 0.01)) * 100
+            growth_pcts.append(pct)
+
+        # Color: green if bottom quintiles grow faster than top (pro-poor)
+        avg_bottom = np.mean(growth_pcts[:2]) if len(growth_pcts) >= 2 else 0
+        avg_top = np.mean(growth_pcts[-2:]) if len(growth_pcts) >= 2 else 0
+        is_pro_poor = avg_bottom > avg_top
+
+        for i, pct in enumerate(growth_pcts):
+            if i < 2:
+                bar_colors.append(PALETTE[0] if pct > avg_top else PALETTE[3])
+            elif i >= 3:
+                bar_colors.append(PALETTE[0] if pct > 0 else PALETTE[3])
+            else:
+                bar_colors.append(PALETTE[2])
+
+        q_labels_short = ["Q1\n(Poorest)", "Q2", "Q3", "Q4", "Q5\n(Richest)"]
+        fig_ppg = go.Figure(go.Bar(
+            x=q_labels_short[:len(growth_pcts)], y=growth_pcts,
+            marker_color=bar_colors,
+            text=[f"{v:+.1f}%" for v in growth_pcts], textposition='auto',
+            hovertemplate="%{x}: %{y:+.1f}%<extra></extra>",
+        ))
+        fig_ppg.add_hline(y=0, line_color=theme.text_muted, line_dash="dot")
+        ppg_label = "<span style='color:" + (PALETTE[0] if is_pro_poor else PALETTE[3]) + "'>" + \
+                    ("✓ PRO-POOR" if is_pro_poor else "✗ PRO-RICH") + "</span>"
+        fig_ppg.update_layout(**_base_layout(theme, height=350,
+            title=dict(text=f"Income Growth by Quintile — {ppg_label}",
+                       font=dict(color=theme.text_muted, size=13)),
+            yaxis=dict(title="Growth (%)")))
+        st.plotly_chart(fig_ppg, use_container_width=True)
+
+    # ── 4. INTERACTIVE LORENZ CURVE WITH SLIDER ──────────────────────────────
+    st.markdown(f"<div style='color:{theme.accent_warning}; font-weight:600; "
+                f"font-size:0.85rem; margin-top:1rem; margin-bottom:0.5rem;'>"
+                f"LORENZ CURVE EVOLUTION</div>",
+                unsafe_allow_html=True)
+
+    if quintile_keys and len(ineq_frames) > 1:
+        lorenz_t = st.slider("Select quarter for Lorenz curve", 0, len(ineq_frames) - 1,
+                             len(ineq_frames) - 1, key="lorenz_t")
+
+        sel_ineq = ineq_frames[lorenz_t]
+        q_incomes = sel_ineq.get("quintile_incomes", {})
+        sorted_inc = sorted(q_incomes.values())
+        total = sum(sorted_inc) or 1
+        cum_share = [0.0]
+        for v in sorted_inc:
+            cum_share.append(cum_share[-1] + v / total)
+        pop_share = [i / len(sorted_inc) for i in range(len(sorted_inc) + 1)]
+
+        # Also compute for period 0 for comparison
+        q_incomes_0 = ineq_frames[0].get("quintile_incomes", {})
+        sorted_inc_0 = sorted(q_incomes_0.values())
+        total_0 = sum(sorted_inc_0) or 1
+        cum_share_0 = [0.0]
+        for v in sorted_inc_0:
+            cum_share_0.append(cum_share_0[-1] + v / total_0)
+
+        fig_lorenz = go.Figure()
+        # Perfect equality
+        fig_lorenz.add_trace(go.Scatter(x=[0, 1], y=[0, 1], mode='lines',
+            name='Perfect Equality', line=dict(color=theme.text_muted, dash='dash', width=1)))
+        # Period 0 Lorenz
+        fig_lorenz.add_trace(go.Scatter(x=pop_share, y=cum_share_0, mode='lines',
+            name='Period 0', line=dict(color=PALETTE[2], width=2, dash='dot')))
+        # Selected period Lorenz
+        fig_lorenz.add_trace(go.Scatter(x=pop_share, y=cum_share, mode='lines+markers',
+            name=f'Period {lorenz_t}', line=dict(color=PALETTE[0], width=3),
+            marker=dict(size=8, color=PALETTE[0])))
+        # Shade inequality area
+        fig_lorenz.add_trace(go.Scatter(
+            x=pop_share + pop_share[::-1],
+            y=cum_share + pop_share[::-1],
+            fill='toself', fillcolor='rgba(255,51,102,0.1)',
+            line=dict(color='rgba(0,0,0,0)'), name='Inequality Area',
+            showlegend=True,
+        ))
+
+        gini_t = sel_ineq.get("gini", 0)
+        fig_lorenz.update_layout(**_base_layout(theme, height=400,
+            title=dict(text=f"Lorenz Curve — Quarter {lorenz_t} (Gini={gini_t:.4f})",
+                       font=dict(color=theme.text_muted, size=13)),
+            xaxis=dict(title="Cumulative Population Share", range=[0, 1]),
+            yaxis=dict(title="Cumulative Income Share", range=[0, 1]),
+            legend=dict(orientation="h", y=1.08, x=0, bgcolor='rgba(0,0,0,0)')))
+        st.plotly_chart(fig_lorenz, use_container_width=True)
+
+    # ── 5. GINI TRAJECTORY LINE ──────────────────────────────────────────────
+    st.markdown(f"<div style='color:{theme.accent_primary}; font-weight:600; "
+                f"font-size:0.85rem; margin-top:1rem; margin-bottom:0.5rem;'>"
+                f"GINI &amp; PALMA TIME SERIES</div>",
+                unsafe_allow_html=True)
+
+    fig_ts = make_subplots(specs=[[{"secondary_y": True}]])
+    fig_ts.add_trace(go.Scatter(
+        x=t_vals, y=gini_vals, name="Gini",
+        line=dict(color=PALETTE[0], width=3),
+        fill='tozeroy', fillcolor=PALETTE[0] + '14',
+    ), secondary_y=False)
+    fig_ts.add_trace(go.Scatter(
+        x=t_vals, y=palma_vals, name="Palma Ratio",
+        line=dict(color=PALETTE[1], width=3),
+    ), secondary_y=True)
+    # Kenya benchmark
+    fig_ts.add_hline(y=0.408, line_dash="dash", line_color=PALETTE[3],
+                     annotation_text="Kenya Gini (0.408)", secondary_y=False)
+    fig_ts.update_layout(**_base_layout(theme, height=350,
+        title=dict(text="Inequality Trajectory", font=dict(color=theme.text_muted, size=13)),
+        xaxis=dict(title="Quarter"),
+        legend=dict(orientation="h", y=1.08, x=0, bgcolor='rgba(0,0,0,0)')))
+    fig_ts.update_yaxes(title_text="Gini", secondary_y=False)
+    fig_ts.update_yaxes(title_text="Palma", secondary_y=True)
+    st.plotly_chart(fig_ts, use_container_width=True)
+
+
+# ═════════════════════════════════════════════════════════════════════════════
+#  TAB 14: FINANCIAL — BGG accelerator / NPLs / bank capital
+# ═════════════════════════════════════════════════════════════════════════════
+
+def _render_financial_tab(theme):
+    """Financial accelerator dashboard — NPL, CAR, credit spread, EFP."""
+    trajectory = st.session_state.get("sim_research_trajectory")
+    research_econ = st.session_state.get("sim_research_econ")
+
+    if not trajectory or not research_econ:
+        st.info("Run the **Research Engine** tab first to see financial analysis.")
+        return
+    if not HAS_PLOTLY:
+        st.warning("Plotly required.")
+        return
+
+    fin_frames = [f.get("financial", {}) for f in trajectory if f.get("financial")]
+    if not fin_frames:
+        st.warning("Financial data not available. Enable financial accelerator in Research Engine.")
+        return
+
+    t_vals = list(range(len(fin_frames)))
+
+    # ── 1. GAUGE DASHBOARD — NPL & CAR ──────────────────────────────────────
+    st.markdown(f"<div style='color:{theme.accent_primary}; font-weight:600; "
+                f"font-size:0.85rem; margin-bottom:0.5rem;'>FINANCIAL STABILITY GAUGES</div>",
+                unsafe_allow_html=True)
+
+    last_fin = fin_frames[-1]
+    npl = last_fin.get("npl_ratio", 0)
+    car = last_fin.get("car", 0)
+    spread = last_fin.get("credit_spread", 0)
+    efp = last_fin.get("efp", 0)
+
+    col_npl, col_car, col_fsi = st.columns(3)
+    with col_npl:
+        fig_npl_g = go.Figure(go.Indicator(
+            mode="gauge+number+delta",
+            value=npl * 100,
+            number=dict(suffix="%", valueformat=".1f", font=dict(color=theme.text_primary)),
+            delta=dict(reference=fin_frames[0].get("npl_ratio", npl) * 100,
+                       suffix="%", valueformat=".2f",
+                       increasing=dict(color=PALETTE[3]),
+                       decreasing=dict(color=PALETTE[0])),
+            gauge=dict(
+                axis=dict(range=[0, 25], ticksuffix="%",
+                          tickfont=dict(color=theme.text_muted, size=9)),
+                bar=dict(color=PALETTE[3] if npl > 0.10 else PALETTE[2] if npl > 0.05 else PALETTE[0]),
+                bgcolor='rgba(255,255,255,0.05)',
+                bordercolor=theme.border_default,
+                steps=[
+                    dict(range=[0, 5], color='rgba(0,255,136,0.08)'),
+                    dict(range=[5, 10], color='rgba(245,213,71,0.08)'),
+                    dict(range=[10, 25], color='rgba(255,51,102,0.08)'),
+                ],
+                threshold=dict(line=dict(color=PALETTE[3], width=3), thickness=0.8, value=10),
+            ),
+            title=dict(text="NPL Ratio<br><span style='font-size:0.6rem'>Threshold: 10%</span>",
+                       font=dict(size=12, color=theme.text_muted)),
+        ))
+        fig_npl_g.update_layout(**_base_layout(theme, height=250, margin=dict(l=20, r=20, t=55, b=5)))
+        st.plotly_chart(fig_npl_g, use_container_width=True)
+
+    with col_car:
+        fig_car_g = go.Figure(go.Indicator(
+            mode="gauge+number+delta",
+            value=car * 100,
+            number=dict(suffix="%", valueformat=".1f", font=dict(color=theme.text_primary)),
+            delta=dict(reference=fin_frames[0].get("car", car) * 100,
+                       suffix="%", valueformat=".2f",
+                       increasing=dict(color=PALETTE[0]),
+                       decreasing=dict(color=PALETTE[3])),
+            gauge=dict(
+                axis=dict(range=[0, 30], ticksuffix="%",
+                          tickfont=dict(color=theme.text_muted, size=9)),
+                bar=dict(color=PALETTE[0] if car > 0.145 else PALETTE[2] if car > 0.10 else PALETTE[3]),
+                bgcolor='rgba(255,255,255,0.05)',
+                bordercolor=theme.border_default,
+                steps=[
+                    dict(range=[0, 10], color='rgba(255,51,102,0.08)'),
+                    dict(range=[10, 14.5], color='rgba(245,213,71,0.08)'),
+                    dict(range=[14.5, 30], color='rgba(0,255,136,0.08)'),
+                ],
+                threshold=dict(line=dict(color=PALETTE[3], width=3), thickness=0.8, value=14.5),
+            ),
+            title=dict(text="Capital Adequacy<br><span style='font-size:0.6rem'>CBK Min: 14.5%</span>",
+                       font=dict(size=12, color=theme.text_muted)),
+        ))
+        fig_car_g.update_layout(**_base_layout(theme, height=250, margin=dict(l=20, r=20, t=55, b=5)))
+        st.plotly_chart(fig_car_g, use_container_width=True)
+
+    with col_fsi:
+        fsi = research_econ.financial_stability_index()
+        fig_fsi_g = go.Figure(go.Indicator(
+            mode="gauge+number",
+            value=fsi * 100,
+            number=dict(suffix="/100", valueformat=".0f", font=dict(color=theme.text_primary)),
+            gauge=dict(
+                axis=dict(range=[0, 100], tickfont=dict(color=theme.text_muted, size=9)),
+                bar=dict(color=PALETTE[0] if fsi > 0.6 else PALETTE[2] if fsi > 0.35 else PALETTE[3]),
+                bgcolor='rgba(255,255,255,0.05)',
+                bordercolor=theme.border_default,
+                steps=[
+                    dict(range=[0, 35], color='rgba(255,51,102,0.08)'),
+                    dict(range=[35, 60], color='rgba(245,213,71,0.08)'),
+                    dict(range=[60, 100], color='rgba(0,255,136,0.08)'),
+                ],
+            ),
+            title=dict(text="Financial Stability<br><span style='font-size:0.6rem'>Composite Index</span>",
+                       font=dict(size=12, color=theme.text_muted)),
+        ))
+        fig_fsi_g.update_layout(**_base_layout(theme, height=250, margin=dict(l=20, r=20, t=55, b=5)))
+        st.plotly_chart(fig_fsi_g, use_container_width=True)
+
+    # ── 2. CREDIT CYCLE SCATTER ──────────────────────────────────────────────
+    st.markdown(f"<div style='color:{theme.accent_warning}; font-weight:600; "
+                f"font-size:0.85rem; margin-top:1rem; margin-bottom:0.5rem;'>"
+                f"CREDIT CYCLE: CREDIT GROWTH vs GDP GROWTH</div>",
+                unsafe_allow_html=True)
+
+    # Compute credit growth from performing loans time series
+    perf_loans = [f.get("performing_loans", 0) for f in fin_frames]
+    credit_growth = [0.0]
+    for i in range(1, len(perf_loans)):
+        prev = max(perf_loans[i - 1], 0.01)
+        credit_growth.append((perf_loans[i] - prev) / prev * 100)
+
+    gdp_growth_vals = [f.get("outcomes", {}).get("gdp_growth", 0) * 100 for f in trajectory
+                       if f.get("financial")]
+    # Align lengths
+    min_len = min(len(credit_growth), len(gdp_growth_vals))
+    credit_growth = credit_growth[:min_len]
+    gdp_growth_vals = gdp_growth_vals[:min_len]
+    t_color = list(range(min_len))
+
+    fig_cycle = go.Figure()
+    fig_cycle.add_trace(go.Scatter(
+        x=gdp_growth_vals, y=credit_growth,
+        mode='lines+markers',
+        marker=dict(size=7, color=t_color, colorscale='Plasma',
+                    colorbar=dict(title="Quarter", len=0.6), opacity=0.9),
+        line=dict(color=PALETTE[1], width=2),
+        hovertemplate="GDP: %{x:.1f}%<br>Credit: %{y:.1f}%<br>Q%{marker.color}<extra></extra>",
+        name="Credit Cycle",
+    ))
+    # Start/End markers
+    if min_len > 1:
+        fig_cycle.add_trace(go.Scatter(
+            x=[gdp_growth_vals[0]], y=[credit_growth[0]], mode='markers',
+            marker=dict(size=14, color=PALETTE[0], symbol='diamond'), name='Start'))
+        fig_cycle.add_trace(go.Scatter(
+            x=[gdp_growth_vals[-1]], y=[credit_growth[-1]], mode='markers',
+            marker=dict(size=14, color=PALETTE[3], symbol='diamond'), name='End'))
+    fig_cycle.add_hline(y=0, line_dash="dot", line_color=theme.text_muted)
+    fig_cycle.add_vline(x=0, line_dash="dot", line_color=theme.text_muted)
+    fig_cycle.update_layout(**_base_layout(theme, height=400,
+        title=dict(text="Credit-GDP Cycle Phase Diagram",
+                   font=dict(color=theme.text_muted, size=13)),
+        xaxis=dict(title="GDP Growth (%)"), yaxis=dict(title="Credit Growth (%)"),
+        legend=dict(orientation="h", y=1.08, x=0, bgcolor='rgba(0,0,0,0)')))
+    st.plotly_chart(fig_cycle, use_container_width=True)
+
+    st.markdown(f"<div style='font-size:0.75rem; color:{theme.text_muted};'>"
+                f"<b>Reading:</b> Top-right = expansion (credit & GDP growing). "
+                f"Bottom-left = contraction. Counter-clockwise rotation = typical cycle.</div>",
+                unsafe_allow_html=True)
+
+    # ── 3. BANK BALANCE SHEET WATERFALL ──────────────────────────────────────
+    st.markdown(f"<div style='color:{theme.accent_primary}; font-weight:600; "
+                f"font-size:0.85rem; margin-top:1rem; margin-bottom:0.5rem;'>"
+                f"BANK BALANCE SHEET DECOMPOSITION</div>",
+                unsafe_allow_html=True)
+
+    bank = research_econ.bank
+    bs_labels = ["Performing\nLoans", "NPLs", "Gov.\nSecurities", "Reserves",
+                 "Total\nAssets", "Deposits", "Tier 1\nCapital", "Tier 2\nCapital",
+                 "Total\nLiab+Cap"]
+    bs_values = [
+        bank.performing_loans, bank.non_performing_loans,
+        bank.government_securities, bank.reserves,
+        0,  # total
+        -bank.deposits, -bank.tier1_capital, -bank.tier2_capital,
+        0,  # total
+    ]
+    bs_measures = ["relative", "relative", "relative", "relative", "total",
+                   "relative", "relative", "relative", "total"]
+
+    fig_bs = go.Figure(go.Waterfall(
+        x=bs_labels, y=bs_values, measure=bs_measures,
+        connector=dict(line=dict(color=theme.border_default, width=1)),
+        increasing=dict(marker=dict(color=PALETTE[0])),
+        decreasing=dict(marker=dict(color=PALETTE[3])),
+        totals=dict(marker=dict(color=PALETTE[1])),
+        texttemplate="%{y:.1f}", textposition="outside",
+        textfont=dict(size=9),
+    ))
+    fig_bs.update_layout(**_base_layout(theme, height=380,
+        title=dict(text="Bank Balance Sheet (Assets positive, Liabilities negative)",
+                   font=dict(color=theme.text_muted, size=12)),
+        yaxis=dict(title="Value")))
+    st.plotly_chart(fig_bs, use_container_width=True)
+
+    # ── 4. NPL / CAR / SPREAD TIME SERIES ───────────────────────────────────
+    st.markdown(f"<div style='color:{theme.accent_warning}; font-weight:600; "
+                f"font-size:0.85rem; margin-top:1rem; margin-bottom:0.5rem;'>"
+                f"FINANCIAL INDICATORS TRAJECTORY</div>",
+                unsafe_allow_html=True)
+
+    npl_vals = [f.get("npl_ratio", 0) * 100 for f in fin_frames]
+    car_vals = [f.get("car", 0) * 100 for f in fin_frames]
+    spread_vals = [f.get("credit_spread", 0) * 100 for f in fin_frames]
+    efp_vals = [f.get("efp", 0) * 100 for f in fin_frames]
+
+    fig_fin_ts = make_subplots(rows=2, cols=2,
+        subplot_titles=["NPL Ratio (%)", "Capital Adequacy Ratio (%)",
+                        "Credit Spread (%)", "External Finance Premium (%)"],
+        horizontal_spacing=0.08, vertical_spacing=0.12)
+
+    for col_idx, (vals, color, row, col) in enumerate([
+        (npl_vals, PALETTE[3], 1, 1), (car_vals, PALETTE[0], 1, 2),
+        (spread_vals, PALETTE[4], 2, 1), (efp_vals, PALETTE[5], 2, 2),
+    ]):
+        fig_fin_ts.add_trace(go.Scatter(
+            x=t_vals, y=vals, mode='lines', showlegend=False,
+            line=dict(color=color, width=2.5),
+            fill='tozeroy', fillcolor=color + '14',
+        ), row=row, col=col)
+
+    # Add threshold lines
+    fig_fin_ts.add_hline(y=10, line_dash="dash", line_color=PALETTE[3],
+                         annotation_text="10%", row=1, col=1)
+    fig_fin_ts.add_hline(y=14.5, line_dash="dash", line_color=PALETTE[0],
+                         annotation_text="14.5%", row=1, col=2)
+
+    fig_fin_ts.update_layout(**_base_layout(theme, height=500,
+        margin=dict(l=40, r=20, t=40, b=30)))
+    for r in range(1, 3):
+        for c in range(1, 3):
+            fig_fin_ts.update_xaxes(gridcolor='rgba(255,255,255,0.03)', row=r, col=c)
+            fig_fin_ts.update_yaxes(gridcolor='rgba(255,255,255,0.03)', row=r, col=c)
+    st.plotly_chart(fig_fin_ts, use_container_width=True)
+
+
+# ═════════════════════════════════════════════════════════════════════════════
+#  TAB 15: OPEN ECONOMY — REER / Trade / BoP / Reserves
+# ═════════════════════════════════════════════════════════════════════════════
+
+def _render_open_economy_tab(theme):
+    """External sector dashboard — FX, trade, BoP, reserves."""
+    trajectory = st.session_state.get("sim_research_trajectory")
+    research_econ = st.session_state.get("sim_research_econ")
+
+    if not trajectory or not research_econ:
+        st.info("Run the **Research Engine** tab first to see open economy analysis.")
+        return
+    if not HAS_PLOTLY:
+        st.warning("Plotly required.")
+        return
+
+    ext_frames = [f.get("external", {}) for f in trajectory if f.get("external")]
+    if not ext_frames:
+        st.warning("External sector data not available. Enable open economy in Research Engine.")
+        return
+
+    t_vals = list(range(len(ext_frames)))
+    last_ext = ext_frames[-1]
+
+    # ── 1. GAUGES ROW — REER, Reserves, Vulnerability ────────────────────────
+    st.markdown(f"<div style='color:{theme.accent_primary}; font-weight:600; "
+                f"font-size:0.85rem; margin-bottom:0.5rem;'>EXTERNAL SECTOR GAUGES</div>",
+                unsafe_allow_html=True)
+
+    reer_now = last_ext.get("reer", 100)
+    reserves_now = last_ext.get("reserves_months", 0)
+    ext_vuln = research_econ.external_vulnerability_index()
+
+    col_reer, col_res, col_vuln = st.columns(3)
+    with col_reer:
+        fig_reer_g = go.Figure(go.Indicator(
+            mode="gauge+number+delta",
+            value=reer_now,
+            number=dict(valueformat=".1f", font=dict(color=theme.text_primary)),
+            delta=dict(reference=ext_frames[0].get("reer", 100), valueformat=".1f",
+                       increasing=dict(color=PALETTE[2]),
+                       decreasing=dict(color=PALETTE[3])),
+            gauge=dict(
+                axis=dict(range=[50, 150], tickfont=dict(color=theme.text_muted, size=9)),
+                bar=dict(color=PALETTE[1]),
+                bgcolor='rgba(255,255,255,0.05)',
+                bordercolor=theme.border_default,
+                steps=[
+                    dict(range=[50, 85], color='rgba(255,51,102,0.08)'),
+                    dict(range=[85, 115], color='rgba(0,255,136,0.08)'),
+                    dict(range=[115, 150], color='rgba(245,213,71,0.08)'),
+                ],
+                threshold=dict(line=dict(color=theme.text_muted, width=2), thickness=0.8, value=100),
+            ),
+            title=dict(text="REER Index<br><span style='font-size:0.6rem'>Equilibrium: 100</span>",
+                       font=dict(size=12, color=theme.text_muted)),
+        ))
+        fig_reer_g.update_layout(**_base_layout(theme, height=250, margin=dict(l=20, r=20, t=55, b=5)))
+        st.plotly_chart(fig_reer_g, use_container_width=True)
+
+    with col_res:
+        fig_res_g = go.Figure(go.Indicator(
+            mode="gauge+number",
+            value=reserves_now,
+            number=dict(suffix=" mo", valueformat=".1f", font=dict(color=theme.text_primary)),
+            gauge=dict(
+                axis=dict(range=[0, 12], ticksuffix=" mo",
+                          tickfont=dict(color=theme.text_muted, size=9)),
+                bar=dict(color=PALETTE[0] if reserves_now >= 4 else PALETTE[3]),
+                bgcolor='rgba(255,255,255,0.05)',
+                bordercolor=theme.border_default,
+                steps=[
+                    dict(range=[0, 3], color='rgba(255,51,102,0.08)'),
+                    dict(range=[3, 4], color='rgba(245,213,71,0.08)'),
+                    dict(range=[4, 12], color='rgba(0,255,136,0.08)'),
+                ],
+                threshold=dict(line=dict(color=PALETTE[3], width=3), thickness=0.8, value=4),
+            ),
+            title=dict(text="Reserve Cover<br><span style='font-size:0.6rem'>CBK Min: 4 months</span>",
+                       font=dict(size=12, color=theme.text_muted)),
+        ))
+        fig_res_g.update_layout(**_base_layout(theme, height=250, margin=dict(l=20, r=20, t=55, b=5)))
+        st.plotly_chart(fig_res_g, use_container_width=True)
+
+    with col_vuln:
+        fig_vuln_g = go.Figure(go.Indicator(
+            mode="gauge+number",
+            value=ext_vuln * 100,
+            number=dict(suffix="/100", valueformat=".0f", font=dict(color=theme.text_primary)),
+            gauge=dict(
+                axis=dict(range=[0, 100], tickfont=dict(color=theme.text_muted, size=9)),
+                bar=dict(color=PALETTE[3] if ext_vuln > 0.6 else PALETTE[2] if ext_vuln > 0.35 else PALETTE[0]),
+                bgcolor='rgba(255,255,255,0.05)',
+                bordercolor=theme.border_default,
+                steps=[
+                    dict(range=[0, 35], color='rgba(0,255,136,0.08)'),
+                    dict(range=[35, 60], color='rgba(245,213,71,0.08)'),
+                    dict(range=[60, 100], color='rgba(255,51,102,0.08)'),
+                ],
+            ),
+            title=dict(text="Ext. Vulnerability<br><span style='font-size:0.6rem'>Composite Index</span>",
+                       font=dict(size=12, color=theme.text_muted)),
+        ))
+        fig_vuln_g.update_layout(**_base_layout(theme, height=250, margin=dict(l=20, r=20, t=55, b=5)))
+        st.plotly_chart(fig_vuln_g, use_container_width=True)
+
+    # ── 2. BALANCE OF PAYMENTS WATERFALL ─────────────────────────────────────
+    st.markdown(f"<div style='color:{theme.accent_warning}; font-weight:600; "
+                f"font-size:0.85rem; margin-top:1rem; margin-bottom:0.5rem;'>"
+                f"BALANCE OF PAYMENTS DECOMPOSITION</div>",
+                unsafe_allow_html=True)
+
+    tb = last_ext.get("trade_balance", 0)
+    remit = last_ext.get("remittances", 0)
+    ca = last_ext.get("current_account", 0)
+    ka = last_ext.get("capital_account", 0)
+    inv_income = ca - tb - remit  # residual
+
+    bop_labels = ["Exports\n− Imports", "Remittances", "Investment\nIncome",
+                  "Current\nAccount", "Capital\nAccount", "Overall\nBoP"]
+    bop_values = [tb, remit, inv_income, 0, ka, 0]
+    bop_measures = ["relative", "relative", "relative", "total", "relative", "total"]
+
+    fig_bop = go.Figure(go.Waterfall(
+        x=bop_labels, y=bop_values, measure=bop_measures,
+        connector=dict(line=dict(color=theme.border_default, width=1)),
+        increasing=dict(marker=dict(color=PALETTE[0])),
+        decreasing=dict(marker=dict(color=PALETTE[3])),
+        totals=dict(marker=dict(color=PALETTE[1])),
+        texttemplate="%{y:.2f}", textposition="outside",
+        textfont=dict(size=10),
+    ))
+    fig_bop.update_layout(**_base_layout(theme, height=380,
+        title=dict(text="BoP Components (Final Period)",
+                   font=dict(color=theme.text_muted, size=13)),
+        yaxis=dict(title="Value")))
+    st.plotly_chart(fig_bop, use_container_width=True)
+
+    # ── 3. TWIN DEFICIT SCATTER ──────────────────────────────────────────────
+    st.markdown(f"<div style='color:{theme.accent_primary}; font-weight:600; "
+                f"font-size:0.85rem; margin-top:1rem; margin-bottom:0.5rem;'>"
+                f"TWIN DEFICIT ANALYSIS: FISCAL vs CURRENT ACCOUNT</div>",
+                unsafe_allow_html=True)
+
+    fiscal_deficit_vals = [
+        f.get("outcomes", {}).get("fiscal_deficit_gdp", 0) * 100
+        for f in trajectory if f.get("external")
+    ]
+    ca_gdp_vals = [
+        f.get("external", {}).get("current_account", 0) /
+        max(f.get("outcomes", {}).get("gdp", 100), 1) * 100
+        for f in trajectory if f.get("external")
+    ]
+    min_twin = min(len(fiscal_deficit_vals), len(ca_gdp_vals))
+    fiscal_deficit_vals = fiscal_deficit_vals[:min_twin]
+    ca_gdp_vals = ca_gdp_vals[:min_twin]
+    t_twin = list(range(min_twin))
+
+    if min_twin > 1:
+        fig_twin = go.Figure()
+        fig_twin.add_trace(go.Scatter(
+            x=fiscal_deficit_vals, y=ca_gdp_vals,
+            mode='lines+markers',
+            marker=dict(size=7, color=t_twin, colorscale='Plasma',
+                        colorbar=dict(title="Quarter", len=0.6), opacity=0.9),
+            line=dict(color=PALETTE[4], width=2),
+            hovertemplate="Fiscal: %{x:.1f}%<br>CA/GDP: %{y:.1f}%<extra></extra>",
+            name="Twin Deficit Path",
+        ))
+        # Quadrant labels
+        fig_twin.add_annotation(x=0.02, y=0.98, xref='paper', yref='paper',
+            text="<b>CA Surplus<br>Fiscal Deficit</b>", showarrow=False,
+            font=dict(color=PALETTE[2], size=9), align='left')
+        fig_twin.add_annotation(x=0.98, y=0.02, xref='paper', yref='paper',
+            text="<b>CA Deficit<br>Fiscal Surplus</b>", showarrow=False,
+            font=dict(color=PALETTE[2], size=9), align='right')
+        fig_twin.add_annotation(x=0.02, y=0.02, xref='paper', yref='paper',
+            text="<b style='color:" + PALETTE[3] + "'>TWIN DEFICIT<br>ZONE</b>", showarrow=False,
+            font=dict(size=10), align='left')
+        fig_twin.add_hline(y=0, line_dash="dot", line_color=theme.text_muted)
+        fig_twin.add_vline(x=0, line_dash="dot", line_color=theme.text_muted)
+        # Start/End
+        fig_twin.add_trace(go.Scatter(
+            x=[fiscal_deficit_vals[0]], y=[ca_gdp_vals[0]], mode='markers',
+            marker=dict(size=14, color=PALETTE[0], symbol='diamond'), name='Start'))
+        fig_twin.add_trace(go.Scatter(
+            x=[fiscal_deficit_vals[-1]], y=[ca_gdp_vals[-1]], mode='markers',
+            marker=dict(size=14, color=PALETTE[3], symbol='diamond'), name='End'))
+        fig_twin.update_layout(**_base_layout(theme, height=430,
+            title=dict(text="Twin Deficit Path (Fiscal Deficit vs CA/GDP)",
+                       font=dict(color=theme.text_muted, size=13)),
+            xaxis=dict(title="Fiscal Deficit (% GDP)"),
+            yaxis=dict(title="Current Account (% GDP)"),
+            legend=dict(orientation="h", y=1.08, x=0, bgcolor='rgba(0,0,0,0)')))
+        st.plotly_chart(fig_twin, use_container_width=True)
+
+    # ── 4. REER vs INFLATION TWIN PANEL ──────────────────────────────────────
+    st.markdown(f"<div style='color:{theme.accent_warning}; font-weight:600; "
+                f"font-size:0.85rem; margin-top:1rem; margin-bottom:0.5rem;'>"
+                f"REER &amp; INFLATION CO-MOVEMENT</div>",
+                unsafe_allow_html=True)
+
+    reer_vals = [f.get("reer", 100) for f in ext_frames]
+    inflation_vals = [f.get("outcomes", {}).get("inflation", 0) * 100 for f in trajectory
+                      if f.get("external")]
+    min_ri = min(len(reer_vals), len(inflation_vals))
+
+    fig_ri = make_subplots(specs=[[{"secondary_y": True}]])
+    fig_ri.add_trace(go.Scatter(
+        x=list(range(min_ri)), y=reer_vals[:min_ri], name="REER",
+        line=dict(color=PALETTE[1], width=3),
+        fill='tozeroy', fillcolor=PALETTE[1] + '14',
+    ), secondary_y=False)
+    fig_ri.add_trace(go.Scatter(
+        x=list(range(min_ri)), y=inflation_vals[:min_ri], name="Inflation (%)",
+        line=dict(color=PALETTE[3], width=2.5),
+    ), secondary_y=True)
+    fig_ri.add_hline(y=100, line_dash="dash", line_color=theme.text_muted,
+                     annotation_text="REER Eq.", secondary_y=False)
+    fig_ri.update_layout(**_base_layout(theme, height=380,
+        title=dict(text="REER & Inflation — Exchange Rate Pass-Through",
+                   font=dict(color=theme.text_muted, size=13)),
+        xaxis=dict(title="Quarter"),
+        legend=dict(orientation="h", y=1.08, x=0, bgcolor='rgba(0,0,0,0)')))
+    fig_ri.update_yaxes(title_text="REER Index", secondary_y=False)
+    fig_ri.update_yaxes(title_text="Inflation (%)", secondary_y=True)
+    st.plotly_chart(fig_ri, use_container_width=True)
+
+    # ── 5. RESERVE ADEQUACY TRAJECTORY ───────────────────────────────────────
+    st.markdown(f"<div style='color:{theme.accent_primary}; font-weight:600; "
+                f"font-size:0.85rem; margin-top:1rem; margin-bottom:0.5rem;'>"
+                f"RESERVE ADEQUACY TRAJECTORY</div>",
+                unsafe_allow_html=True)
+
+    res_vals = [f.get("reserves_months", 0) for f in ext_frames]
+    fig_res = go.Figure()
+    fig_res.add_trace(go.Scatter(
+        x=t_vals, y=res_vals, mode='lines',
+        name="Reserves (months)",
+        line=dict(color=PALETTE[0], width=3),
+        fill='tozeroy',
+        fillcolor='rgba(0,255,136,0.08)',
+    ))
+    # Color the danger zone
+    fig_res.add_hrect(y0=0, y1=4, fillcolor='rgba(255,51,102,0.06)',
+                      line_width=0, annotation_text="Below CBK minimum",
+                      annotation_position="bottom left")
+    fig_res.add_hline(y=4.0, line_dash="dash", line_color=PALETTE[3],
+                      annotation_text="CBK Minimum (4 months)")
+    fig_res.update_layout(**_base_layout(theme, height=320,
+        title=dict(text="Foreign Reserve Cover Over Time",
+                   font=dict(color=theme.text_muted, size=13)),
+        xaxis=dict(title="Quarter"), yaxis=dict(title="Months of Import Cover")))
+    st.plotly_chart(fig_res, use_container_width=True)
+
+
+# ═════════════════════════════════════════════════════════════════════════════
+#  TAB 16: RESEARCH ENGINE — Unified run with all modules + stress test
+# ═════════════════════════════════════════════════════════════════════════════
+
+def _render_research_engine_tab(theme, SFCEconomy, SFCConfig, calibrate_from_data):
+    """Unified research-grade SFC engine with all 7 upgrade modules."""
+    st.markdown(f"<div style='color:{theme.accent_primary}; font-weight:600; "
+                f"font-size:0.85rem; margin-bottom:0.5rem;'>"
+                f"RESEARCH-GRADE SFC ENGINE</div>",
+                unsafe_allow_html=True)
+    st.caption("Runs the unified economy with: IO Sectors + Heterogeneous Agents + "
+               "Financial Accelerator + Open Economy — all feedback loops active.")
+
+    # ── Module toggles ────────────────────────────────────────────────────────
+    st.markdown("---")
+    c1, c2, c3, c4 = st.columns(4)
+    with c1:
+        enable_io = st.checkbox("IO Sectors", value=True, key="re_io")
+    with c2:
+        enable_het = st.checkbox("Heterogeneous Agents", value=True, key="re_het")
+    with c3:
+        enable_fin = st.checkbox("Financial Accelerator", value=True, key="re_fin")
+    with c4:
+        enable_open = st.checkbox("Open Economy", value=True, key="re_open")
+
+    c5, c6 = st.columns(2)
+    with c5:
+        steps = st.slider("Simulation Quarters", 10, 200, 50, 5, key="re_steps")
+    with c6:
+        seed = st.number_input("Random Seed", value=42, min_value=0, max_value=9999, key="re_seed")
+
+    # ── Run Button ────────────────────────────────────────────────────────────
+    if st.button("RUN RESEARCH ENGINE", type="primary", key="re_run",
+                 use_container_width=True):
+        with st.spinner("Running research-grade SFC with all active modules..."):
+            try:
+                from scarcity.simulation.research_sfc import (
+                    ResearchSFCEconomy, ResearchSFCConfig,
+                )
+                from scarcity.simulation.io_structure import default_kenya_io_config
+                from scarcity.simulation.heterogeneous import default_kenya_heterogeneous_config
+                from scarcity.simulation.financial_accelerator import FinancialAcceleratorConfig
+                from scarcity.simulation.open_economy import default_kenya_open_economy_config
+
+                calib = st.session_state.get("sim_calibration")
+                base_cfg = calib.config if calib else SFCConfig()
+                base_cfg.steps = steps
+
+                scenario = st.session_state.get("_sim_scenario_obj")
+                if scenario and hasattr(scenario, 'build_shock_vectors'):
+                    base_cfg.shock_vectors = scenario.build_shock_vectors(steps)
+
+                research_cfg = ResearchSFCConfig(
+                    sfc=base_cfg,
+                    io=default_kenya_io_config(),
+                    heterogeneous=default_kenya_heterogeneous_config(),
+                    financial=FinancialAcceleratorConfig(),
+                    open_economy=default_kenya_open_economy_config(),
+                    enable_io=enable_io,
+                    enable_heterogeneous=enable_het,
+                    enable_financial=enable_fin,
+                    enable_open_economy=enable_open,
+                    seed=int(seed),
+                )
+
+                econ = ResearchSFCEconomy(research_cfg)
+                econ.initialize(100.0)
+
+                progress = st.progress(0, text="Running research engine...")
+                for i in range(steps):
+                    econ.step()
+                    if (i + 1) % max(1, steps // 20) == 0:
+                        progress.progress((i + 1) / steps,
+                                          text=f"Quarter {i + 1}/{steps}")
+                progress.empty()
+
+                st.session_state["sim_research_trajectory"] = econ.trajectory
+                st.session_state["sim_research_econ"] = econ
+                st.session_state["sim_research_summary"] = econ.summary()
+
+                st.success(f"Research engine completed: {steps} quarters, "
+                           f"{len(econ.trajectory)} frames recorded.")
+
+            except Exception as e:
+                st.error(f"Research engine error: {e}")
+                import traceback
+                st.code(traceback.format_exc())
+                return
+
+    # ── Results section ───────────────────────────────────────────────────────
+    summary = st.session_state.get("sim_research_summary")
+    research_econ = st.session_state.get("sim_research_econ")
+    trajectory = st.session_state.get("sim_research_trajectory")
+    if not summary or not research_econ:
+        return
+    if not HAS_PLOTLY:
+        st.warning("Plotly required for research charts.")
+        return
+
+    st.markdown("---")
+
+    # ── 1. RADAR SPIDER — Module Health ────────────────────────────────────
+    st.markdown(f"<div style='color:{theme.accent_primary}; font-weight:600; "
+                f"font-size:0.85rem; margin-bottom:0.5rem;'>MULTI-MODULE HEALTH RADAR</div>",
+                unsafe_allow_html=True)
+
+    # Compute module scores (0-100)
+    fin_stability = research_econ.financial_stability_index() if research_econ.config.enable_financial else 0.5
+    ext_vulnerability = 1.0 - research_econ.external_vulnerability_index() if research_econ.config.enable_open_economy else 0.5
+    macro_score = max(0, min(1, 1.0 - abs(summary.get("inflation", 0.03) - 0.05) / 0.10))
+    growth_score = max(0, min(1, (summary.get("gdp_growth", 0) + 0.05) / 0.15))
+    ineq_score = max(0, min(1, 1.0 - summary.get("inequality", {}).get("gini", 0.4)))
+    sector_div = 1.0 - max(summary.get("sectors", {}).values(), default=0.5)
+
+    radar_cats = ["Financial\nStability", "External\nResilience", "Macro\nBalance",
+                  "Growth\nMomentum", "Equality", "Sector\nDiversity"]
+    radar_vals = [fin_stability * 100, ext_vulnerability * 100, macro_score * 100,
+                  growth_score * 100, ineq_score * 100, sector_div * 100]
+    radar_vals_closed = radar_vals + [radar_vals[0]]
+
+    fig_radar = go.Figure()
+    fig_radar.add_trace(go.Scatterpolar(
+        r=radar_vals_closed,
+        theta=radar_cats + [radar_cats[0]],
+        fill='toself',
+        fillcolor='rgba(0,255,136,0.15)',
+        line=dict(color=PALETTE[0], width=3),
+        name='Current State',
+        hovertemplate='%{theta}: %{r:.0f}/100<extra></extra>',
+    ))
+    # Add benchmark ring at 50
+    fig_radar.add_trace(go.Scatterpolar(
+        r=[50] * (len(radar_cats) + 1),
+        theta=radar_cats + [radar_cats[0]],
+        line=dict(color=theme.text_muted, width=1, dash='dot'),
+        name='Threshold (50)',
+        showlegend=True,
+    ))
+    fig_radar.update_layout(
+        polar=dict(
+            bgcolor='rgba(0,0,0,0)',
+            radialaxis=dict(visible=True, range=[0, 100], gridcolor='rgba(255,255,255,0.08)',
+                            tickfont=dict(size=9, color=theme.text_muted)),
+            angularaxis=dict(gridcolor='rgba(255,255,255,0.08)',
+                             tickfont=dict(size=10, color=theme.text_muted)),
+        ),
+        **_base_layout(theme, height=420,
+            title=dict(text="Economy Health Radar", font=dict(color=theme.text_muted, size=13)),
+            legend=dict(orientation="h", y=-0.05, x=0.3, bgcolor='rgba(0,0,0,0)')),
+    )
+    st.plotly_chart(fig_radar, use_container_width=True)
+
+    # ── 2. GDP DECOMPOSITION WATERFALL ─────────────────────────────────────
+    st.markdown(f"<div style='color:{theme.accent_warning}; font-weight:600; "
+                f"font-size:0.85rem; margin-top:1rem; margin-bottom:0.5rem;'>"
+                f"GDP DEMAND DECOMPOSITION: Y = C + I + G + NX</div>",
+                unsafe_allow_html=True)
+
+    gdp = summary.get("gdp", 100)
+    # Estimate components from engine state
+    hh_consumption = float(research_econ.economy.households.assets.get("deposits", 0)) * 0.3
+    if not hh_consumption:
+        hh_consumption = gdp * 0.60
+    investment = float(research_econ.bank.performing_loans * 0.08) if research_econ.config.enable_financial else gdp * 0.18
+    gov_spending = gdp * research_econ.economy.config.gov_spending_ratio
+    net_exports = float(research_econ.external.trade_balance) if research_econ.config.enable_open_economy else 0.0
+    residual = gdp - hh_consumption - investment - gov_spending - net_exports
+
+    wf_labels = ["Consumption (C)", "Investment (I)", "Gov. Spending (G)", "Net Exports (NX)", "Residual", "GDP"]
+    wf_values = [hh_consumption, investment, gov_spending, net_exports, residual, 0]
+    wf_measures = ["relative", "relative", "relative", "relative", "relative", "total"]
+
+    fig_wf = go.Figure(go.Waterfall(
+        x=wf_labels, y=wf_values, measure=wf_measures,
+        connector=dict(line=dict(color=theme.border_default, width=1)),
+        increasing=dict(marker=dict(color=PALETTE[0])),
+        decreasing=dict(marker=dict(color=PALETTE[3])),
+        totals=dict(marker=dict(color=PALETTE[1])),
+        texttemplate="%{y:.1f}", textposition="outside",
+        hovertemplate="%{x}: %{y:.2f}<extra></extra>",
+    ))
+    fig_wf.update_layout(**_base_layout(theme, height=380,
+        title=dict(text="GDP Components (Waterfall)", font=dict(color=theme.text_muted, size=13)),
+        yaxis=dict(title="Value")))
+    st.plotly_chart(fig_wf, use_container_width=True)
+
+    # ── 3. POLICY TRANSMISSION SANKEY ──────────────────────────────────────
+    if trajectory and len(trajectory) > 2:
+        st.markdown(f"<div style='color:{theme.accent_primary}; font-weight:600; "
+                    f"font-size:0.85rem; margin-top:1rem; margin-bottom:0.5rem;'>"
+                    f"POLICY TRANSMISSION MECHANISM</div>",
+                    unsafe_allow_html=True)
+
+        # Build transmission flow: Policy Rate → Bank → Credit → Sectors → Households → GDP
+        rate = float(research_econ.economy.interest_rate)
+        npl = float(research_econ.bank.npl_ratio) if research_econ.config.enable_financial else 0.05
+        spread = float(research_econ.bank.credit_spread) if research_econ.config.enable_financial else 0.02
+        efp = float(research_econ.bank.external_finance_premium) if research_econ.config.enable_financial else 0.0
+
+        nodes = ["Policy Rate", "Bank Capital", "Credit Supply", "NPL Drag",
+                 "Agriculture", "Manufacturing", "Services", "Mining", "Construction",
+                 "Q1 (Poorest)", "Q3 (Middle)", "Q5 (Richest)", "GDP Output"]
+        node_colors = [PALETTE[1], PALETTE[0], PALETTE[0], PALETTE[3],
+                       PALETTE[4], PALETTE[5], PALETTE[6], PALETTE[7], PALETTE[8],
+                       PALETTE[3], PALETTE[2], PALETTE[0], PALETTE[1]]
+
+        # Compute flow magnitudes (normalised 0-1 for visual proportionality)
+        src, tgt, vals, link_colors = [], [], [], []
+        flow_data = [
+            (0, 1, rate * 10, PALETTE[1]),          # Rate → Bank
+            (0, 3, npl * 10, PALETTE[3]),            # Rate → NPL
+            (1, 2, (1 - spread) * 5, PALETTE[0]),    # Bank → Credit
+            (3, 2, npl * 5, PALETTE[3]),              # NPL → Credit (drag)
+        ]
+        # Credit → Sectors (by share)
+        sector_shares = summary.get("sectors", {"agriculture": 0.22, "manufacturing": 0.08,
+                                                 "services": 0.53, "mining": 0.04, "construction": 0.13})
+        for i, (name, share) in enumerate(sector_shares.items()):
+            flow_data.append((2, 4 + i, share * 10, PALETTE[4 + i]))
+        # Sectors → Households
+        for i in range(5):
+            flow_data.append((4 + i, 9, 0.4, 'rgba(255,51,102,0.3)'))   # → Q1
+            flow_data.append((4 + i, 10, 0.8, 'rgba(245,213,71,0.3)'))  # → Q3
+            flow_data.append((4 + i, 11, 1.2, 'rgba(0,255,136,0.3)'))   # → Q5
+        # Households → GDP
+        for hh_idx, hh_wt in [(9, 2), (10, 4), (11, 6)]:
+            flow_data.append((hh_idx, 12, hh_wt, PALETTE[1]))
+
+        for s, t, v, c in flow_data:
+            src.append(s); tgt.append(t); vals.append(max(v, 0.01)); link_colors.append(c + '40')
+
+        fig_sankey = go.Figure(go.Sankey(
+            arrangement='snap',
+            node=dict(label=nodes, color=node_colors, pad=12, thickness=20,
+                      line=dict(color=theme.border_default, width=0.5)),
+            link=dict(source=src, target=tgt, value=vals, color=link_colors),
+        ))
+        fig_sankey.update_layout(**_base_layout(theme, height=480,
+            title=dict(text="Policy Transmission: Rate → Bank → Sectors → Households → GDP",
+                       font=dict(color=theme.text_muted, size=13))))
+        st.plotly_chart(fig_sankey, use_container_width=True)
+
+    # ── 4. MACRO TRAJECTORY SPARKLINES ROW ────────────────────────────────
+    if trajectory and len(trajectory) > 4:
+        st.markdown(f"<div style='color:{theme.accent_warning}; font-weight:600; "
+                    f"font-size:0.85rem; margin-top:1rem; margin-bottom:0.5rem;'>"
+                    f"MACRO TRAJECTORY SPARKLINES</div>",
+                    unsafe_allow_html=True)
+
+        t_vals = list(range(len(trajectory)))
+        spark_dims = [
+            ("GDP Growth", [f.get("outcomes", {}).get("gdp_growth", 0) * 100 for f in trajectory], "%"),
+            ("Inflation", [f.get("outcomes", {}).get("inflation", 0) * 100 for f in trajectory], "%"),
+            ("Unemployment", [f.get("outcomes", {}).get("unemployment", 0) * 100 for f in trajectory], "%"),
+            ("Interest Rate", [f.get("outcomes", {}).get("interest_rate", 0) * 100 for f in trajectory], "%"),
+        ]
+
+        fig_spark = make_subplots(rows=1, cols=4, subplot_titles=[s[0] for s in spark_dims],
+                                   horizontal_spacing=0.06)
+        for i, (name, vals, unit) in enumerate(spark_dims):
+            col = i + 1
+            color = PALETTE[i]
+            fig_spark.add_trace(go.Scatter(
+                x=t_vals, y=vals, mode='lines', name=name,
+                line=dict(color=color, width=2.5), showlegend=False,
+                fill='tozeroy', fillcolor=color.replace(')', ',0.08)').replace('rgb', 'rgba') if color.startswith('rgb') else color + '14',
+            ), row=1, col=col)
+            # Current value annotation
+            if vals:
+                fig_spark.add_annotation(
+                    x=t_vals[-1], y=vals[-1], text=f"<b>{vals[-1]:.1f}{unit}</b>",
+                    showarrow=False, font=dict(color=color, size=11),
+                    xref=f"x{'' if col == 1 else col}", yref=f"y{'' if col == 1 else col}",
+                )
+
+        fig_spark.update_layout(**_base_layout(theme, height=200,
+            margin=dict(l=30, r=10, t=35, b=25)))
+        for i in range(1, 5):
+            ax_suffix = "" if i == 1 else str(i)
+            fig_spark.update_xaxes(showticklabels=False, gridcolor='rgba(255,255,255,0.03)', row=1, col=i)
+            fig_spark.update_yaxes(gridcolor='rgba(255,255,255,0.03)', row=1, col=i)
+        st.plotly_chart(fig_spark, use_container_width=True)
+
+    # ── 5. STRESS TEST PANEL ──────────────────────────────────────────────
+    st.markdown("---")
+    st.markdown(f"<div style='color:{theme.accent_danger}; font-weight:600; "
+                f"font-size:0.85rem; margin-bottom:0.5rem;'>COMBINED STRESS TEST</div>",
+                unsafe_allow_html=True)
+
+    sc1, sc2, sc3, sc4 = st.columns(4)
+    with sc1:
+        npl_shock = st.slider("NPL Shock", 0.0, 0.20, 0.05, 0.01, key="re_npl_shock")
+    with sc2:
+        rate_shock = st.slider("Rate Shock", 0.0, 0.10, 0.02, 0.005, key="re_rate_shock")
+    with sc3:
+        fx_shock = st.slider("FX Shock", 0.0, 0.30, 0.10, 0.01, key="re_fx_shock")
+    with sc4:
+        deposit_run = st.slider("Deposit Run", 0.0, 0.20, 0.05, 0.01, key="re_deposit_run")
+
+    if st.button("Run Stress Test", key="re_stress"):
+        try:
+            stress = research_econ.stress_test(
+                npl_shock=npl_shock, rate_shock=rate_shock,
+                fx_shock=fx_shock, deposit_run=deposit_run,
+            )
+            st.session_state["sim_research_stress"] = stress
+        except Exception as e:
+            st.error(f"Stress test error: {e}")
+
+    stress = st.session_state.get("sim_research_stress")
+    if stress and HAS_PLOTLY:
+        # Stress results as grouped bar chart
+        categories, pre_vals, post_vals = [], [], []
+
+        fin_stress = stress.get("financial", {})
+        if fin_stress:
+            categories += ["CAR"]
+            pre_vals += [fin_stress.get("pre_car", 0) * 100]
+            post_vals += [fin_stress.get("post_car", 0) * 100]
+
+        ext_stress = stress.get("external", {})
+        if ext_stress:
+            categories += ["REER"]
+            pre_vals += [ext_stress.get("pre_reer", 100)]
+            post_vals += [ext_stress.get("post_reer", 100)]
+
+        dist_stress = stress.get("distributional", {})
+        if dist_stress:
+            categories += ["Q1 Impact", "Q5 Impact"]
+            pre_vals += [0, 0]
+            post_vals += [dist_stress.get("rate_shock_q1_impact", 0) * 100,
+                          dist_stress.get("rate_shock_q5_impact", 0) * 100]
+
+        if categories:
+            fig_stress = go.Figure()
+            fig_stress.add_trace(go.Bar(x=categories, y=pre_vals, name="Pre-Shock",
+                                        marker_color=PALETTE[0], text=[f"{v:.1f}" for v in pre_vals],
+                                        textposition='auto'))
+            fig_stress.add_trace(go.Bar(x=categories, y=post_vals, name="Post-Shock",
+                                        marker_color=PALETTE[3], text=[f"{v:.1f}" for v in post_vals],
+                                        textposition='auto'))
+            # Threshold lines
+            if fin_stress:
+                fig_stress.add_hline(y=14.5, line_dash="dash", line_color=theme.accent_danger,
+                                     annotation_text="CBK Min CAR (14.5%)")
+
+            fig_stress.update_layout(**_base_layout(theme, height=380,
+                title=dict(text="Stress Test: Pre vs Post Shock", font=dict(color=theme.text_muted, size=13)),
+                barmode='group',
+                legend=dict(orientation="h", y=1.08, x=0, bgcolor='rgba(0,0,0,0)')))
+            st.plotly_chart(fig_stress, use_container_width=True)
+
+    # Hint to check other tabs
+    st.markdown(f"<div style='font-size:0.75rem; color:{theme.text_muted}; "
+                f"margin-top:1rem; text-align:center;'>"
+                f"&#8594; See <b>IO Sectors</b>, <b>Inequality</b>, <b>Financial</b>, "
+                f"and <b>Open Economy</b> tabs for detailed charts.</div>",
+                unsafe_allow_html=True)
+
+
+# ═════════════════════════════════════════════════════════════════════════════
+#  MAIN RENDER ENTRY POINT
+# ═════════════════════════════════════════════════════════════════════════════
+
+def render_simulation(theme, data=None):
+    """
+    Render the full simulation card with grouped category navigation.
+    Called from kshield/page.py router.
+    """
+    if not HAS_DATA_STACK:
+        st.error("Required packages missing: pandas / numpy. Install them for simulation analytics.")
+        return
+
+    # ── Compact header row ────────────────────────────────────────────────────
+    hdr_l, hdr_r = st.columns([3, 2])
+    with hdr_l:
+        st.markdown(
+            '<div class="section-header" style="margin-bottom:0;">'
+            'ECONOMIC SCENARIO ENGINE</div>',
+            unsafe_allow_html=True,
+        )
+    with hdr_r:
+        source = st.selectbox(
+            "Data",
+            ["Generic (No Data Required)", "World Bank (Kenya)", "Upload CSV", "Shared K-SHIELD"],
+            key="sim_data_source",
+            label_visibility="collapsed",
+        )
+
+    # ── Load data (compact, no full-width radio) ─────────────────────────────
+    df = pd.DataFrame()
+    shared_df, shared_meta = _get_shared_dataset()
+    using_generic = False
+
+    if source == "Generic (No Data Required)":
+        # Proceed with empty df — calibration will use _GENERIC_FALLBACKS
+        using_generic = True
+    elif source == "World Bank (Kenya)":
+        df = _load_world_bank_data()
+        if df.empty:
+            st.warning("World Bank CSV not found — falling back to generic middle-income calibration.")
+            using_generic = True
+        _set_shared_dataset(df, "World Bank (Kenya)", "SIMULATION")
+    elif source == "Shared K-SHIELD":
+        if shared_df is None or shared_df.empty:
+            st.warning("No shared dataset. Load data in another K-SHIELD card first.")
+            return
+        df = shared_df
+    else:
+        uploaded = st.file_uploader("Upload CSV file", type=["csv"], key="sim_upload")
+        if uploaded:
+            loaded_df, err = _validate_and_load_upload(uploaded)
+            if err:
+                st.error(err)
+                return
+            df = loaded_df
+            st.session_state["sim_uploaded_df"] = df
+            _set_shared_dataset(df, "Uploaded CSV", "SIMULATION")
+        elif "sim_uploaded_df" in st.session_state:
+            df = st.session_state["sim_uploaded_df"]
+        if df.empty:
+            return
+
+    # ── Compact data status (single line, not a card) ─────────────────────────
+    has_run = bool(st.session_state.get("sim_trajectory"))
+    run_badge = (f"<span style='color:{theme.accent_success};'>SIM READY</span>"
+                 if has_run else
+                 f"<span style='color:{theme.text_muted}; opacity:0.5;'>NOT RUN</span>")
+    if using_generic or df.empty:
+        data_info = "Generic calibration (middle-income defaults)"
+    else:
+        n_rows, n_cols = df.shape
+        coverage = f"{df.index.min()}-{df.index.max()}" if len(df) > 0 else "N/A"
+        completeness = f"{df.notna().mean().mean():.0%}"
+        data_info = f"{n_rows} rows | {n_cols} vars | {coverage} | {completeness}"
+    st.markdown(
+        f"<div style='font-size:0.72rem; color:{theme.text_muted}; "
+        f"padding:0.2rem 0 0.5rem; display:flex; gap:1.5rem; flex-wrap:wrap;'>"
+        f"<span>{data_info}</span>"
+        f"<span>{run_badge}</span></div>",
+        unsafe_allow_html=True,
+    )
+
+    # ── Lazy import simulation modules ────────────────────────────────────────
+    try:
+        from kshiked.simulation.kenya_calibration import (
+            calibrate_from_data, OUTCOME_DIMENSIONS, DEFAULT_DIMENSIONS
+        )
+        from kshiked.simulation.scenario_templates import (
+            SCENARIO_LIBRARY, POLICY_TEMPLATES, get_scenario_by_id,
+            build_custom_scenario, SHOCK_REGISTRY, POLICY_INSTRUMENT_REGISTRY,
+            SHOCK_SHAPES, merge_shock_vectors, merge_policy_instruments,
+        )
+        from scarcity.simulation.sfc import SFCEconomy, SFCConfig
+    except ImportError as e:
+        st.error(f"Simulation engine modules not available: {e}")
+        return
+
+    # ══════════════════════════════════════════════════════════════════════════
+    #  CATEGORY NAVIGATION — 4 groups instead of 16 flat tabs
+    # ══════════════════════════════════════════════════════════════════════════
+    category = st.radio(
+        "nav",
+        ["Setup & Run", "Core Analysis", "Advanced", "Research Modules"],
+        horizontal=True,
+        key="sim_category",
+        label_visibility="collapsed",
+    )
+
+    st.markdown(f"<div style='border-top:1px solid {theme.border_default}; "
+                f"margin:-0.5rem 0 0.8rem;'></div>", unsafe_allow_html=True)
+
+    # ── CATEGORY 1: SETUP & RUN ──────────────────────────────────────────────
+    if category == "Setup & Run":
+        scenario_cfg = _render_scenario_config(
+            theme, SCENARIO_LIBRARY, POLICY_TEMPLATES,
+            get_scenario_by_id, build_custom_scenario,
+            OUTCOME_DIMENSIONS, DEFAULT_DIMENSIONS,
+            SHOCK_REGISTRY, POLICY_INSTRUMENT_REGISTRY, SHOCK_SHAPES,
+        )
+        run_clicked = _run_simulation(
+            theme, SFCEconomy, SFCConfig,
+            calibrate_from_data, scenario_cfg,
+            merge_shock_vectors, merge_policy_instruments,
+        )
+
+        setup_tabs = st.tabs(["Results", "Guide & Tutorial"])
+        with setup_tabs[0]:
+            _render_scenario_runner_tab(theme, OUTCOME_DIMENSIONS, DEFAULT_DIMENSIONS, run_clicked)
+        with setup_tabs[1]:
+            _render_simulation_guide(theme)
+
+    # ── CATEGORY 2: CORE ANALYSIS ────────────────────────────────────────────
+    elif category == "Core Analysis":
+        if not st.session_state.get("sim_trajectory"):
+            st.info("Run a simulation in **Setup & Run** first.")
+            return
+        core_tabs = st.tabs([
+            "Sensitivity", "3D Cube", "Compare",
+            "Phase", "Impulse Response", "Flow Dynamics",
+        ])
+        with core_tabs[0]:
+            _render_sensitivity_tab(theme, OUTCOME_DIMENSIONS)
+        with core_tabs[1]:
+            _render_state_cube_tab(theme, OUTCOME_DIMENSIONS)
+        with core_tabs[2]:
+            _render_compare_tab(theme, OUTCOME_DIMENSIONS, DEFAULT_DIMENSIONS)
+        with core_tabs[3]:
+            _render_phase_explorer_tab(theme)
+        with core_tabs[4]:
+            _render_irf_tab(theme)
+        with core_tabs[5]:
+            _render_flow_sankey_tab(theme)
+
+    # ── CATEGORY 3: ADVANCED ─────────────────────────────────────────────────
+    elif category == "Advanced":
+        if not st.session_state.get("sim_trajectory"):
+            st.info("Run a simulation in **Setup & Run** first.")
+            return
+        adv_tabs = st.tabs([
+            "Monte Carlo", "Stress Matrix",
+            "Parameter Surface", "Diagnostics",
+        ])
+        with adv_tabs[0]:
+            _render_monte_carlo_tab(theme, SFCEconomy, SFCConfig,
+                                    calibrate_from_data, build_custom_scenario)
+        with adv_tabs[1]:
+            _render_stress_matrix_tab(theme, SCENARIO_LIBRARY,
+                                      SFCEconomy, SFCConfig, calibrate_from_data)
+        with adv_tabs[2]:
+            _render_parameter_surface_tab(theme, SFCEconomy, SFCConfig, calibrate_from_data)
+        with adv_tabs[3]:
+            _render_diagnostics_tab(theme)
+
+    # ── CATEGORY 4: RESEARCH MODULES ─────────────────────────────────────────
+    elif category == "Research Modules":
+        res_tabs = st.tabs([
+            "Research Engine", "IO Sectors",
+            "Inequality", "Financial", "Open Economy",
+        ])
+        with res_tabs[0]:
+            _render_research_engine_tab(theme, SFCEconomy, SFCConfig, calibrate_from_data)
+        with res_tabs[1]:
+            _render_io_sectors_tab(theme)
+        with res_tabs[2]:
+            _render_inequality_tab(theme)
+        with res_tabs[3]:
+            _render_financial_tab(theme)
+        with res_tabs[4]:
+            _render_open_economy_tab(theme)

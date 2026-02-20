@@ -1,0 +1,47 @@
+{
+  "articles": [
+    {
+      "title": "Digital Services Tax hits tech startups and content creators",
+      "description": "Digital Services Tax hits tech startups and content creators. Digital Services Tax continues to dominate Kenyan policy discourse as stakeholders weigh in on the implications for ordinary citizens.",
+      "url": "https://news.example.com/kenya/kenya_digital_tax/1",
+      "source": "The Standard",
+      "publishedAt": "2026-02-17T06:25:24.594880",
+      "content": "Digital Services Tax hits tech startups and content creators. The Digital Services Tax has been a subject of intense debate across Kenya. Analysts say the policy will have significant implications for the digital sector. Various stakeholders including civil society groups, business associations, and county governments have expressed diverse opinions on the matter."
+    },
+    {
+      "title": "Kenya Revenue Authority expands digital tax net",
+      "description": "Kenya Revenue Authority expands digital tax net. Digital Services Tax continues to dominate Kenyan policy discourse as stakeholders weigh in on the implications for ordinary citizens.",
+      "url": "https://news.example.com/kenya/kenya_digital_tax/2",
+      "source": "Business Daily",
+      "publishedAt": "2026-02-17T12:25:24.594880",
+      "content": "Kenya Revenue Authority expands digital tax net. The Digital Services Tax has been a subject of intense debate across Kenya. Analysts say the policy will have significant implications for the digital sector. Various stakeholders including civil society groups, business associations, and county governments have expressed diverse opinions on the matter."
+    },
+    {
+      "title": "E-commerce platforms face new compliance requirements",
+      "description": "E-commerce platforms face new compliance requirements. Digital Services Tax continues to dominate Kenyan policy discourse as stakeholders weigh in on the implications for ordinary citizens.",
+      "url": "https://news.example.com/kenya/kenya_digital_tax/3",
+      "source": "Business Daily",
+      "publishedAt": "2026-02-18T05:25:24.594880",
+      "content": "E-commerce platforms face new compliance requirements. The Digital Services Tax has been a subject of intense debate across Kenya. Analysts say the policy will have significant implications for the digital sector. Various stakeholders including civil society groups, business associations, and county governments have expressed diverse opinions on the matter."
+    },
+    {
+      "title": "Tech community warns digital tax will stifle innovation",
+      "description": "Tech community warns digital tax will stifle innovation. Digital Services Tax continues to dominate Kenyan policy discourse as stakeholders weigh in on the implications for ordinary citizens.",
+      "url": "https://news.example.com/kenya/kenya_digital_tax/4",
+      "source": "Citizen Digital",
+      "publishedAt": "2026-02-19T01:25:24.594880",
+      "content": "Tech community warns digital tax will stifle innovation. The Digital Services Tax has been a subject of intense debate across Kenya. Analysts say the policy will have significant implications for the digital sector. Various stakeholders including civil society groups, business associations, and county governments have expressed diverse opinions on the matter."
+    },
+    {
+      "title": "Government projects Sh15B from digital services taxation",
+      "description": "Government projects Sh15B from digital services taxation. Digital Services Tax continues to dominate Kenyan policy discourse as stakeholders weigh in on the implications for ordinary citizens.",
+      "url": "https://news.example.com/kenya/kenya_digital_tax/5",
+      "source": "People Daily",
+      "publishedAt": "2026-02-17T16:25:24.594880",
+      "content": "Government projects Sh15B from digital services taxation. The Digital Services Tax has been a subject of intense debate across Kenya. Analysts say the policy will have significant implications for the digital sector. Various stakeholders including civil society groups, business associations, and county governments have expressed diverse opinions on the matter."
+    }
+  ],
+  "last_fetched": "2026-02-19T02:25:24.594880",
+  "status": "ok",
+  "query": "Digital Services Tax"
+}

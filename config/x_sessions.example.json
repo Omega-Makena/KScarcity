@@ -1,0 +1,20 @@
+{
+  "sessions": [
+    {
+      "name": "session-1",
+      "username": "your_x_username",
+      "password": "your_x_password",
+      "email": "your_x_email",
+      "cookie_path": "data/pulse/.x_cookies_1.json",
+      "proxy": "http://proxy-1.example:8080"
+    },
+    {
+      "name": "session-2",
+      "username": "your_x_username",
+      "password": "your_x_password",
+      "email": "your_x_email",
+      "cookie_path": "data/pulse/.x_cookies_2.json",
+      "proxy": "http://proxy-2.example:8080"
+    }
+  ]
+}

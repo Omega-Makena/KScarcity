@@ -1,0 +1,7 @@
+digraph LearnedGraph {
+  rankdir=LR;
+  "Political Stability and Absence of Violence/Terrorism: Estimate" -> "Employment in services (% of total employment) (modeled ILO estimate)";
+  "Political Stability and Absence of Violence/Terrorism: Estimate" -> "GDP (constant 2015 US$)";
+  "Employment in services (% of total employment) (modeled ILO estimate)" -> "GDP (constant 2015 US$)";
+  "Employment in services (% of total employment) (modeled ILO estimate)" -> "Political Stability and Absence of Violence/Terrorism: Estimate";
+}

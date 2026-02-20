@@ -77,8 +77,13 @@ def main():
         _render_placeholder("K-PULSE", "Signal Intelligence & Early Warning", theme)
     
     elif view == "KCOLLAB":
-        # Future: K-COLLAB module
-        _render_placeholder("K-COLLAB", "Federated Learning & Collaboration", theme)
+        # K-COLLAB: Federated Data Access + ML coordination layer
+        data = _load_data()
+        try:
+            from sentinel.federation import render_federation_tab
+            render_federation_tab(data, theme)
+        except Exception as exc:
+            st.error(f"K-COLLAB module error: {exc}")
     
     elif view == "KEDUCATION":
         # Future: K-EDUCATION module

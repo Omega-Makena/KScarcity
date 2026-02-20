@@ -1,0 +1,7 @@
+account_id,account_type,account_age_days,followers_count,following_count,baseline_post_rate,network_cluster_id,risk_band,language_mix_ratio,home_county,primary_device
+78a3d77e-6b3e-431c-a798-e3c13d15d463,Individual,343,76,554,0.8899863008405067,14,Low,0.618607530492636,Nairobi,Twitter for iPhone
+563cfa8d-ac39-47af-b9ed-a3705568f8f4,Individual,1305,168,238,0.9585112746335845,80,Low,0.9025159779864478,Mombasa,Twitter for iPhone
+653a7955-937f-436c-a725-70ccfa014570,Individual,691,212,192,1.4159046082342293,88,Low,0.7582342954533831,Nairobi,Twitter for Android
+c3f30894-4d26-4fd9-ae93-3a36b85745ec,Individual,656,484,240,0.9263103092182288,86,Low,0.4327478644229819,Nyeri,Twitter for Android
+a1f8577f-c8f0-43e3-95a7-6ababcd00ae7,Individual,96,181,401,2.7733010051969553,54,Low,0.8473196668199093,Nairobi,Twitter for Android
+0f1bcac8-3015-4e99-a57e-cc517e6cae82,Individual,578,560,974,2.804685587557792,23,Low,0.53789069824926,Nairobi,Twitter for Android

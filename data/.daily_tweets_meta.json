@@ -1,0 +1,14 @@
+{
+  "last_run": "2026-02-19T02:25:24.679104",
+  "general_tweets": 25608,
+  "policy_tweets": 98431,
+  "duration_seconds": 7.9,
+  "config": {
+    "num_accounts": 4,
+    "policy_num_accounts": 6,
+    "duration_days": 1,
+    "policy_duration_days": 1,
+    "append_mode": true,
+    "max_rows": 200000
+  }
+}

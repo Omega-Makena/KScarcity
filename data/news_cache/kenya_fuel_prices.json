@@ -1,0 +1,47 @@
+{
+  "articles": [
+    {
+      "title": "EPRA announces new fuel prices amid public outcry",
+      "description": "EPRA announces new fuel prices amid public outcry. Fuel Levy and EPRA Pricing continues to dominate Kenyan policy discourse as stakeholders weigh in on the implications for ordinary citizens.",
+      "url": "https://news.example.com/kenya/kenya_fuel_prices/1",
+      "source": "Daily Nation",
+      "publishedAt": "2026-02-18T11:25:24.594880",
+      "content": "EPRA announces new fuel prices amid public outcry. The Fuel Levy and EPRA Pricing has been a subject of intense debate across Kenya. Analysts say the policy will have significant implications for the fuel_energy sector. Various stakeholders including civil society groups, business associations, and county governments have expressed diverse opinions on the matter."
+    },
+    {
+      "title": "Fuel levy hike pushes transport costs up 15%",
+      "description": "Fuel levy hike pushes transport costs up 15%. Fuel Levy and EPRA Pricing continues to dominate Kenyan policy discourse as stakeholders weigh in on the implications for ordinary citizens.",
+      "url": "https://news.example.com/kenya/kenya_fuel_prices/2",
+      "source": "Citizen Digital",
+      "publishedAt": "2026-02-18T05:25:24.594880",
+      "content": "Fuel levy hike pushes transport costs up 15%. The Fuel Levy and EPRA Pricing has been a subject of intense debate across Kenya. Analysts say the policy will have significant implications for the fuel_energy sector. Various stakeholders including civil society groups, business associations, and county governments have expressed diverse opinions on the matter."
+    },
+    {
+      "title": "Matatu operators threaten strike over diesel prices",
+      "description": "Matatu operators threaten strike over diesel prices. Fuel Levy and EPRA Pricing continues to dominate Kenyan policy discourse as stakeholders weigh in on the implications for ordinary citizens.",
+      "url": "https://news.example.com/kenya/kenya_fuel_prices/3",
+      "source": "People Daily",
+      "publishedAt": "2026-02-16T19:25:24.594880",
+      "content": "Matatu operators threaten strike over diesel prices. The Fuel Levy and EPRA Pricing has been a subject of intense debate across Kenya. Analysts say the policy will have significant implications for the fuel_energy sector. Various stakeholders including civil society groups, business associations, and county governments have expressed diverse opinions on the matter."
+    },
+    {
+      "title": "Government maintains fuel stabilization fund is depleted",
+      "description": "Government maintains fuel stabilization fund is depleted. Fuel Levy and EPRA Pricing continues to dominate Kenyan policy discourse as stakeholders weigh in on the implications for ordinary citizens.",
+      "url": "https://news.example.com/kenya/kenya_fuel_prices/4",
+      "source": "Business Daily",
+      "publishedAt": "2026-02-18T17:25:24.594880",
+      "content": "Government maintains fuel stabilization fund is depleted. The Fuel Levy and EPRA Pricing has been a subject of intense debate across Kenya. Analysts say the policy will have significant implications for the fuel_energy sector. Various stakeholders including civil society groups, business associations, and county governments have expressed diverse opinions on the matter."
+    },
+    {
+      "title": "Opposition calls for fuel subsidy reinstatement",
+      "description": "Opposition calls for fuel subsidy reinstatement. Fuel Levy and EPRA Pricing continues to dominate Kenyan policy discourse as stakeholders weigh in on the implications for ordinary citizens.",
+      "url": "https://news.example.com/kenya/kenya_fuel_prices/5",
+      "source": "People Daily",
+      "publishedAt": "2026-02-17T01:25:24.594880",
+      "content": "Opposition calls for fuel subsidy reinstatement. The Fuel Levy and EPRA Pricing has been a subject of intense debate across Kenya. Analysts say the policy will have significant implications for the fuel_energy sector. Various stakeholders including civil society groups, business associations, and county governments have expressed diverse opinions on the matter."
+    }
+  ],
+  "last_fetched": "2026-02-19T02:25:24.594880",
+  "status": "ok",
+  "query": "Fuel Levy and EPRA Pricing"
+}

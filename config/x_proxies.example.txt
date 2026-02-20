@@ -1,0 +1,5 @@
+# One proxy URL per line.
+# Copy to config/x_proxies.txt and replace with real values.
+
+http://user:password@proxy-1.example:8080
+http://user:password@proxy-2.example:8080

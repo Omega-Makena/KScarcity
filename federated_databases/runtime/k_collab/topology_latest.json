@@ -1,0 +1,74 @@
+{
+  "name": "security_nested_federation",
+  "nodes": [
+    {
+      "node_id": "agency_a",
+      "level": 1,
+      "node_type": "agency",
+      "parent_id": null,
+      "agency_id": "agency_a",
+      "domains": [
+        "cyber",
+        "intel"
+      ],
+      "clearance": "SECRET"
+    },
+    {
+      "node_id": "agency_b",
+      "level": 1,
+      "node_type": "agency",
+      "parent_id": null,
+      "agency_id": "agency_b",
+      "domains": [
+        "finance",
+        "immigration"
+      ],
+      "clearance": "SECRET"
+    },
+    {
+      "node_id": "a_ops",
+      "level": 2,
+      "node_type": "department",
+      "parent_id": "agency_a",
+      "agency_id": "agency_a",
+      "domains": [
+        "intel"
+      ],
+      "clearance": "RESTRICTED"
+    },
+    {
+      "node_id": "b_ops",
+      "level": 2,
+      "node_type": "department",
+      "parent_id": "agency_b",
+      "agency_id": "agency_b",
+      "domains": [
+        "finance"
+      ],
+      "clearance": "RESTRICTED"
+    },
+    {
+      "node_id": "a_ops_nairobi",
+      "level": 3,
+      "node_type": "site",
+      "parent_id": "a_ops",
+      "agency_id": "agency_a",
+      "domains": [
+        "intel"
+      ],
+      "clearance": "RESTRICTED"
+    }
+  ],
+  "trust_edges": [
+    {
+      "source": "a_ops",
+      "target": "b_ops",
+      "channel": "need_to_know"
+    },
+    {
+      "source": "agency_a",
+      "target": "agency_b",
+      "channel": "cross_agency_aggregate"
+    }
+  ]
+}
