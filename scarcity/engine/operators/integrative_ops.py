@@ -501,3 +501,85 @@ def global_insight_assembler(
 
     return IntegrativeOutput(latent=latent, stats=stats, cost_hint_ms=cost_ms)
 
+
+def anomaly_attention(
+    U_mmf: np.ndarray,
+    anomaly_score: float,
+    anomaly_vector: np.ndarray,
+    drg_profile: Optional[Dict[str, Any]] = None,
+) -> IntegrativeOutput:
+    """
+    Fuse the streaming anomaly signal into the multi-modal latent.
+    If the anomaly score is high, variance gates dynamically shift focus
+    onto the anomaly vector.
+    """
+    start = time.time()
+    drg_profile = drg_profile or {}
+    vram_high = bool(drg_profile.get('vram_high', False))
+    fallbacks = 0
+
+    latent = np.asarray(U_mmf, dtype=np.float32)
+    av = np.asarray(anomaly_vector, dtype=np.float32)
+    
+    # Pad if necessary
+    if av.size < latent.size:
+        av = np.pad(av, (0, latent.size - av.size))
+    elif latent.size < av.size:
+        latent = np.pad(latent, (0, av.size - latent.size))
+        
+    # Scale anomaly by score
+    gating_factor = min(1.0, float(anomaly_score) / 10.0) # Assume chi_sq threshold is ~3.0
+    
+    # Blend
+    fused = (1.0 - gating_factor) * latent + gating_factor * av
+    
+    cost_ms = (time.time() - start) * 1000.0
+    stats = {
+        'anomaly_gating_factor': gating_factor,
+        'anomaly_attention_latency_ms': cost_ms,
+        'fallbacks_taken': fallbacks,
+    }
+    return IntegrativeOutput(latent=fused.astype(np.float16), stats=stats, cost_hint_ms=cost_ms)
+
+
+def predictive_fusion(
+    U_mmf: np.ndarray,
+    forecast_matrix: np.ndarray,
+    drg_profile: Optional[Dict[str, Any]] = None,
+) -> IntegrativeOutput:
+    """
+    Project the T+N forecast trends back into the current latent space
+    to inform immediate policy routing.
+    """
+    start = time.time()
+    drg_profile = drg_profile or {}
+    fallbacks = 0
+    
+    latent = np.asarray(U_mmf, dtype=np.float32)
+    fm = np.asarray(forecast_matrix, dtype=np.float32)
+    
+    # Flatten the T+N steps
+    fm_flat = fm.flatten()
+    
+    # Normalize energy
+    if fm_flat.size > 0:
+        energy = np.sqrt(np.mean(fm_flat ** 2)) + 1e-6
+        fm_norm = fm_flat / energy
+    else:
+        fm_norm = np.zeros_like(latent)
+        fallbacks |= 1
+        
+    if fm_norm.size < latent.size:
+        fm_norm = np.pad(fm_norm, (0, latent.size - fm_norm.size))
+    elif latent.size < fm_norm.size:
+        latent = np.pad(latent, (0, fm_norm.size - latent.size))
+        
+    # Use standard linear attention for forecasting inclusion (weighted 0.1)
+    fused = latent + 0.1 * fm_norm
+    
+    cost_ms = (time.time() - start) * 1000.0
+    stats = {
+        'forecast_fusion_latency_ms': cost_ms,
+        'fallbacks_taken': fallbacks,
+    }
+    return IntegrativeOutput(latent=fused.astype(np.float16), stats=stats, cost_hint_ms=cost_ms)

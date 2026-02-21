@@ -22,6 +22,9 @@ Complete documentation for the `scarcity.engine` module — the core relationshi
 | [13_controller.md](./13_controller.md) | MetaController lifecycle state machine |
 | [14_grouping.md](./14_grouping.md) | Adaptive variable clustering |
 | [15_utilities.md](./15_utilities.md) | Types, utils, algorithms, and more |
+| [16_anomaly.md](./16_anomaly.md) | RRCF streaming anomaly detection |
+| [17_forecasting.md](./17_forecasting.md) | Bayesian VARX online forecasting |
+| [18_resource_manager.md](./18_resource_manager.md) | GPU/CPU Dynamic Resource Governance |
 | [operators/00_overview.md](./operators/00_overview.md) | Mathematical operators |
 
 ---

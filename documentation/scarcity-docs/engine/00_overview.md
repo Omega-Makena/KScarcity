@@ -124,6 +124,12 @@ The engine supports **15 relationship types**:
 - **`vectorized_core.py`**: High-performance batch operations using NumPy
 - **`operators/`**: Specialized mathematical operations (attention, sketching, etc.)
 
+### 7. Engine Extensions (Observers)
+
+- **`anomaly.py`**: Numba-accelerated Streaming RRCF (Robust Random Cut Forest) for zero-latency anomaly detection.
+- **`forecasting.py`**: Online Bayesian VARX + GARCH models for projecting future trends with expanding confidence intervals.
+- **`resource_manager.py`**: Dual-processor (NVML+psutil) DRG that dynamically throttles precision and capabilities to prevent OOM events.
+
 ---
 
 ## Data Flow
