@@ -1,229 +1,158 @@
-# SENTINEL
+# K-Scarcity
 
 **Strategic National Economic & Threat Intelligence Layer**
 
-An AI-powered early warning system that detects emerging threats to national stability by fusing economic indicators, social signals, and critical infrastructure data — enabling multi-agency collaboration without sharing sensitive raw data.
+An AI-powered early warning system that detects emerging threats to national stability by fusing economic indicators, social signals, and critical infrastructure data. 
 
----
+K-Scarcity's core is the **Scarcity Engine**, an industrial-grade, secure, and privacy-preserving machine learning infrastructure. It is designed to handle massive, dirty data streams, run complex multi-hypothesis causal inference in real-time online, and synthesize knowledge across multiple isolated institutional silos via Secure Hierarchical Federated Learning.
 
-##  What It Does
+## Architecture Overview
 
-SENTINEL transforms scattered data streams into actionable intelligence by:
+```mermaid
+graph TD
+    subgraph "Layer 2: Global Meta-Aggregation"
+        A[Global Meta-Prior] -->|Online Reptile Optimizer| B[Cross-Domain Sequence Aligner]
+        B -->|Trimmed-Mean / Element-wise Median| C((Global Model))
+        D[Meta Scheduler] -->|Adaptive Cadence| A
+        E[Meta Packet Validator] -.->|Trust & Bounds| B
+        T5[Tier-5 Integrative Governance] --> D
+    end
 
-- **Discovering** causal relationships between economic and social instability
-- **Detecting** signal silence and coordinated "going dark" patterns
-- **Monitoring** critical infrastructure stress beyond social media
-- **Forecasting** escalation pathways with time-to-event estimates
-- **Enabling** multi-agency collaboration through federated learning
-- **Supporting** human decision-making with competing hypothesis frameworks
+    subgraph "Layer 1: Intra-Basket Gossip (Federation)"
+        F1[Institution Node] <-->|Secure Gossip & Local DP| F2[Institution Node]
+        F1 -->|Q8 Quantized Codec| E
+        F2 -->|Q8 Quantized Codec| E
+    end
 
----
-
-## Scarcity vs KShield vs SENTINEL
-
-These three names appear everywhere in the codebase — here is the relationship:
-
-```
-┌──────────────────────────────────────────────────────────────────┐
-│  SENTINEL  — the user-facing product                             │
-│  Streamlit Command Center on port 8501                           │
-│  13 routed views + K-SHIELD module (4 cards, 11 sim tabs)         │
-├──────────────────────────────────────────────────────────────────┤
-│  KShield (kshiked/)  — Kenya-specific intelligence layer         │
-│  Pulse (15 signals), calibration (World Bank → SFC),             │
-│  9 scenario templates, 8 policy templates, federation bridge     │
-├──────────────────────────────────────────────────────────────────┤
-│  Scarcity (scarcity/)  — domain-agnostic Python library          │
-│  OnlineDiscoveryEngine, SFCEconomy, FederationClientAgent,       │
-│  DoWhy causal, Meta-learning, EventBus runtime                   │
-└──────────────────────────────────────────────────────────────────┘
-```
-
-**Dependency rule**: Scarcity never imports KShield. KShield imports Scarcity. SENTINEL imports both.
-
-See the full guide: [Scarcity vs SENTINEL](documentation/SCARCITY_VS_SENTINEL.md)
-
----
-
-##  Architecture
-
-```
-                              ANALYST LAYER
-                    Human oversight, feedback, explainability
-                                    │
-                    ┌───────────────┼───────────────┐
-                    │               │               │
-              META-INTEL      DECISION         INSTITUTIONAL
-            Unknown-unknown   Latency model    Strain indicators
-            Competing hypo    Escalation path  Leadership signals
-                    │               │               │
-                    └───────────────┼───────────────┘
-                                    │
-                    ┌───────────────┼───────────────┐
-                    │               │               │
-              SIGNAL INTEL    THREAT ASSESS    INFRASTRUCTURE
-            Silence detect    Actor cap/intent   Power/telecom
-            Going dark        Stability buffer   Cascade paths
-                    │               │               │
-                    └───────────────┼───────────────┘
-                                    │
-                    ┌───────────────┼───────────────┐
-                    │               │               │
-              CAUSAL RIGOR    ADAPTIVE INTEL    PERSISTENCE
-            Granger tests     Baseline learn    Decay model
-            Counterfactual    Regime shift      Reinforcement
-                    │               │               │
-                    └───────────────┼───────────────┘
-                                    │
-                              FOUNDATION
-                    ┌───────────────┼───────────────┐
-                    │               │               │
-                 SCARCITY       KSHIELD        FEDERATION
-               Discovery      Pulse Engine    Multi-agency
-               15 hypothesis   15 signals     Secure + private
+    subgraph "Tier 0-4: The Scarcity Engine (Within Node)"
+        S1[Raw Streaming Data] -->|Winsorization & MAD| S2[Robust Pre-Processing]
+        S2 -->|Count/Tensor Sketch| S3[Dimensionality Reduction]
+        S3 --> S4{15 Relational Hypotheses}
+        S4 -->|Causal, Correlational, Structural| S5[Tier-4 Multi-Modal Fusion]
+        S5 -->|Variance Gates & Attention| F1
+    end
 ```
 
 ---
 
-##  Core Modules
+## 1. The Scarcity Engine: Online Learning & Transformation
 
-### Scarcity Engine
-Real-time discovery of causal relationships between economic variables.
+At the heart of K-Scarcity is an online discovery engine that processes streaming data without batch-training. It relies on a suite of robust statistical, dimensionality reduction, and causal analysis algorithms.
 
-```python
-from scarcity.engine import OnlineDiscoveryEngine
+### 1.1. Robustness & Pre-Processing (Cleaning the Stream)
+Before data is analyzed, it must survive adversarial or noisy conditions using robust statistics:
+*   **Online Winsorization:** A sliding-window percentile tracker that actively clips extreme data spikes to the 5th and 95th percentiles.
+*   **Online MAD (Median Absolute Deviation):** Constantly calculates the median variance of the stream, completely ignoring severe outliers (vastly superior to tracking standard deviation on noisy streams).
+*   **Huber Loss Gradient Clipping:** Used internally by the engine to dynamically shift between quadratic and linear gradient adjustments if errors blow up out of nowhere.
 
-engine = OnlineDiscoveryEngine(explore_interval=10)
-engine.initialize(schema)          # or engine.initialize_v2(schema)
-status = engine.process_row(row)   # main tick
-graph  = engine.get_knowledge_graph()
-```
+### 1.2. High-Speed Encoding & Sketching (Dimensionality Reduction)
+As variables and polynomial combinations explode exponentially, the Engine uses "Sketching" to crush data into manageable geometries:
+*   **CountSketch & Polynomial Sketch:** Uses FFT (Fast Fourier Transform) Convolutions to mathematically approximate the cross-interactions of variables without ever instantiating the full polynomial matrix.
+*   **Tensor Sketch (Kronecker Products):** Rapidly compresses pair-wise matrices into tiny 1D representations.
+*   **Sparse Top-K Attention & Linear Attention:** Uses Transformer-style attention matrices (`Q·K^T·V` in FP16), but uses a Top-K mask to immediately drop attention weights on irrelevant variables.
+*   **Lag Positional Encodings:** Borrowed from LLMs, it maps integer time-lags into dense embedded arrays so the engine knows *when* an event happened relative to others.
 
-- 15 hypothesis types (causal, temporal, structural, advanced)
-- Confidence-weighted hypergraph with temporal decay
-- Thompson sampling for exploration-exploitation
+### 1.3. The 15 Relational Hypotheses (Continuous Online Testing)
+The engine runs 15 competing hypotheses continuously over the data stream. Rather than testing these globally at the end, it uses streaming algorithms to track them as active mathematical constraints:
 
-### KShield Pulse
-Social signal detection and threat index computation.
+1.  **Causal (Granger)**: Uses **Augmented Ridge Regression** to test if past values of $X$ predict $Y$ better than $Y$ alone, determining direction via predictive gain.
+2.  **Correlational (Pearson)**: Uses **Welford's Online Algorithm** to sustainably compute variance and covariance iteratively without MemoryOverFlow.
+3.  **Temporal (VAR(p) Autoregressive)**: Uses **Recursive Least Squares (RLS)** and Kalman Gain to update Auto-Regressive coefficients online.
+4.  **Functional (Polynomial)**: Uses RLS to fit online continuous polynomial curves ($Y = f(X)$).
+5.  **Equilibrium (Mean-Reverting)**: Employs a **1D Kalman Filter** to estimate invisible stable equilibrium levels, regressing the deviations to find the reversion rate.
+6.  **Compositional (Sum Constraints)**: Tracks additive constraints ($Total = \sum Parts$) measuring "leakages" via relative Mean Absolute Error.
+7.  **Competitive (Trade-off)**: Tracks the **Coefficient of Variation** ($CV = \frac{\sigma}{\mu}$) of the sum $X+Y$ over time to mathematically detect zero-sum cannibalization.
+8.  **Synergistic (Interaction)**: Uses Online Multiple Regression to track the coefficient significance of the $X_1 \times X_2$ interaction term.
+9.  **Probabilistic (Distribution Shift)**: Computes **Cohen's $d$** effect size dynamically to detect regime splits where $X$ shifts the distribution of $Y$.
+10. **Structural (Hierarchical)**: Tracks the **Intraclass Correlation Coefficient (ICC)** by calculating online between-group vs. within-group variance.
+11. **Mediating (Baron-Kenny)**: Tracks indirect paths measuring changes in $X \rightarrow Y$ effects when conditionally controlling for intermediate variable $M$.
+12. **Moderating (Conditional Effects)**: Uses online regression to check if a $Z$ term significantly changes the steepness of the $X \rightarrow Y$ slope.
+13. **Graph (Network Structure)**: Measures adjacency network density and average out-degree clustering mathematically over sequences.
+14. **Similarity (Clustering)**: Uses **Online Mini-Batch K-Means** with moving cluster centers and silhouette-like variance ratio tracking.
+15. **Logical (Boolean Rules)**: Continuously tests binary variable states passing through boolean gates (AND, OR, XOR, NAND) checking for sequence accuracy >80%.
 
-```python
-from kshiked.pulse import PulseSensor
+### 1.4. Adaptive Coarse-to-Fine Grouping
+When modeling hundreds of variables, the Engine dynamically clusters them using **VariableGroups**. 
+It tracks the internal Online MAD (Median Absolute Deviation) of prediction errors (residuals) for each group. If a cluster of variables can no longer be accurately predicted as a single unit (i.e. residual pressure crosses a threshold), the engine mathematically "shatters" the group back into atomic variables or smaller subgroups for higher-resolution modeling.
 
-sensor = PulseSensor(use_nlp=True)
-detections = sensor.process_text(text, metadata)
-shock_vector = sensor.get_shock_vector(variables)
-```
+### 1.4. Vectorized Core
+Instead of running 10,000 Python objects, the engine uses **Massively Parallel Batch Recursive Least Squares (RLS)** via `numpy.einsum` to mathematically solve thousands of equations simultaneously in $O(1)$ Python overhead, bypassing normal looping bottlenecks.
 
-- 15 signal types from survival stress to mobilization readiness
-- 5 threat indices: Polarization, Legitimacy Erosion, Mobilization Readiness, Elite Cohesion, Information Warfare
-- Kenya-specific: 47-county mapping, ethnic tension tracking
+### 1.5. Concept Drift & Stability Validators
+The **Evaluator** mathematically tortures the rules to see if they break:
+*   **Bootstrap Confidence Intervals:** Bootstraps sub-samples to build $R^2$ interval ranges.
+*   **Page-Hinkley Concept Drift:** A sequential analysis algorithm that explicitly detects "Regime Shifts" (when the fundamental rules of the system suddenly change).
+*   **Spearman Rank Concordance:** Checks if the rank-order of importance changes across different time windows.
+*   **Sign-Agreement Validation:** Discards rules if the mathematical sign flips between positive/negative randomly.
 
-### Federated Learning
-Multi-agency collaboration without raw data sharing.
+### 1.6. Causal Semantics & Graph Mathematics
+*   **Counterfactual Jacobian Perturbation:** Automatically injects random Gaussian noise into a modeled equation and uses the local Jacobian matrix to simulate "what-if" counterfactuals.
+*   **Multi-hop Causal Breadth-First-Search:** Follows causal chains down the line (e.g., $A \rightarrow B, B \rightarrow C \Rightarrow A \rightarrow C$).
+*   **Random Walk with Restart (RWR):** Computes proximity vectors to establish how "influential" a node is based on the stationary distribution of randomized graph walking.
+*   **Eigen-vector Diffusion Sketching:** Uses power-series approximations to propagate causal signals across the whole network.
+*   **Signed Message Passing:** Evaluates positive and negative graph embeddings using $m^+ = A^+ x$ and $m^- = A^- x$ routing.
+*   **Parsimony Hierarchy Arbitration:** If two rules contradict (e.g., "X correlates to Y" and "X causes Y"), it runs a conflict logic to delete the weaker assumption.
 
-```python
-from scarcity.federation import FederationClientAgent, SecureAggregator
-
-client = FederationClientAgent(node_id="agency_1", reconciler=reconciler)
-aggregator = SecureAggregator(min_participants=3)
-```
-
-- Hierarchical two-layer aggregation
-- Secure aggregation with Shamir secret sharing
-- Differential privacy (local + central)
-- Push-pull gossip with materiality thresholds
-
-### Economic Governance
-Stock-Flow Consistent macroeconomic simulation.
-
-```python
-from kshiked.core import EconomicGovernor
-
-governor = EconomicGovernor(config, env)
-await governor.step(current_tick)
-```
-
-- SFC model with households, firms, banks, government
-- PID control for policy execution
-- Shock modeling (impulse, stochastic, mean-reverting)
-
-### K-SHIELD Simulation Pipeline
-Kenya-calibrated SFC simulation with 9 scenarios and 11 analysis tabs.
-
-```python
-from scarcity.simulation.sfc import SFCEconomy, SFCConfig
-from kshiked.simulation.kenya_calibration import calibrate_from_data
-from kshiked.simulation.scenario_templates import get_scenario_by_id
-
-calib = calibrate_from_data(steps=50, policy_mode="custom")
-scenario = get_scenario_by_id("oil_crisis")
-calib.config.shock_vectors = scenario.build_shock_vectors(50)
-
-econ = SFCEconomy(calib.config)
-econ.initialize()
-trajectory = econ.run(50)
-```
-
-- 9 named scenarios (Oil Crisis, Drought, Debt Crisis, Perfect Storm, etc.)
-- 8 policy templates (CBK Tightening, Austerity, Rate Cap 2016, etc.)
-- NK Phillips Curve with inflation anchoring
-- 11 dynamic 3D-capable analysis tabs in the dashboard
+### 1.7. Tier-4 Integrative Orchestration
+Before sending discoveries up to the Federation layer, the engine combines its structural, relational, and causal latents into unified multi-modal representations:
+*   **Multi-Modal Fusion**: Uses energy-normalized **Variance Gates** and **Linear Attention** (`Q·K^T·V`) to mathematically blend different latents without losing signal dominance.
+*   **Cross-Tier Reconciliation**: Applies iterative **Energy-Weighting** to force mathematical consensus and minimize disagreement between conflicting latents generated by different engine tiers.
 
 ---
 
-##  Multi-Agency Federation
+## 2. The Federation Layer: Secure Hierarchical Machine Learning
 
-SENTINEL enables agencies to collaborate on threat models **without ever sharing raw data**.
+The Federation component allows hundreds of different institutions (banks, insurers, governments) to collectively train the Scarcity Causal Engine without *ever* sharing their raw data. 
 
-```
-                    ┌─────────────────────────────────────┐
-                    │         SENTINEL FEDERATION HUB     │
-                    │   Receives: Model updates (numbers) │
-                    │   Never sees: Raw data              │
-                    └──────────────┬──────────────────────┘
-                                   │
-           ┌───────────┬───────────┼───────────┬───────────┐
-           ▼           ▼           ▼           ▼           ▼
-       ┌───────┐   ┌───────┐   ┌───────┐   ┌───────┐   ┌───────┐
-       │  NIS  │   │  DCI  │   │  CBK  │   │  KDF  │   │  CA   │
-       │ Data  │   │ Data  │   │ Data  │   │ Data  │   │ Data  │
-       │ stays │   │ stays │   │ stays │   │ stays │   │ stays │
-       │ HERE  │   │ HERE  │   │ HERE  │   │ HERE  │   │ HERE  │
-       └───────┘   └───────┘   └───────┘   └───────┘   └───────┘
-```
+### 2.1. Two-Layer Hierarchical Topology & Meta-Learning
+The engine operates in two distinct rings with a Tier-5 Meta-Integrative Layer:
+*   **Layer 1 (Intra-Basket Gossip):** Institutions within the same sector (e.g., all banks in a "Financial" basket) use decentralized Gossip Protocols to peer-to-peer share parameter updates. 
+*   **Layer 2 (Global Meta-Aggregation):** The central server only aggregates the consensus from the *Baskets*, extracting overarching macro-economic parameters.
+*   **Cross-Domain Meta Learning:** When merging meta-updates from completely different sectors (e.g., Telecoms vs Finance), differences in domain size and data variance can cause global model collapse. The server uses a **Cross-Domain Sequence Aligner** that dynamically matrices the parameter keys and uses one of two robust mathematics:
+    *   **Trimmed-Mean Aggregation**: Sorts the multi-dimensional updates and drops the highest and lowest mathematical outliers (e.g., top 10% and bottom 10%) before averaging the rest.
+    *   **Element-wise Median**: Computes the strict median across domains, rendering the global update completely immune to up to 50% corrupted adversarial domains.
+*   **Online Reptile Optimizer:** Instead of just averaging the updates, the server maintains a Global Prior and calculates the gradient step towards the aggregated update, scaling it by a dynamic learning rate ($\beta$).
+*   **Domain Meta-Learner:** Computes a dynamic, per-domain Meta Learning Rate using an **Exponential Moving Average (EMA)** of their historical confidence and performance stability.
+*   **Meta Scheduler (Load-Aware Cadence):** Meta-learning isn't triggered on a hardcoded clock; it is dynamically triggered by the `processing_metrics` throughput of the engine. The Scheduler maintains an adaptive window counter that mathematically dilates or constricts based on real-time telemetry:
+    *   **Under Heavy Load (Latency > 80ms or high VRAM):** Multiplies the required interval by `0.7` (a decay factor), actually *speeding up* the cadence (down to 3 windows) to rapidly force meta-parameter updates to shed load and increase pruning.
+    *   **Low Bandwidth:** Additively increases the interval (+2), mathematically slowing down the frequency of massive global broadcasts (up to 20 windows) to prevent network choking.
+    *   **Cruising (Latency < 56ms):** Multiplies the interval by `0.8` to dynamically leverage free compute for deeper meta-learning.
+    *   **Anti-Synchronization Jitter:** Injects a randomized $\pm 10\%$ mathematical jitter to the final interval calculation to prevent hundreds of federated nodes from simultaneously syncing and causing DDoS effects.
+*   **Meta Packet Validator:** A mathematical gatekeeper ensuring strict confidence floors, gradient size limits, and $L_2$ boundary bounds on incoming meta-gradients.
 
-**Privacy Guarantees:**
-- Local training — raw data never leaves agency
-- Gradient encryption — only encrypted updates transmitted
-- Differential privacy — noise prevents reverse-engineering
-- Secure aggregation — hub cannot see individual contributions
+### 2.2. Cryptographic Secure Aggregation (Pairwise Masking)
+To guarantee that the central server cannot reverse-engineer a specific node's data from their model update, Scarcity uses Bonawitz-style Pairwise Masking:
+*   **Identity & Ephemeral Keys:** Every institution has a long-term Ed25519 signature. At the start of a round, every node generates a temporary X25519 Diffie-Hellman key and exchanges it with every other node.
+*   **HKDF-SHA256 Derivation:** Nodes use the shared secret to seed a random number generator, agreeing on a synchronized "noise mask". One node adds the noise to their data, the other node subtracts it.
+*   **Summation Cancellation:** When the central server sums all the updates together, all the positive and negative noise perfectly cancels out to zero. The server gets the perfectly accurate aggregate sum, but the individual updates remain pure mathematical gibberish to everyone else.
 
----
+### 2.3. Differential Privacy (DP)
+To prevent "Membership Inference Attacks":
+*   **Local DP:** Nodes inject Laplace noise into their weights before gossiping.
+*   **Central DP:** The aggregator adds calibrated Gaussian noise into the final global model. The standard deviation ($\sigma$) of the noise is mathematically constrained by an $\epsilon$ (privacy budget) and $\delta$ (failure probability) parameter: $\sigma = \text{sensitivity} \times \frac{\sqrt{2 \ln(1.25/\delta)}}{\epsilon}$
 
-##  Capabilities
+### 2.4. Byzantine-Robust Aggregation (Defeating Poisoning)
+If a malicious node (or a hijacked basket) tries to upload deliberately corrupted weights to destroy the model (a "Byzantine" attack), the aggregator ignores them using cutting-edge defenses:
+*   **Coordinate-wise Trimmed Mean:** Discards the top 10% and bottom 10% of all submitted values before averaging the rest.
+*   **Krum & Multi-Krum:** Calculates the pairwise Euclidean distance between all submitted models, and entirely rejects any models that are mathematically too far away from the "center of mass".
+*   **Bulyan:** A hyper-defensive combination that runs Krum to find the safest models, and then runs Trimmed Mean on the survivors. It is virtually immune to poisoning.
 
-### Currently Implemented 
+### 2.5. Exponential Trust Scoring & L2 Materiality
+The central server maintains an invisible `TrustScorer` for every node. It continually tracks **Agreement (60%), Compliance (30%), Impact (10%)**.
+If a node's trust score drops below `0.2`, the `PacketValidator` kicks in and silently sandboxes them—accepting their packets to keep up appearances, but throwing the data straight into the trash before aggregation.
 
-| Category | Capabilities |
-|----------|--------------|
-| **Discovery** | 15 hypothesis types, hypergraph store, temporal decay |
-| **Signals** | 15 signal detectors, 5 threat indices, NLP pipeline |
-| **Simulation** | SFC 4-sector model, NK Phillips Curve, 9 scenarios, 8 policies, 11 dynamic 3D tabs |
-| **Federation** | Secure aggregation, differential privacy, gossip protocol |
-| **Governance** | PID control, crisis modes, multi-policy coordination |
-| **Geo-Mapping** | 47 Kenya counties, ethnic tension tracking |
-| **K-SHIELD** | Auth-gated module with Causal, Terrain, Simulation, Impact cards |
+Furthermore, out on the edge, clients use a **Relative L2 Materiality Detector** ($\frac{||x_{new} - x_{old}||_2}{||x_{old}||_2}$) to calculate whether their models have shifted enough to even warrant broadcasting. This prevents network spam. 
 
-### Under Development 
+### 2.6. Exponential Time-Decay Message Merging & EMA Scheduling
+*   **Time-Decay Merging:** Gossip protocol updates don't just get averaged; an **Exponential Decay Half-Life** ($w = e^{-\text{age} \cdot \ln(2) / \text{half\_life}}$) heavily penalizes "stale" updates.
+*   **EMA Scheduling:** Nodes dynamically throttle their own network output based on system stress. An **Exponential Moving Average** of system latency triggers a **1.25x Backoff Penalty** on network activity if latency spikes, or a **0.7x Boost Factor** if bandwidth frees up.
 
-| Category | Capabilities |
-|----------|--------------|
-| **Causal Rigor** | Granger tests, counterfactual validation, confidence bounds |
-| **Signal Intelligence** | Silence detection, going-dark indicators, false calm |
-| **Infrastructure** | Power/telecom stress, cascade path modeling |
-| **Decision Support** | Time-to-escalation, escalation pathways, fragility index |
-| **Meta-Intelligence** | Unknown-unknown detection, competing hypotheses |
-| **Analyst Layer** | Feedback learning, explainability, hypothesis override |
+### 2.7. Non-IID Update Heterogeneity Diagnostics
+Because data distributions differ wildly between agencies (Non-IID), the server calculates the **Coefficient of Variation** (Standard Deviation / Mean) across the norms of all received tensors, alongside the pairwise **Cosine Distances** between everything. If the variance spikes above 75%, it alerts the hard-problem assessor that the federated updates are dangerously heterogenous and might break convergence.
+
+### 2.8. Tensor Quantization Codec
+Before math leaves the machine, arrays are mathematically crushed. The **Federated Meta-Intelligence (FMI) Codec** dynamically quantizes floating point tensors into smaller representations.
+*   **Q8 Cent-Rounding Precision:** Specifically scales the floats into an 8-bit integer space by rounding to the nearest mathematical cent ($10^{-2}$), perfectly compressing economic and numerical payloads without losing semantic fidelity across the network.
 
 ---
 
@@ -238,8 +167,11 @@ cd scarcity
 
 # Create virtual environment
 python -m venv .venv
-.venv\Scripts\activate  # Windows
-source .venv/bin/activate  # Linux/Mac
+
+# Windows
+.\.venv\Scripts\activate
+# Linux/Mac
+source .venv/bin/activate
 
 # Install the scarcity library (editable mode)
 pip install -e pypi/
@@ -248,14 +180,14 @@ pip install -e pypi/
 pip install -r backend/requirements.txt
 
 # For the Streamlit dashboard
-pip install streamlit plotly pandas numpy
+pip install streamlit plotly pandas numpy cryptography
 ```
 
 ### Run the Dashboard
 
 ```bash
 # From the project root
-streamlit run kshiked/ui/sentinel_dashboard.py
+streamlit run kshiked/ui/app.py
 ```
 
 ### Run Tests
@@ -266,205 +198,11 @@ pytest tests/ -v
 
 ---
 
-##  Project Structure
-
-```
-scace4/
-├── scarcity/                       # Core discovery engine (domain-agnostic)
-│   ├── engine/                     # Hypothesis discovery (engine_v2.py)
-│   ├── federation/                 # Federated learning
-│   ├── simulation/                 # SFC economic model (SFCEconomy, SFCConfig)
-│   ├── causal/                     # Causal inference (DoWhy)
-│   ├── meta/                       # Meta-learning
-│   ├── governor/                   # Resource control
-│   ├── fmi/                        # Federated metadata interchange
-│   ├── stream/                     # Data ingestion / windowing
-│   └── runtime/                    # EventBus, telemetry
-├── kshiked/                        # KShield intelligence (Kenya-specific)
-│   ├── core/                       # Governance & shocks
-│   ├── pulse/                      # Signal detection (15 signals)
-│   ├── sim/                        # Backtesting & Monte Carlo
-│   ├── simulation/                 # Kenya calibration, 9 scenarios, 8 policies
-│   ├── analysis/                   # Data quality & crash analysis
-│   ├── ui/                         # SENTINEL dashboard (Streamlit)
-│   │   ├── sentinel_dashboard.py   # Streamlit entrypoint
-│   │   ├── sentinel/router.py      # Top-level routed navigation + deep links
-│   │   └── kshield/                # K-SHIELD sub-module
-│   │       ├── page.py            # Auth + landing + routing
-│   │       ├── simulation.py      # 11 analysis tabs (2040 lines)
-│   │       ├── causal.py          # Causal Relationships card
-│   │       ├── terrain.py         # Policy Terrain card
-│   │       └── impact/components/ # Policy Impact (live data + counterfactual)
-│   ├── causal_adapter/             # Causal adapter layer
-│   ├── federation/                 # KShield federation bridge
-│   └── hub.py                      # KShieldHub orchestrator
-├── federated_databases/            # Scarcity federation data-plane module
-│   ├── scarcity_federation.py      # Node registry + sync rounds + audit
-│   ├── storage.py                  # Node/control SQLite storage
-│   ├── pipeline.py                 # single_node/federated ML modes
-│   └── README.md                   # Module guide
-├── backend/                        # REST API (FastAPI)
-│   └── app/
-│       ├── api/v1/                 # v1 endpoints (deprecated)
-│       ├── api/v2/                 # v2 endpoints (current)
-│       └── core/                   # Config, managers
-├── scarcity-deep-dive/             # Interactive frontend (Vite + React)
-├── documentation/                  # Technical docs
-│   ├── scarcity-docs/              # Engine documentation (11 modules)
-│   ├── kshield-docs/               # KShield documentation (12 modules)
-│   ├── SCARCITY_VS_SENTINEL.md     # Relationship guide (3-layer architecture)
-│   ├── SIMULATION_ENGINE.md        # Full SFC + calibration + scenario reference
-│   ├── DASHBOARD_ROUTING.md        # Navigation architecture
-│   ├── SCARCITY_ARCHITECTURE.md    # System architecture overview
-│   ├── CONFIG_REFERENCE.md         # All 60+ environment variables
-│   └── SENTINEL_ROADMAP.md         # Full roadmap
-└── tests/                          # Test suite
-```
----
-
-##  Recent Updates (2026-02-19)
-
-- **Policy Impact (existing card):** now overlays live appended synthetic criticality, freshness indicators, and baseline vs counterfactual trajectories.
-- **News Pipeline:** full-content extraction + URL traceability (`extracted_text`, hashes, error/status, evidence excerpts, trace pointers).
-- **Federation / Federated Databases:** first-class `federated_databases/` module with UI controls, sync metrics, route deep links, and audit logging.
-
-## X Scraper Updates
-
-`scripts/scrape_x_kenya.py` / `kshiked/pulse/scrapers/x_web_scraper.py` now support:
-- collecting unique posts across deep pagination up to the requested limit,
-- rotating sessions/proxies on rate limits and detection challenges,
-- periodic checkpointing and resume from `data/pulse/x_scraper_checkpoint.json`,
-- detection cooldown windows (default 24h) with checkpointed resume time.
-- `kshiked/pulse/scrapers/x_scraper.py` now uses `web_primary` mode by default:
-  Twikit/web path first, then automatic fallback to legacy `twscrape/ntscraper`.
-- `kshiked/pulse/ingestion/orchestrator.py` now passes X web session/proxy/checkpoint
-  controls through `IngestionConfig`, while preserving DB ingestion and X CSV exports.
-
-CLI examples:
-```bash
-# Resume scraping with checkpoint
-python scripts/scrape_x_kenya.py --limit 500 --resume
-
-# Use proxy rotation from CLI
-python scripts/scrape_x_kenya.py --proxy http://proxy1:8080 --proxy http://proxy2:8080
-
-# Use multi-session JSON config (each session can set cookie_path + proxy)
-python scripts/scrape_x_kenya.py --session-config config/x_sessions.json --resume
-
-# One-command ops runner (Linux/macOS shell)
-bash scripts/run_x_scrape_resume.sh --limit 500
-
-# One-command ops runner (PowerShell)
-powershell -ExecutionPolicy Bypass -File scripts/run_x_scrape_resume.ps1 --limit 500
-
-# Conservative pacing + 24h cooldown after detection/challenge
-python scripts/scrape_x_kenya.py --resume --conservative-mode --detection-cooldown-hours 24
-```
-
-Config templates:
-- `config/x_sessions.example.json` (copy to `config/x_sessions.json`)
-- `config/x_proxies.example.txt` (copy to `config/x_proxies.txt`)
-
-Environment variables:
-- `X_PROXIES` comma-separated proxy URLs
-- `X_SESSION_COOKIES` comma-separated cookie file paths
-- `X_SESSION_CONFIG` JSON session config path
-- `X_CHECKPOINT_PATH` checkpoint file path
-- `X_RESUME_CHECKPOINT` set `1` / `true` to resume
-- `X_WAIT_COOLDOWN=1` make ops runner wait until cooldown expires
-- `X_BACKEND_MODE` one of `web_primary`, `web_only`, `legacy_default`, `legacy_only`
-- `X_WEB_*` vars in ingestion mode (e.g. `X_WEB_USERNAME`, `X_WEB_PROXIES`, `X_WEB_CHECKPOINT_PATH`)
-
-##  Documentation
-
-| Document | Description |
-|----------|-------------|
-| [Scarcity vs SENTINEL](documentation/SCARCITY_VS_SENTINEL.md) | **Start here** — 3-layer architecture relationship guide |
-| [Simulation Engine](documentation/SIMULATION_ENGINE.md) | Full SFC + calibration + scenario pipeline reference |
-| [Dashboard Routing](documentation/DASHBOARD_ROUTING.md) | Navigation architecture (HOME → K-SHIELD → tabs) |
-| [SENTINEL Roadmap](documentation/SENTINEL_ROADMAP.md) | Full technical roadmap with 50 capabilities |
-| [Scarcity Architecture](documentation/SCARCITY_ARCHITECTURE.md) | System architecture overview with data flow diagrams |
-| [Configuration Reference](documentation/CONFIG_REFERENCE.md) | All 60+ environment variables |
-| [Scarcity Docs](documentation/scarcity-docs/INDEX.md) | Detailed engine documentation (11 modules) |
-| [KShield Docs](documentation/kshield-docs/INDEX.md) | Intelligence layer documentation (12 modules) |
-
----
-
-##  Use Cases
-
-### National Security
-- Early warning for civil unrest
-- Election violence prevention
-- Cross-border threat monitoring
-- Critical infrastructure protection
-
-### Economic Stability
-- Currency attack detection
-- Supply chain disruption alerts
-- Food security intelligence
-- Inflation pressure forecasting
-
-### Multi-Agency Coordination
-- Privacy-preserving intelligence fusion
-- Cross-domain threat correlation
-- Unified alerting without data exposure
-
----
-
-##  Security Features
-
-| Feature | Implementation |
-|---------|----------------|
-| Authentication | SSO/MFA ready |
-| Authorization | Role-based access control |
-| Encryption | End-to-end (in-transit + at-rest) |
-| Privacy | Differential privacy + secure aggregation |
-| Audit | Immutable action logging |
-| Deployment | Air-gap option available |
-
----
-
-##  Key Metrics
-
-| Metric | Target |
-|--------|--------|
-| Lead time for warnings | 48-72 hours |
-| False alarm rate | < 15% |
-| Reliability score | > 80% |
-| Decision-latency accuracy | ±6 hours |
-
----
-
-##  Contributing
-
-1. Fork the repository
-2. Create a feature branch (`git checkout -b feature/amazing-feature`)
-3. Commit your changes (`git commit -m 'Add amazing feature'`)
-4. Push to the branch (`git push origin feature/amazing-feature`)
-5. Open a Pull Request
-
----
-
 ##  License
 
 This project is licensed under the Apache License 2.0 - see the [LICENSE](LICENSE) file for details.
 
----
-
 ##  Team
 
 **Omega Labs** — Lead Developer
-
 🌐 [omegamakena.co.ke](https://omegamakena.co.ke/)
-
----
-
-##  Roadmap
-
-**Target Completion: March 20, 2026**
-
-See [SENTINEL_ROADMAP.md](documentation/SENTINEL_ROADMAP.md) for the complete 50-capability roadmap.
-
----
-
-*Built for Kenya. Designed for national security.*
