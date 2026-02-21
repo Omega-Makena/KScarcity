@@ -42,6 +42,12 @@ TOP_CARDS = [
         "through explainable analytics and accessible awareness dashboards.",
         "KEDUCATION",
     ),
+    (
+        "Institution Portal",
+        "Securely upload weekly organizational data to participate in federated "
+        "analysis and automatically trigger local online learning rounds.",
+        "INSTITUTION",
+    ),
 ]
 
 

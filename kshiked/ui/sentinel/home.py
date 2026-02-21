@@ -186,7 +186,7 @@ def render_home(theme):
         </svg>
         <div class="hero-container">
             <div class="hero-title-wrapper">
-                <div class="hero-title">WELCOME TO SENTINEL</div>
+                <div class="hero-title">K-SCARCITY</div>
             </div>
             <div class="hero-desc">The Autonomous Economic Defense &amp; Simulation Platform</div>
             <div class="hero-subtitle">-- Powered by Scarcity --</div>
@@ -196,12 +196,13 @@ def render_home(theme):
 
     st.markdown("---")
 
-    # Navigation Cards -- 2x2 Grid
+    # Navigation Cards -- 2x2 Grid (now 3x2 or just appended)
     cards = [
         ("K-SHIELD", "Run large-scale economic simulations across sectors. Test policy scenarios, model shocks, and evaluate cascading risk using adaptive ABM agents.", "KSHIELD"),
         ("K-PULSE", "Continuously ingest and analyze live signals to detect anomalies. Monitor behavioral shifts and generate early warning intelligence in real-time.", "SIGNALS"),
         ("K-COLLAB", "Enable organizations to collaboratively train models and generate insights using federated learning and secure aggregation.", "FEDERATION"),
         ("K-EDUCATION", "Translate complex security intelligence into clear public knowledge through explainable analytics and accessible awareness dashboards.", "DOCS"),
+        ("Institution Portal", "Securely upload weekly organizational data to participate in federated analysis and automatically trigger local online learning rounds.", "INSTITUTION"),
     ]
 
     def render_card(col, title, desc, target):
@@ -216,10 +217,14 @@ def render_home(theme):
     render_card(c1_top, *cards[0])
     render_card(c2_top, *cards[1])
 
-    # Bottom Row
+    # Middle Row
     _, c1_bot, c2_bot, _ = st.columns([1, 3, 3, 1])
     render_card(c1_bot, *cards[2])
     render_card(c2_bot, *cards[3])
+
+    # Bottom Row
+    _, c1_inst, _, _ = st.columns([1, 3, 3, 1])
+    render_card(c1_inst, *cards[4])
 
     # Footer
     st.markdown("---")

@@ -179,6 +179,7 @@ def render_sentinel_dashboard():
         "System Guide": "SYSTEM_GUIDE",
         "Document Intelligence": "DOCS",
         "Policy Intelligence": "POLICY_CHAT",
+        "Institution Portal": "INSTITUTION",
     }
 
     if "current_view" not in st.session_state:
@@ -262,6 +263,9 @@ def render_sentinel_dashboard():
         render_document_intel_tab(theme)
     elif view == "POLICY_CHAT":
         render_policy_chat(theme)
+    elif view == "INSTITUTION":
+        from institution.page import render as render_institution
+        render_institution(theme)
 
 
 def main():
