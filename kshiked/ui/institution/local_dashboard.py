@@ -33,7 +33,7 @@ def render():
     inst_id = st.session_state.get('institution_id')
     basket_id = st.session_state.get('basket_id')
     
-    st.markdown(f"<h2 style='text-align: center; color: #006747;'>Institution Silo [Spoke]</h2>", unsafe_allow_html=True)
+    st.markdown(f"<h2 style='text-align: center; color: #006600;'>Institution Silo [Spoke]</h2>", unsafe_allow_html=True)
     st.markdown(f"<h5 style='text-align: center; color: #1F2937;'>Node: {st.session_state.get('username')} | Sector Basket: {basket_id}</h5>", unsafe_allow_html=True)
     
     st.write("---")
@@ -115,8 +115,8 @@ def render():
                         )
                     
                     st.markdown(
-                        f'<div style="background:rgba(0,103,71,0.05); border-left:4px solid #006747; padding:1rem; margin-bottom:1rem; border-radius:0 8px 8px 0;">'
-                        f'<div style="color:#006747; font-weight:bold; margin-bottom:0.5rem; font-size:0.9rem;">DYNAMIC INTERPRETATION</div>'
+                        f'<div style="background:rgba(0,102,0,0.05); border-left:4px solid #006600; padding:1rem; margin-bottom:1rem; border-radius:0 8px 8px 0;">'
+                        f'<div style="color:#006600; font-weight:bold; margin-bottom:0.5rem; font-size:0.9rem;">DYNAMIC INTERPRETATION</div>'
                         f'<div style="font-size:0.9rem; color:#1F2937;">{interpretation}</div></div>',
                         unsafe_allow_html=True
                     )
@@ -231,8 +231,8 @@ def render():
                         )
                         
                         st.markdown(
-                            f'<div style="background:rgba(0,103,71,0.05); border-left:4px solid #006747; padding:1rem; margin-bottom:1rem; border-radius:0 8px 8px 0;">'
-                            f'<div style="color:#006747; font-weight:bold; margin-bottom:0.5rem; font-size:0.9rem;">DYNAMIC INTERPRETATION</div>'
+                            f'<div style="background:rgba(0,102,0,0.05); border-left:4px solid #006600; padding:1rem; margin-bottom:1rem; border-radius:0 8px 8px 0;">'
+                            f'<div style="color:#006600; font-weight:bold; margin-bottom:0.5rem; font-size:0.9rem;">DYNAMIC INTERPRETATION</div>'
                             f'<div style="font-size:0.9rem; color:#1F2937;">{f_interpretation}</div></div>',
                             unsafe_allow_html=True
                         )

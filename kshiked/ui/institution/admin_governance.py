@@ -44,8 +44,8 @@ def render():
     
     basket_id = st.session_state.get('basket_id')
     
-    st.markdown(f"<h2 style='text-align: center; color: #C60C30;'>Basket Administrator Hub</h2>", unsafe_allow_html=True)
-    st.markdown(f"<h5 style='text-align: center; color: #006747;'>Sector ID: {basket_id} | Admin User: {st.session_state.get('username')}</h5>", unsafe_allow_html=True)
+    st.markdown(f"<h2 style='text-align: center; color: #BB0000;'>Basket Administrator Hub</h2>", unsafe_allow_html=True)
+    st.markdown(f"<h5 style='text-align: center; color: #006600;'>Sector ID: {basket_id} | Admin User: {st.session_state.get('username')}</h5>", unsafe_allow_html=True)
     
     st.write("---")
     
@@ -283,7 +283,7 @@ def render():
                         st.write("---")
                         
                         for update in project_data.get('updates', []):
-                            u_color = "#006747" if update['update_type'] == 'OBSERVATION' else "#C60C30" if update['update_type'] == 'POLICY_ACTION' else "#1F2937"
+                            u_color = "#006600" if update['update_type'] == 'OBSERVATION' else "#BB0000" if update['update_type'] == 'POLICY_ACTION' else "#1F2937"
                             st.markdown(f"**<span style='color:{u_color};'>[{update['update_type']}]</span> {update['author_name']}**", unsafe_allow_html=True)
                             st.write(update['content'])
                             if update['certainty']:
@@ -333,7 +333,7 @@ def render():
             st.write("No meta-learning historical archives exist yet.")
         else:
             for mem in memories:
-                res_color = "#006747" if mem['resolution_state'] == 'RESOLVED' else "#C60C30" if mem['resolution_state'] == 'FALSE_ALARM' else "#1F2937"
+                res_color = "#006600" if mem['resolution_state'] == 'RESOLVED' else "#BB0000" if mem['resolution_state'] == 'FALSE_ALARM' else "#1F2937"
                 with st.expander(f"[{mem['resolution_state']}] {mem['title']} (Final Severity: {mem['severity']})"):
                     m_col1, m_col2 = st.columns([2, 1])
                     with m_col1:

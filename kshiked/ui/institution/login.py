@@ -13,9 +13,9 @@ from kshiked.ui.institution.backend.models import Role
 from kshiked.ui.institution.style import inject_enterprise_theme
 
 def render_login_page():
-    inject_enterprise_theme()
-    st.markdown("<h1 style='text-align: center; color: #C60C30;'>National Intelligence Gateway</h1>", unsafe_allow_html=True)
-    st.markdown("<h4 style='text-align: center; color: #006747;'>Restricted Access Protocol</h3>", unsafe_allow_html=True)
+    inject_enterprise_theme(include_watermark=True)
+    st.markdown("<h1 style='text-align: center; color: #BB0000;'>National Intelligence Gateway</h1>", unsafe_allow_html=True)
+    st.markdown("<h4 style='text-align: center; color: #006600;'>Restricted Access Protocol</h3>", unsafe_allow_html=True)
     
     st.write("---")
     
@@ -39,7 +39,18 @@ def route_authenticated_user():
     # Render global sidebar for authenticated users
     with st.sidebar:
         st.markdown("### Profile")
-        st.info(f"**ID:** {st.session_state.get('username')}\n\n**Role:** {role}")
+        st.markdown(
+            f"""
+            <div style="background-color: #f8fafc; padding: 15px; border-radius: 8px; border-left: 5px solid #006600; margin-bottom: 20px; box-shadow: 0 2px 4px rgba(0,0,0,0.05);">
+                <p style="margin: 0; color: #1F2937; font-size: 0.9em;"><strong>Access ID:</strong><br/>
+                <span style="font-size: 1.1em; color: #BB0000;">{st.session_state.get('username')}</span></p>
+                <hr style="margin: 10px 0; border: none; border-top: 1px solid #e2e8f0;" />
+                <p style="margin: 0; color: #1F2937; font-size: 0.9em;"><strong>Clearance Level:</strong><br/>
+                <span style="font-size: 1.1em; color: #006600;">{role}</span></p>
+            </div>
+            """, 
+            unsafe_allow_html=True
+        )
         if st.button("Disconnect Session", use_container_width=True):
             logout_user()
             st.rerun()

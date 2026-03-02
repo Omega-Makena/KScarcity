@@ -590,6 +590,41 @@ class SFCEconomy:
         })
         self.step()
 
+    def get_state(self) -> Dict[str, Any]:
+        """
+        Return the current macroeconomic state as a flat dictionary.
+
+        This is the canonical read-only snapshot used by external consumers
+        (e.g. EconomicGovernor, dashboard, sync_to_environment) that need to
+        observe SFC variables without advancing time.
+
+        Returns:
+            Dict mapping variable name → current value.
+        """
+        return {
+            # Macro aggregates
+            "gdp": self.gdp,
+            "gdp_growth": self.gdp_growth,
+            "inflation": self.inflation,
+            "interest_rate": self.interest_rate,
+            "unemployment": self.unemployment,
+            "credit_spread": self.credit_spread,
+            "output_gap": self.output_gap,
+            "potential_gdp": self.potential_gdp,
+            "time": self.time,
+            # Sector-level aggregates
+            "household_net_worth": self.households.net_worth,
+            "firm_net_worth": self.firms.net_worth,
+            "bank_net_worth": self.banks.net_worth,
+            "government_net_worth": self.government.net_worth,
+            "government_deficit": -self.government.net_lending,  # sign: deficit = positive number
+            # Government debt (bonds liability, consistent with SFC balance sheet)
+            "government_debt": self.government.liabilities.get("bonds", 0.0),
+            # Shock / policy snapshots
+            **{f"shock_{k}": v for k, v in self.current_shock_vector.items()},
+            **{f"policy_{k}": v for k, v in self.current_policy_vector.items()},
+        }
+
     def run(self, steps: int) -> List[Dict[str, Any]]:
         """Run simulation for specified number of steps."""
         for _ in range(steps):

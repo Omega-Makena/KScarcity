@@ -121,13 +121,10 @@ class PolicyChatbot:
         self._searcher = PolicySearchEngine(self._embeddings)
         self._predictor = PolicyPredictor(self._provider)
 
-        # Health check and warm-up
+        # Health check
         healthy = await self._provider.health_check()
         if not healthy:
             logger.warning("Ollama not reachable — chatbot will have limited functionality")
-        else:
-            # Pre-load model into memory to eliminate cold-start on first query
-            await self._provider.warm_model()
 
         self._initialized = True
         logger.info("PolicyChatbot initialized")
@@ -203,32 +200,21 @@ class PolicyChatbot:
             session.add_assistant_message(response)
             return response
 
-        # Search for evidence and generate prediction in parallel
-        evidence = None
-        prediction = None
+        # Search for evidence
         try:
-            evidence_task = asyncio.create_task(self._searcher.search_all(bill))
-            prediction_task = asyncio.create_task(self._predictor.predict(bill, None))
-            
-            # Wait for both concurrently
-            evidence_result, prediction_result = await asyncio.gather(
-                evidence_task, prediction_task, return_exceptions=True
-            )
-            
-            if not isinstance(evidence_result, Exception):
-                evidence = evidence_result
-                session.evidence = evidence
-            else:
-                logger.warning(f"Evidence search failed: {evidence_result}")
-            
-            if not isinstance(prediction_result, Exception):
-                prediction = prediction_result
-                session.prediction = prediction
-            else:
-                logger.warning(f"Prediction failed: {prediction_result}")
-                
+            evidence = await self._searcher.search_all(bill)
+            session.evidence = evidence
         except Exception as e:
-            logger.warning(f"Parallel analysis failed: {e}")
+            logger.warning(f"Evidence search failed: {e}")
+            evidence = None
+
+        # Generate prediction
+        try:
+            prediction = await self._predictor.predict(bill, evidence)
+            session.prediction = prediction
+        except Exception as e:
+            logger.warning(f"Prediction failed: {e}")
+            prediction = None
 
         # Format response
         response = self._format_bill_analysis(bill, prediction, evidence)
@@ -383,18 +369,6 @@ class PolicyChatbot:
                     lines.append(f"{emoji} [{r.source}] (sim={r.similarity:.2f}) {r.text[:200]}")
                     if r.source == "news" and r.metadata.get("url"):
                         lines.append(f"   🔗 {r.metadata['url']}")
-                        excerpt = str(r.metadata.get("evidence_excerpt", "") or "").strip()
-                        if excerpt:
-                            lines.append(f"   📌 Evidence: {excerpt[:220]}")
-                        pointer_parts = []
-                        if r.metadata.get("article_id"):
-                            pointer_parts.append(f"article_id={r.metadata['article_id']}")
-                        if r.metadata.get("content_record_id"):
-                            pointer_parts.append(f"content_id={r.metadata['content_record_id']}")
-                        if r.metadata.get("content_storage_path"):
-                            pointer_parts.append(f"path={r.metadata['content_storage_path']}")
-                        if pointer_parts:
-                            lines.append(f"   🧾 Trace: {' | '.join(pointer_parts)}")
                 answer = "\n\n".join(lines)
             else:
                 answer = "No matching results found. Try different keywords."
@@ -414,44 +388,8 @@ class PolicyChatbot:
         if not answer:
             answer = "I couldn't generate an answer. Try rephrasing your question."
 
-        trace_block = self._format_news_trace_block(session.evidence.news if session.evidence else [])
-        if trace_block:
-            answer = f"{answer}\n\n{trace_block}"
-
         session.add_assistant_message(answer)
         return answer
-
-    def _format_news_trace_block(self, news_results: List[Any], limit: int = 3) -> str:
-        """Format mandatory URL + excerpt + pointer trace lines for news-backed answers."""
-        if not news_results:
-            return ""
-        lines = ["### Evidence Trace"]
-        seen = set()
-        count = 0
-        for item in sorted(news_results, key=lambda r: r.similarity, reverse=True):
-            if count >= limit:
-                break
-            url = str(item.metadata.get("url", "") or "").strip()
-            if not url or url in seen:
-                continue
-            seen.add(url)
-            title = str(item.metadata.get("title", "News reference") or "News reference")
-            excerpt = str(item.metadata.get("evidence_excerpt", "") or "").strip() or item.text[:200]
-            trace_parts = []
-            if item.metadata.get("article_id"):
-                trace_parts.append(f"article_id={item.metadata['article_id']}")
-            if item.metadata.get("content_record_id"):
-                trace_parts.append(f"content_id={item.metadata['content_record_id']}")
-            if item.metadata.get("content_storage_path"):
-                trace_parts.append(f"path={item.metadata['content_storage_path']}")
-
-            lines.append(f"- [{title}]({url})")
-            lines.append(f"  excerpt: \"{excerpt}\"")
-            if trace_parts:
-                lines.append(f"  trace: {' | '.join(trace_parts)}")
-            count += 1
-
-        return "\n".join(lines) if count else ""
 
     # ─── Response Formatters ────────────────────────────────────────────
 
@@ -465,7 +403,7 @@ class PolicyChatbot:
         lines = []
 
         # Header
-        lines.append(f"### 📋 {bill.title}\n")
+        lines.append(f"###  {bill.title}\n")
 
         if bill.summary:
             lines.append(f"{bill.summary}\n")
@@ -517,41 +455,14 @@ class PolicyChatbot:
                 f"Affects: {', '.join(p.affected_groups[:4])}"
             )
             if p.monetary_impact:
-                lines.append(f"   💰 {p.monetary_impact}")
+                lines.append(f"    {p.monetary_impact}")
             lines.append("")
 
         # Evidence summary
         if evidence and evidence.total_found > 0:
-            lines.append(f"\n---\n*📊 Analysis backed by {evidence.total_found} data points "
+            lines.append(f"\n---\n* Analysis backed by {evidence.total_found} data points "
                         f"({len(evidence.tweets)} tweets, {len(evidence.news)} news articles, "
                         f"{len(evidence.incidents)} incidents, {len(evidence.policy_events)} historical events)*")
-
-        if evidence and evidence.news:
-            lines.append("\n---\n### Linked News Evidence")
-            seen_urls = set()
-            ranked_news = sorted(evidence.news, key=lambda r: r.similarity, reverse=True)
-            for idx, news_item in enumerate(ranked_news[:8], 1):
-                url = str(news_item.metadata.get("url", "") or "").strip()
-                if not url or url in seen_urls:
-                    continue
-                seen_urls.add(url)
-                title = str(news_item.metadata.get("title", "News reference") or "News reference")
-                excerpt = str(news_item.metadata.get("evidence_excerpt", "") or "").strip()
-                if not excerpt:
-                    excerpt = news_item.text[:220]
-
-                trace_parts = []
-                if news_item.metadata.get("article_id"):
-                    trace_parts.append(f"article_id={news_item.metadata['article_id']}")
-                if news_item.metadata.get("content_record_id"):
-                    trace_parts.append(f"content_id={news_item.metadata['content_record_id']}")
-                if news_item.metadata.get("content_storage_path"):
-                    trace_parts.append(f"path={news_item.metadata['content_storage_path']}")
-
-                lines.append(f"{idx}. [{title}]({url})")
-                lines.append(f"   - Evidence excerpt: \"{excerpt}\"")
-                if trace_parts:
-                    lines.append(f"   - Trace pointer: {' | '.join(trace_parts)}")
 
         # Prompt for follow-up
         lines.append("\n---\n*Ask me about specific provisions, counties, historical comparisons, "

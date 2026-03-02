@@ -24,12 +24,21 @@ class DefenseCoordinator(FederationCoordinator):
     def register_peer(self, peer_id: str, endpoint: str, capabilities: Dict[str, float]) -> PeerInfo:
         """
         Extend registration to validate security clearance.
+
+        If a peer does not declare ``clearance_level_int``, it is registered
+        at the UNCLASSIFIED level (0) with a warning rather than silently
+        inheriting an undefined clearance.
         """
-        # Ensure clearance is declared
         if "clearance_level_int" not in capabilities:
-            # Map enum string to int if passed as auxiliary
-            pass 
-        
+            logger.warning(
+                "Peer %r registered without 'clearance_level_int'; "
+                "defaulting to UNCLASSIFIED (0). "
+                "Set the field explicitly in production deployments.",
+                peer_id,
+            )
+            # Mutate a copy so we never modify the caller's dict.
+            capabilities = {**capabilities, "clearance_level_int": 0}
+
         return super().register_peer(peer_id, endpoint, capabilities)
 
     def select_peers_for_task(self, task_level: SecurityLevel, count: int, min_trust: float = 0.5) -> List[PeerInfo]:

@@ -1,4 +1,0 @@
-"""
-Pydantic schema definitions.
-"""
-

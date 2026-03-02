@@ -12,7 +12,10 @@ from dataclasses import dataclass
 from typing import Iterable, List, Sequence, Tuple
 import math
 import secrets
+import logging
 import numpy as np
+
+logger = logging.getLogger(__name__)
 
 
 @dataclass
@@ -44,6 +47,14 @@ class PrivacyGuard:
             config: Privacy configuration object.
         """
         self.config = config
+        # Warn loudly when DP is effectively disabled so operators notice.
+        if config.dp_noise_sigma <= 0 and not (config.dp_epsilon > 0):
+            logger.warning(
+                "PrivacyGuard initialized with differential privacy DISABLED "
+                "(dp_noise_sigma=0 and dp_epsilon=0). "
+                "Set dp_noise_sigma > 0 or provide dp_epsilon/dp_delta to enable DP noise injection. "
+                "Failing to configure DP in a real deployment leaks gradient information."
+            )
 
     def apply_noise(self, values: Sequence[Sequence[float]]) -> np.ndarray:
         """

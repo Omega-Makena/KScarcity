@@ -60,3 +60,6 @@ exclude = [
   "scarcity-deep-dive*",
   "tests*"
 ]
+
+[tool.pytest.ini_options]
+asyncio_mode = "auto"

@@ -23,8 +23,8 @@ def render():
     enforce_role(Role.EXECUTIVE.value)
     inject_enterprise_theme()
     
-    st.markdown("<h2 style='text-align: center; color: #C60C30;'>National Security Command Center</h2>", unsafe_allow_html=True)
-    st.markdown("<h4 style='text-align: center; color: #006747;'>Strategic Intelligence & Coordinated Response</h3>", unsafe_allow_html=True)
+    st.markdown("<h2 style='text-align: center; color: #BB0000;'>National Security Command Center</h2>", unsafe_allow_html=True)
+    st.markdown("<h4 style='text-align: center; color: #006600;'>Strategic Intelligence & Coordinated Response</h3>", unsafe_allow_html=True)
     
     # Fetch all baskets
     with get_connection() as conn:
@@ -38,47 +38,269 @@ def render():
     active_projects = ProjectManager.get_active_projects(None)
     global_risks = DeltaSyncManager.get_promoted_risks()
     memories = ProjectManager.get_institutional_memory()
+
+    # Top-Level KPI Metric Cards (Custom HTML/CSS)
+    # Replaces basic static text with high-visibility metrics.
+    
+    # Calculate Systemic Strain safely
+    strain_score = len(global_risks) * 2.5
+    if strain_score > 10.0:
+        strain_score = 10.0
+        
+    m1, m2, m3, m4 = st.columns(4)
+    with m1:
+        alert_class = "alert" if global_risks else ""
+        st.markdown(f"""
+            <div class="kpi-card {alert_class}">
+                <div class="kpi-title">Active Threat Signals</div>
+                <div class="kpi-value">{len(global_risks)}</div>
+                <div class="kpi-sub">Anomalies requiring attention</div>
+            </div>
+        """, unsafe_allow_html=True)
+    with m2:
+        st.markdown(f"""
+            <div class="kpi-card">
+                <div class="kpi-title">Systemic Strain</div>
+                <div class="kpi-value">{strain_score:.1f}/10</div>
+                <div class="kpi-sub">Network topological risk</div>
+            </div>
+        """, unsafe_allow_html=True)
+    with m3:
+        st.markdown(f"""
+            <div class="kpi-card">
+                <div class="kpi-title">Active War Rooms</div>
+                <div class="kpi-value">{len(active_projects)}</div>
+                <div class="kpi-sub">Cross-sector collaborations</div>
+            </div>
+        """, unsafe_allow_html=True)
+    with m4:
+        st.markdown(f"""
+            <div class="kpi-card">
+                <div class="kpi-title">Active Sectors</div>
+                <div class="kpi-value">{len(all_baskets)}</div>
+                <div class="kpi-sub">Federated nodes online</div>
+            </div>
+        """, unsafe_allow_html=True)
+        
+    st.write("")
+    st.write("")
     
     # 7. NATIONAL / ORGANIZATIONAL MAP (Spatial Awareness)
     with st.container(border=True):
         st.write("#### National Threat Topography (Kenya)")
         st.write("Geospatial distribution of emerging hotspots across Kenyan counties.")
-        import plotly.express as px
-        import plotly.graph_objects as go
+        import pydeck as pdk
+        import json
+        import os
         
-        # Kenyan Counties Data Mock
-        counties_data = {
-            "County": ["Nairobi", "Mombasa", "Kisumu", "Nakuru", "Eldoret", "Garissa", "Nyeri", "Machakos", "Kakamega"],
-            "lat": [-1.2921, -4.0435, -0.0917, -0.3031, 0.5143, -0.4532, -0.4167, -1.5177, 0.2827],
-            "lon": [36.8219, 39.6682, 34.7680, 36.0800, 35.2698, 39.6461, 36.9500, 37.2634, 34.7519],
-        }
-        df_geo = pd.DataFrame(counties_data)
-        np.random.seed(int(time.time()) % 1000) # dynamic pseudo-random
-        df_geo['Stress Index'] = np.random.randint(20, 100, size=len(df_geo))
-        
-        fig_map = px.scatter_mapbox(
-            df_geo, lat="lat", lon="lon", hover_name="County", hover_data=["Stress Index"],
-            color="Stress Index", size="Stress Index",
-            color_continuous_scale=px.colors.sequential.OrRd, size_max=20, zoom=5.2
-        )
-        # Use a professional, dark theme Mapbox without needing an API key (carto-darkmatter)
-        fig_map.update_layout(
-            mapbox_style="carto-darkmatter",
-            mapbox_center={"lat": 0.0236, "lon": 37.9062},
-            margin={"r":0,"t":0,"l":0,"b":0},
-            height=350,
-            paper_bgcolor='rgba(0,0,0,0)',
-            plot_bgcolor='rgba(0,0,0,0)'
-        )
-        st.plotly_chart(fig_map, use_container_width=True, key="exec_map")
+        # Load local Kenyan counties GeoJSON
+        geojson_path = os.path.join(os.path.dirname(__file__), "..", "..", "data", "kenya_adm1_simplified.geojson")
+        try:
+            with open(geojson_path, "r", encoding="utf-8") as f:
+                geojson_data = json.load(f)
+                
+            # Add dynamic "stress" properties for extrusion and coloring (Glassmorphism Light Theme)
+            np.random.seed(int(time.time()) % 1000)
+            for feature in geojson_data['features']:
+                stress = np.random.randint(5, 100)
+                feature['properties']['stress'] = stress
+                
+                # Colors: High Stress = Red, Medium = Orange/Yellow, Low = Blue/White
+                if stress > 80:
+                    r, g, b = 239, 68, 68 # Red
+                elif stress > 50:
+                    r, g, b = 245, 158, 11 # Amber
+                else:
+                    r, g, b = 59, 130, 246 # Blue
+                    
+                # Semi-transparent for glass effect
+                feature['properties']['color'] = [r, g, b, 140]
+                feature['properties']['line_color'] = [r, g, b, 255]
+                feature['properties']['elevation'] = stress * 1200
+
+            layer = pdk.Layer(
+                "GeoJsonLayer",
+                geojson_data,
+                pickable=True,
+                stroked=True,
+                filled=True,
+                extruded=True,
+                wireframe=True,
+                get_fill_color="properties.color",
+                get_line_color="properties.line_color",
+                get_elevation="properties.elevation",
+                elevation_scale=1,
+                line_width_min_pixels=2,
+            )
+
+            view_state = pdk.ViewState(
+                latitude=0.0236,
+                longitude=37.9062,
+                zoom=5.2,
+                pitch=55,
+                bearing=15
+            )
+
+            r = pdk.Deck(
+                layers=[layer],
+                initial_view_state=view_state,
+                tooltip={
+                    "html": "<b>County:</b> {shapeName} <br/> <b>Hotspot Stress Index:</b> {stress}/100", 
+                    "style": {
+                        "backgroundColor": "#ffffff",
+                        "color": "#0f172a",
+                        "border": "1px solid #e2e8f0",
+                        "borderRadius": "8px",
+                        "boxShadow": "0 4px 6px -1px rgba(0,0,0,0.1)",
+                        "fontFamily": "Inter, sans-serif",
+                        "fontWeight": "500",
+                        "padding": "10px"
+                    }
+                },
+                map_style="mapbox://styles/mapbox/light-v11"
+            )
+            st.pydeck_chart(r, height=450, use_container_width=True)
+            
+        except Exception as e:
+            st.error(f"Error loading geospatial topography: {e}")
     
-    # 2. TABBED NAVIGATION Grid
-    tab_summaries, tab_risk, tab_projects, tab_history, tab_comms = st.tabs([
+    # 8. SPLIT-PANE INTELLIGENCE & FORECASTING
+    st.write("---")
+    col_risk, col_sim = st.columns([1, 1.2])
+    
+    with col_risk:
+        with st.container(border=True):
+            st.markdown("### 🔴 Live Intelligence Feed")
+            st.write("Recent anomalies and shifts across sectors requiring executive attention.")
+            
+            if not global_risks:
+                st.success("No active systemic signals detected.")
+            else:
+                # KEY SIGNALS PANEL (Tabular)
+                with st.container(border=True):
+                    st.markdown("#### Alert Feed")
+                    signal_data = []
+                    for idx, risk in enumerate(global_risks):
+                        scores = risk.get('composite_scores', {})
+                        b_impact = scores.get('B_Impact', 0)
+                        impact_str = "High" if b_impact > 7 else "Medium" if b_impact > 4 else "Low"
+                        conf_str = f"{scores.get('C_Certainty', 0.0) / 10.0:.2f}"
+                        sector_name = all_baskets.get(risk['basket_id'], f"Sector {risk['basket_id']}")
+                        
+                        signal_data.append({
+                            "Signal": risk['title'],
+                            "Impact": impact_str,
+                            "Confidence": conf_str,
+                            "Detected": pd.to_datetime(risk.get('timestamp', time.time()), unit='s').strftime('%m-%d %H:%M'),
+                            "Sector": sector_name
+                        })
+                    
+                    df_signals = pd.DataFrame(signal_data)
+                    st.dataframe(df_signals, use_container_width=True, hide_index=True)
+                    
+                # CAUSAL EXPLANATION LAYER (Why) + ALERT TIMELINE
+                c_cause, c_time = st.columns([1.2, 1])
+                with c_cause:
+                    with st.container(border=True):
+                        st.markdown("#### Causal Interpretation")
+                        primary_risk = global_risks[0]
+                        cause_text = f"The current <b>escalating</b> trend is primarily driven by <b>{primary_risk['title'].lower()}</b> emanating from the <b>{all_baskets.get(primary_risk['basket_id'], 'unknown')}</b> sector."
+                        
+                        st.markdown(f"> {cause_text}", unsafe_allow_html=True)
+                        st.markdown(f"- Multi-sector propagation from {all_baskets.get(primary_risk['basket_id'], 'origin sector')}.")
+                        st.markdown("- Sustained volatility breaking baseline thresholds.")
+                        st.markdown(f"- Certainty Index: ({primary_risk.get('composite_scores', {}).get('C_Certainty', 0.0):.1f}/10)")
+                
+                with c_time:
+                    with st.container(border=True):
+                        st.markdown("#### Alert Timeline")
+                        st.markdown(f"- **Day -5:** Sentiment anomaly in {all_baskets.get(primary_risk['basket_id'], 'sector')}.")
+                        st.markdown("- **Day -3:** Local market volatility increase.")
+                        st.markdown(f"- **Today:** Critical {primary_risk['title'].lower()} triggered.")
+                
+                # Priority Recommendations
+                with st.container(border=True):
+                    st.markdown("#### Priority Recommendations")
+                    st.markdown("1. **Monitor liquidity exposure** in adjoining sectors.")
+                    st.markdown(f"2. **Delay capital reallocation** pending {all_baskets.get(primary_risk['basket_id'], 'sector')} stabilization.")
+                            
+    with col_sim:
+        with st.container(border=True):
+            st.markdown("### 📈 Forward Projection & Simulation")
+            st.write("90-Day Outlook vs. Intervention Scenarios")
+            
+            with st.spinner("Compiling VARX/GARCH Mathematical Models..."):
+                import plotly.graph_objects as go
+                
+                if not global_risks:
+                    df_base, df_base_var = ExecutiveBridge.simulate_policy_shock(0, 0.0, steps=30)
+                else:
+                    df_base, df_base_var = ExecutiveBridge.simulate_policy_shock(1, 4.0, steps=30)
+                    
+                fig_base = go.Figure()
+                for col in df_base.columns:
+                    fig_base.add_trace(go.Scatter(
+                        x=df_base.index, y=df_base[col],
+                        mode='lines', name=col,
+                        line=dict(width=2)
+                    ))
+                fig_base.update_layout(
+                    height=200, margin=dict(l=0, r=0, t=10, b=0),
+                    template="plotly_white",
+                    legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1)
+                )
+                st.plotly_chart(fig_base, use_container_width=True)
+        
+            st.divider()
+            st.markdown("#### Policy Action Simulator")
+            
+            sim_c1, sim_c2 = st.columns([1, 1])
+            with sim_c1:
+                live_tiers = ExecutiveBridge.get_tiers()
+                target_name = st.selectbox("Intervention Target", live_tiers)
+                target_idx = live_tiers.index(target_name)
+            with sim_c2:
+                shock_magnitude = st.slider("Intervention Intensity", -10.0, 10.0, -5.0, 0.5)
+            
+            if st.button("Project Mitigated Outcome", type="primary", use_container_width=True):
+                with st.spinner("Connecting to Scarcity Engine..."):
+                    df_mitigated, df_var = ExecutiveBridge.simulate_policy_shock(target_idx, shock_magnitude, steps=30)
+                    
+                    end_state = df_mitigated.iloc[-1].mean()
+                    base_end_state = df_base.iloc[-1].mean()
+                    
+                    if end_state < base_end_state:
+                        st.success(f"**Outcome:** Threat topology shows systemic cooling.")
+                        reduction = ((base_end_state - end_state) / (abs(base_end_state) + 1e-9)) * 100
+                        st.metric("Expected Systemic Strain Reduction", f"{reduction:.1f}%")
+                    else:
+                        st.warning(f"**Outcome:** Intervention compounds systemic strain.")
+                        inc = ((end_state - base_end_state) / (abs(base_end_state) + 1e-9)) * 100
+                        st.metric("Expected Systemic Strain Increase", f"{inc:.1f}%")
+                    
+                    st.write("Forecasted Trajectory (Mitigated):")
+                    fig_mitigated = go.Figure()
+                    for col in df_mitigated.columns:
+                        fig_mitigated.add_trace(go.Scatter(
+                            x=df_mitigated.index, y=df_mitigated[col],
+                            mode='lines', name=col,
+                            line=dict(width=2, dash='dot')
+                        ))
+                    fig_mitigated.update_layout(
+                        height=200, margin=dict(l=0, r=0, t=10, b=0),
+                        template="plotly_white",
+                        legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1)
+                    )
+                    st.plotly_chart(fig_mitigated, use_container_width=True)
+
+    st.write("---")
+
+    # 9. STRATEGIC COMMAND & CONTROL (Tabbed)
+    tab_projects, tab_comms, tab_summaries, tab_history = st.tabs([
+        "Active Operational Projects (War Rooms)", 
+        "Command & Control (Comms)",
         "Sector Summaries",
-        "National Risk & Future Simulation", 
-        "Active Operational Projects", 
-        "Institutional Memory Archive",
-        "Command & Control (Comms)"
+        "Institutional Memory Archive"
     ])
     
     with tab_summaries:
@@ -102,106 +324,6 @@ def render():
                         c2.markdown(f"- **{r['title']}**: Impact {r.get('composite_scores', {}).get('B_Impact', 0)}/10")
                 else:
                     c2.caption("No significant structural drift detected.")
-    
-    
-    with tab_risk:
-        col_risk, col_sim = st.columns([1, 1.2])
-        
-        with col_risk:
-            with st.expander("Key Intelligence Signals", expanded=True):
-                st.write("Recent anomalies and shifts across sectors requiring executive attention.")
-                
-                if not global_risks:
-                    st.success("No active systemic signals detected.")
-                else:
-                    # 2. KEY SIGNALS PANEL (Tabular)
-                    signal_data = []
-                    for idx, risk in enumerate(global_risks):
-                        scores = risk.get('composite_scores', {})
-                        b_impact = scores.get('B_Impact', 0)
-                        impact_str = "High" if b_impact > 7 else "Medium" if b_impact > 4 else "Low"
-                        conf_str = f"{scores.get('C_Certainty', 0.0) / 10.0:.2f}"
-                        sector_name = all_baskets.get(risk['basket_id'], f"Sector {risk['basket_id']}")
-                        
-                        signal_data.append({
-                            "Signal": risk['title'],
-                            "Impact": impact_str,
-                            "Confidence": conf_str,
-                            "Time Detected": pd.to_datetime(risk.get('timestamp', time.time()), unit='s').strftime('%Y-%m-%d %H:%M'),
-                            "Sector": sector_name
-                        })
-                    
-                    df_signals = pd.DataFrame(signal_data)
-                    st.dataframe(df_signals, use_container_width=True, hide_index=True)
-                    
-                    
-                    # 3. CAUSAL EXPLANATION LAYER (Why)
-                    with st.expander("Causal Interpretation", expanded=True):
-                        
-                        # Extracting the first risk as the primary driver to construct a narrative.
-                        primary_risk = global_risks[0]
-                        cause_text = f"The current <b>{trend.lower()}</b> trend is primarily driven by <b>{primary_risk['title'].lower()}</b> emanating from the <b>{all_baskets.get(primary_risk['basket_id'], 'unknown')}</b> sector."
-                        
-                        st.markdown(f"> {cause_text}", unsafe_allow_html=True)
-                        
-                        st.write("**Top Contributing Factors:**")
-                        st.markdown(f"- Multi-sector propagation from {all_baskets.get(primary_risk['basket_id'], 'origin sector')}.")
-                        st.markdown("- Sustained volatility breaking baseline thresholds.")
-                        st.markdown(f"- Certainty Index: ({primary_risk.get('composite_scores', {}).get('C_Certainty', 0.0):.1f}/10)")
-                    
-                    # 9. ALERT TIMELINE (Chronological Story)
-                    with st.expander("Alert Timeline", expanded=True):
-                        st.write("Chronology of structural deterioration:")
-                        st.markdown(f"- **Day -5:** Sentiment anomaly detected in {all_baskets.get(primary_risk['basket_id'], 'sector')}.")
-                        st.markdown("- **Day -3:** Local market volatility increase exceeds bounds.")
-                        st.markdown(f"- **Today:** Critical {primary_risk['title'].lower()} signal triggered.")
-                    
-                    # Priority Recommendations (Principle 6 prototype)
-                    with st.expander("Priority Recommendations", expanded=True):
-                        st.markdown("1. **Monitor liquidity exposure** in adjoining sectors. (High Confidence)")
-                        st.markdown(f"2. **Delay capital reallocation** pending {all_baskets.get(primary_risk['basket_id'], 'sector')} stabilization. (Moderate Confidence)")
-                                
-        with col_sim:
-            with st.expander("Forward Projection (Baseline vs. Risk)", expanded=True):
-                st.write("90-Day Outlook if no intervention is authorized.")
-                
-                # Dynamic Baseline Trajectory
-                if not global_risks:
-                    df_base, _ = ExecutiveBridge.simulate_policy_shock(0, 0.0, steps=30)
-                    st.line_chart(df_base, height=150)
-                else:
-                    df_base, _ = ExecutiveBridge.simulate_policy_shock(1, 4.0, steps=30)
-                    st.line_chart(df_base, height=150)
-            
-            with st.expander("Policy Action Simulator", expanded=True):
-                st.write("Dynamic Scarcity Engine simulation bounding the consequences of interventions.")
-                
-                sim_c1, sim_c2 = st.columns([1, 1])
-                with sim_c1:
-                    live_tiers = ExecutiveBridge.get_tiers()
-                    target_name = st.selectbox("Intervention Target", live_tiers)
-                    target_idx = live_tiers.index(target_name)
-                with sim_c2:
-                    shock_magnitude = st.slider("Intervention Intensity", -10.0, 10.0, -5.0, 0.5)
-                
-                if st.button("Project Multi-Sector Outcome", type="primary", use_container_width=True):
-                    with st.spinner("Connecting to Scarcity Engine (VARX/GARCH)..."):
-                        df_mitigated, df_var = ExecutiveBridge.simulate_policy_shock(target_idx, shock_magnitude, steps=30)
-                        
-                        end_state = df_mitigated.iloc[-1].mean()
-                        base_end_state = df_base.iloc[-1].mean()
-                        
-                        if end_state < base_end_state:
-                            st.success(f"**Expected Outcome:** Threat topology shows systemic cooling.")
-                            reduction = ((base_end_state - end_state) / (abs(base_end_state) + 1e-9)) * 100
-                            st.metric("Expected Systemic Strain Reduction", f"{reduction:.1f}%")
-                        else:
-                            st.warning(f"**Expected Outcome:** Intervention compounds systemic strain.")
-                            inc = ((end_state - base_end_state) / (abs(base_end_state) + 1e-9)) * 100
-                            st.metric("Expected Systemic Strain Increase", f"{inc:.1f}%")
-                        
-                        st.write("Forecasted Trajectory (Mitigated):")
-                        st.line_chart(df_mitigated, height=150)
 
                     
     with tab_projects:
@@ -279,7 +401,7 @@ def render():
                             st.write("---")
                             
                             for update in project_data.get('updates', []):
-                                u_color = "#C60C30" if update['update_type'] == 'POLICY_ACTION' else "#006747" if update['update_type'] == 'OBSERVATION' else "#1F2937"
+                                u_color = "#BB0000" if update['update_type'] == 'POLICY_ACTION' else "#006600" if update['update_type'] == 'OBSERVATION' else "#1F2937"
                                 st.markdown(f"**<span style='color:{u_color};'>[{update['update_type']}]</span> {update['author_name']}**", unsafe_allow_html=True)
                                 st.write(update['content'])
                                 if update['certainty']:
@@ -320,7 +442,7 @@ def render():
                 st.write("No closed projects in the national archive.")
             else:
                 for mem in memories:
-                    res_color = "#006747" if mem['resolution_state'] == 'RESOLVED' else "#C60C30" if mem['resolution_state'] == 'FALSE_ALARM' else "#1F2937"
+                    res_color = "#006600" if mem['resolution_state'] == 'RESOLVED' else "#BB0000" if mem['resolution_state'] == 'FALSE_ALARM' else "#1F2937"
                     with st.expander(f"National Archive: {mem['title']} [{mem['resolution_state']}]"):
                         m_col1, m_col2 = st.columns([2, 1])
                         with m_col1:

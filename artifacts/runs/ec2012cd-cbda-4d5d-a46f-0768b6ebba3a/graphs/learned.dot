@@ -1,0 +1,6 @@
+digraph LearnedGraph {
+  rankdir=LR;
+  "C" -> "T";
+  "C" -> "Y";
+  "T" -> "Y";
+}
