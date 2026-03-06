@@ -18,13 +18,69 @@ from kshiked.ui.institution.backend.project_manager import ProjectManager
 from kshiked.ui.institution.backend.database import get_connection
 from kshiked.ui.institution.style import inject_enterprise_theme
 from kshiked.ui.institution.backend.messaging import SecureMessaging
+from kshiked.ui.institution.collab_room import render_collab_room
+
+@st.cache_data(ttl=3600)
+def load_and_process_geojson(geojson_path):
+    import json
+    with open(geojson_path, "r", encoding="utf-8") as f:
+        geojson_data = json.load(f)
+        
+    np.random.seed(42)  # Fixed seed to avoid recalculating random stress
+    for feature in geojson_data['features']:
+        stress = np.random.randint(5, 100)
+        feature['properties']['stress'] = stress
+        
+        if stress > 80:
+            r, g, b = 239, 68, 68 # Red
+        elif stress > 50:
+            r, g, b = 245, 158, 11 # Amber
+        else:
+            r, g, b = 59, 130, 246 # Blue
+            
+        feature['properties']['color'] = [r, g, b, 140]
+        feature['properties']['line_color'] = [r, g, b, 255]
+        feature['properties']['elevation'] = stress * 1200
+        
+    return geojson_data
+
+@st.cache_data(ttl=300)
+def cached_simulate_policy_shock(target_idx, magnitude, steps):
+    return ExecutiveBridge.simulate_policy_shock(target_idx, magnitude, steps=steps)
+
+@st.cache_data(ttl=3600)
+def get_pulse_data():
+    path = os.path.join(project_root, "data", "synthetic_kenya_policy", "tweets.csv")
+    if not os.path.exists(path):
+        return pd.DataFrame()
+    cols = ["timestamp", "intent", "topic_cluster", "sentiment_score", "threat_score", "policy_event_id"]
+    try:
+        df = pd.read_csv(path, usecols=cols).dropna(subset=['intent'])
+        df['timestamp'] = pd.to_datetime(df['timestamp'], errors='coerce')
+        
+        df.rename(columns={
+            'topic_cluster': 'Sector',
+            'intent': 'Threat Category',
+            'sentiment_score': 'Sentiment',
+            'timestamp': 'Timestamp'
+        }, inplace=True)
+        
+        df['Sector'] = df['Sector'].fillna("General Systemic")
+        df['Criticality'] = (df['threat_score'] * 8.0) + ((1.0 - df['Sentiment']) * 2.0)
+        df['Criticality'] = df['Criticality'].clip(lower=0.0, upper=10.0).round(2)
+        
+        return df
+    except Exception as e:
+        st.error(f"Failed to load pulse data: {e}")
+        return pd.DataFrame()
+
 
 def render():
     enforce_role(Role.EXECUTIVE.value)
     inject_enterprise_theme()
     
-    st.markdown("<h2 style='text-align: center; color: #BB0000;'>National Security Command Center</h2>", unsafe_allow_html=True)
-    st.markdown("<h4 style='text-align: center; color: #006600;'>Strategic Intelligence & Coordinated Response</h3>", unsafe_allow_html=True)
+    st.markdown("<h2 style='text-align: center; color: #1F2937;'>National Executive Dashboard</h2>", unsafe_allow_html=True)
+    st.markdown("<h4 style='text-align: center; color: #BB0000;'>Presidency Intelligence & Coordinated Response</h4>", unsafe_allow_html=True)
     
     # Fetch all baskets
     with get_connection() as conn:
@@ -39,84 +95,180 @@ def render():
     global_risks = DeltaSyncManager.get_promoted_risks()
     memories = ProjectManager.get_institutional_memory()
 
-    # Top-Level KPI Metric Cards (Custom HTML/CSS)
-    # Replaces basic static text with high-visibility metrics.
-    
-    # Calculate Systemic Strain safely
-    strain_score = len(global_risks) * 2.5
-    if strain_score > 10.0:
-        strain_score = 10.0
+    # Pre-fetch inbox so unread count is available everywhere
+    esc_inbox_global = SecureMessaging.get_inbox(Role.EXECUTIVE.value, "ALL")
+    unread_escs = sum(1 for m in esc_inbox_global if not m['is_read'])
+
+    # 1. THE 10-TAB ARCHITECTURE
+    tab_brief, tab_sectors, tab_map, tab_feed, tab_social, tab_sim, tab_projects, tab_comms, tab_summaries, tab_history, tab_collab = st.tabs([
+        "National Briefing",
+        "Sector Reports",
+        "National Map",
+        "Threat Intelligence",
+        "Social Signals",
+        "Policy Simulator",
+        "Active Operations",
+        "Command & Control",
+        "Sector Summaries",
+        "Archive",
+        "Collaboration Room",
+    ])
+
+    with tab_brief:
+        st.markdown("### National Briefing")
+        df_social = get_pulse_data()
+        avg_sent = df_social['Sentiment'].mean() if not df_social.empty else 0.50
         
-    m1, m2, m3, m4 = st.columns(4)
-    with m1:
-        alert_class = "alert" if global_risks else ""
+        # 1. THE EXECUTIVE BRIEFING (Hero Section)
+        strain_score = len(global_risks) * 2.5
+        if strain_score > 10.0: strain_score = 10.0
+        
+        # Dynamic Morning Narrative
+        brief_text = f"National Systemic Strain is currently <b>{'Critical' if strain_score > 7 else 'Moderate' if strain_score > 3 else 'Low'}</b> ({strain_score:.1f}/10). "
+        if global_risks:
+            primary = global_risks[0]
+            brief_text += f"The primary driver is an escalating threat involving <i>{primary['title']}</i> within the <b>{all_baskets.get(primary['basket_id'], 'unknown')}</b> sector. "
+            if len(global_risks) > 1:
+                brief_text += f"There are {len(global_risks) - 1} secondary anomalies detected across the topography. "
+            
+        if active_projects:
+            most_severe_proj = sorted(active_projects, key=lambda x: x['severity'], reverse=True)[0]
+            brief_text += f"<br><br>The administration is currently tracking <b>{len(active_projects)} active National Projects</b>. "
+            brief_text += f"Immediate executive oversight is required on Project <i>{most_severe_proj['title']}</i> (Severity: {most_severe_proj['severity']}, Phase: {most_severe_proj['current_phase']}). "
+        else:
+            brief_text += "<br><br>There are currently no active cross-sector Operational Projects requiring executive coordination."
+            
+        if unread_escs > 0:
+            brief_text += f" <span style='color: #BB0000; font-weight: bold;'>You have {unread_escs} unread escalations awaiting Command & Control clearance.</span>"
+        
         st.markdown(f"""
-            <div class="kpi-card {alert_class}">
-                <div class="kpi-title">Active Threat Signals</div>
-                <div class="kpi-value">{len(global_risks)}</div>
-                <div class="kpi-sub">Anomalies requiring attention</div>
-            </div>
-        """, unsafe_allow_html=True)
-    with m2:
-        st.markdown(f"""
-            <div class="kpi-card">
-                <div class="kpi-title">Systemic Strain</div>
-                <div class="kpi-value">{strain_score:.1f}/10</div>
-                <div class="kpi-sub">Network topological risk</div>
-            </div>
-        """, unsafe_allow_html=True)
-    with m3:
-        st.markdown(f"""
-            <div class="kpi-card">
-                <div class="kpi-title">Active War Rooms</div>
-                <div class="kpi-value">{len(active_projects)}</div>
-                <div class="kpi-sub">Cross-sector collaborations</div>
-            </div>
-        """, unsafe_allow_html=True)
-    with m4:
-        st.markdown(f"""
-            <div class="kpi-card">
-                <div class="kpi-title">Active Sectors</div>
-                <div class="kpi-value">{len(all_baskets)}</div>
-                <div class="kpi-sub">Federated nodes online</div>
+            <div class="hero-brief">
+                <h3>Executive Summary</h3>
+                <p>{brief_text}</p>
             </div>
         """, unsafe_allow_html=True)
         
-    st.write("")
-    st.write("")
-    
-    # 7. NATIONAL / ORGANIZATIONAL MAP (Spatial Awareness)
-    with st.container(border=True):
-        st.write("#### National Threat Topography (Kenya)")
+        m1, m2, m3, m4 = st.columns(4)
+        with m1: st.metric("Active Threat Signals", len(global_risks))
+        with m2: st.metric("Systemic Strain", f"{strain_score:.1f}/10")
+        with m3: st.metric("Active Projects", len(active_projects))
+        with m4: st.metric("National Sentiment", f"{avg_sent:.2f}")
+            
+        st.write("---")
+        
+        # Layout for Visualizations & Top Priorities
+        bc1, bc2 = st.columns([1.5, 1])
+        
+        with bc1:
+            st.markdown("#### Strategic Threat Distribution")
+            if global_risks:
+                import pandas as pd
+                import plotly.express as px
+                threat_data = []
+                for r in global_risks:
+                    threat_data.append({
+                        "Sector": all_baskets.get(r['basket_id'], 'Unknown'),
+                        "Impact": r.get('composite_scores', {}).get('B_Impact', 5),
+                        "Title": r['title']
+                    })
+                df_threats = pd.DataFrame(threat_data)
+                fig_bar = px.bar(df_threats, x="Sector", y="Impact", color="Impact", 
+                                 title="Cumulative Threat Impact by Sector",
+                                 color_continuous_scale="Reds", template="plotly_white")
+                fig_bar.update_layout(height=280, margin=dict(l=0, r=0, t=30, b=0))
+                st.plotly_chart(fig_bar, use_container_width=True)
+            else:
+                st.success("No active threats.")
+                
+            st.markdown("#### National Projects by Phase")
+            if active_projects:
+                proj_data = [{"Phase": p['current_phase'], "Title": p['title']} for p in active_projects]
+                df_proj = pd.DataFrame(proj_data)
+                fig_donut = px.pie(df_proj, names="Phase", hole=0.5, 
+                                   title="Operational Projects Distribution",
+                                   color_discrete_sequence=px.colors.sequential.Greens_r, template="plotly_white")
+                fig_donut.update_layout(height=280, margin=dict(l=0, r=0, t=30, b=0))
+                st.plotly_chart(fig_donut, use_container_width=True)
+            else:
+                st.success("No active projects.")
+                
+        with bc2:
+            st.markdown("#### Top Priorities")
+            st.write("Immediate Attention Required:")
+            
+            if unread_escs > 0:
+                st.markdown(f"""
+                <div style="background: #FEF2F2; border-left: 4px solid #EF4444; padding: 12px; margin-bottom: 10px; border-radius: 4px;">
+                    <strong>{unread_escs} Unread Escalations</strong>
+                    <div style="font-size: 0.8rem; color: #7F1D1D;">Check Command & Control Inbox</div>
+                </div>
+                """, unsafe_allow_html=True)
+                
+            if active_projects:
+                top_p = sorted(active_projects, key=lambda x: x['severity'], reverse=True)[0]
+                st.markdown(f"""
+                <div style="background: #FFFBEB; border-left: 4px solid #F59E0B; padding: 12px; margin-bottom: 10px; border-radius: 4px;">
+                    <strong>Project: {top_p['title']}</strong>
+                    <div style="font-size: 0.8rem; color: #92400E;">Phase: {top_p['current_phase']} | Severity: {top_p['severity']}</div>
+                </div>
+                """, unsafe_allow_html=True)
+                
+            if global_risks:
+                top_r = sorted(global_risks, key=lambda x: x.get('composite_scores', {}).get('B_Impact', 0), reverse=True)[0]
+                st.markdown(f"""
+                <div style="background: #F0FDF4; border-left: 4px solid #10B981; padding: 12px; margin-bottom: 10px; border-radius: 4px;">
+                    <strong>Signal: {top_r['title']}</strong>
+                    <div style="font-size: 0.8rem; color: #065F46;">Sector: {all_baskets.get(top_r['basket_id'], 'unknown')}</div>
+                </div>
+                """, unsafe_allow_html=True)
+            
+    # --- SECTOR REPORTS TAB ---
+    with tab_sectors:
+        st.markdown("### Sector Reports")
+        st.write("Validated risks and recent activity reported by each sector admin. This is Mode A governance data — no raw institutional data is shown.")
+
+        fl_mode = st.session_state.get('fl_mode_enabled', False)
+
+        if not global_risks and not active_projects:
+            st.success("No active sector reports at this time.")
+        else:
+            for b_id, b_name in all_baskets.items():
+                sector_risks = [r for r in global_risks if r.get('basket_id') == b_id]
+                sector_projects = [p for p in active_projects if b_id in (ProjectManager.get_project_details(p['id']).get('participants', []))]
+                total_impact = sum(r.get('composite_scores', {}).get('B_Impact', 0) for r in sector_risks)
+
+                with st.expander(f"{b_name}  |  {len(sector_risks)} validated risk(s)  |  Cumulative impact: {total_impact:.1f}", expanded=len(sector_risks) > 0):
+                    if not sector_risks:
+                        st.caption("No validated risks from this sector.")
+                    else:
+                        for risk in sector_risks:
+                            scores = risk.get('composite_scores', {})
+                            impact = scores.get('B_Impact', 0)
+                            detection = scores.get('A_Detection', 0)
+                            certainty = scores.get('C_Certainty', 0)
+                            ts = pd.to_datetime(risk.get('timestamp', 0), unit='s').strftime('%Y-%m-%d %H:%M')
+                            sev_color = "#BB0000" if impact > 7 else "#F59E0B" if impact > 4 else "#006600"
+                            st.markdown(
+                                f'<div style="border-left: 4px solid {sev_color}; padding: 0.6rem 1rem; margin-bottom: 0.5rem; background: #f8fafc; border-radius: 0 4px 4px 0;">'
+                                f'<strong>{risk["title"]}</strong><br/>'
+                                f'<span style="font-size:0.82rem; color:#475569;">'
+                                f'Detection {detection:.1f}/10 &nbsp;&middot;&nbsp; Impact {impact:.1f}/10 &nbsp;&middot;&nbsp; Certainty {certainty:.1f}/10 &nbsp;&nbsp; | &nbsp;&nbsp;{ts}'
+                                f'</span><br/><span style="font-size:0.85rem; color:#1F2937;">{risk.get("description", "")[:200]}</span>'
+                                f'</div>',
+                                unsafe_allow_html=True
+                            )
+
+    with tab_map:
+        st.markdown("### National Map")
         st.write("Geospatial distribution of emerging hotspots across Kenyan counties.")
         import pydeck as pdk
         import json
         import os
         
-        # Load local Kenyan counties GeoJSON
+        # Load local Kenyan counties GeoJSON efficiently
         geojson_path = os.path.join(os.path.dirname(__file__), "..", "..", "data", "kenya_adm1_simplified.geojson")
         try:
-            with open(geojson_path, "r", encoding="utf-8") as f:
-                geojson_data = json.load(f)
-                
-            # Add dynamic "stress" properties for extrusion and coloring (Glassmorphism Light Theme)
-            np.random.seed(int(time.time()) % 1000)
-            for feature in geojson_data['features']:
-                stress = np.random.randint(5, 100)
-                feature['properties']['stress'] = stress
-                
-                # Colors: High Stress = Red, Medium = Orange/Yellow, Low = Blue/White
-                if stress > 80:
-                    r, g, b = 239, 68, 68 # Red
-                elif stress > 50:
-                    r, g, b = 245, 158, 11 # Amber
-                else:
-                    r, g, b = 59, 130, 246 # Blue
-                    
-                # Semi-transparent for glass effect
-                feature['properties']['color'] = [r, g, b, 140]
-                feature['properties']['line_color'] = [r, g, b, 255]
-                feature['properties']['elevation'] = stress * 1200
+            geojson_data = load_and_process_geojson(geojson_path)
 
             layer = pdk.Layer(
                 "GeoJsonLayer",
@@ -164,172 +316,109 @@ def render():
         except Exception as e:
             st.error(f"Error loading geospatial topography: {e}")
     
-    # 8. SPLIT-PANE INTELLIGENCE & FORECASTING
-    st.write("---")
-    col_risk, col_sim = st.columns([1, 1.2])
-    
-    with col_risk:
-        with st.container(border=True):
-            st.markdown("### 🔴 Live Intelligence Feed")
-            st.write("Recent anomalies and shifts across sectors requiring executive attention.")
-            
-            if not global_risks:
-                st.success("No active systemic signals detected.")
-            else:
-                # KEY SIGNALS PANEL (Tabular)
-                with st.container(border=True):
-                    st.markdown("#### Alert Feed")
-                    signal_data = []
-                    for idx, risk in enumerate(global_risks):
-                        scores = risk.get('composite_scores', {})
-                        b_impact = scores.get('B_Impact', 0)
-                        impact_str = "High" if b_impact > 7 else "Medium" if b_impact > 4 else "Low"
-                        conf_str = f"{scores.get('C_Certainty', 0.0) / 10.0:.2f}"
-                        sector_name = all_baskets.get(risk['basket_id'], f"Sector {risk['basket_id']}")
-                        
-                        signal_data.append({
-                            "Signal": risk['title'],
-                            "Impact": impact_str,
-                            "Confidence": conf_str,
-                            "Detected": pd.to_datetime(risk.get('timestamp', time.time()), unit='s').strftime('%m-%d %H:%M'),
-                            "Sector": sector_name
-                        })
-                    
-                    df_signals = pd.DataFrame(signal_data)
-                    st.dataframe(df_signals, use_container_width=True, hide_index=True)
-                    
-                # CAUSAL EXPLANATION LAYER (Why) + ALERT TIMELINE
-                c_cause, c_time = st.columns([1.2, 1])
-                with c_cause:
-                    with st.container(border=True):
-                        st.markdown("#### Causal Interpretation")
-                        primary_risk = global_risks[0]
-                        cause_text = f"The current <b>escalating</b> trend is primarily driven by <b>{primary_risk['title'].lower()}</b> emanating from the <b>{all_baskets.get(primary_risk['basket_id'], 'unknown')}</b> sector."
-                        
-                        st.markdown(f"> {cause_text}", unsafe_allow_html=True)
-                        st.markdown(f"- Multi-sector propagation from {all_baskets.get(primary_risk['basket_id'], 'origin sector')}.")
-                        st.markdown("- Sustained volatility breaking baseline thresholds.")
-                        st.markdown(f"- Certainty Index: ({primary_risk.get('composite_scores', {}).get('C_Certainty', 0.0):.1f}/10)")
+    with tab_feed:
+        st.markdown("### Threat Intelligence")
+        st.write("Validated risks promoted by sector admins. These have been reviewed and assessed at the sector level before reaching this dashboard.")
+        if not global_risks:
+            st.success("No active systemic signals detected.")
+        else:
+            # Custom HTML Threat Cards
+            html_cards = ""
+            for risk in global_risks:
+                scores = risk.get('composite_scores', {})
+                b_impact = scores.get('B_Impact', 0)
+                sev_class = "high" if b_impact > 7 else "medium" if b_impact > 4 else "low"
+                sector_name = all_baskets.get(risk['basket_id'], f"Sector {risk['basket_id']}")
+                detected = pd.to_datetime(risk.get('timestamp', time.time()), unit='s').strftime('%H:%M')
                 
-                with c_time:
-                    with st.container(border=True):
-                        st.markdown("#### Alert Timeline")
-                        st.markdown(f"- **Day -5:** Sentiment anomaly in {all_baskets.get(primary_risk['basket_id'], 'sector')}.")
-                        st.markdown("- **Day -3:** Local market volatility increase.")
-                        st.markdown(f"- **Today:** Critical {primary_risk['title'].lower()} triggered.")
-                
-                # Priority Recommendations
-                with st.container(border=True):
-                    st.markdown("#### Priority Recommendations")
-                    st.markdown("1. **Monitor liquidity exposure** in adjoining sectors.")
-                    st.markdown(f"2. **Delay capital reallocation** pending {all_baskets.get(primary_risk['basket_id'], 'sector')} stabilization.")
-                            
-    with col_sim:
-        with st.container(border=True):
-            st.markdown("### 📈 Forward Projection & Simulation")
-            st.write("90-Day Outlook vs. Intervention Scenarios")
+                html_cards += f"""
+                <div class="threat-card {sev_class}">
+                    <div class="threat-header">
+                        <span class="threat-title">{risk['title']}</span>
+                        <span class="threat-meta">{detected}</span>
+                    </div>
+                    <div>
+                        <span class="threat-sector">{sector_name}</span>
+                        <span style="font-size:0.8rem; color:#64748b; margin-left:8px;">Impact: {b_impact}/10</span>
+                    </div>
+                </div>
+                """
+            st.markdown(html_cards, unsafe_allow_html=True)
             
+            # Causal text
+            primary_risk = global_risks[0]
+            st.markdown(f"**Causal Node:** Anomalous volume detected in *{all_baskets.get(primary_risk['basket_id'], 'unknown')}*.")
+            
+    with tab_social:
+        st.markdown("### Social Signal Monitor")
+        df_social = get_pulse_data()
+        
+        if df_social.empty:
+            st.warning("No real-time social signals available to map.")
+        else:
+            # Filters
+            sc1, sc2 = st.columns(2)
+            with sc1:
+                sel_sector = st.multiselect("Filter Sector", df_social['Sector'].unique(), default=df_social['Sector'].unique()[:3] if len(df_social['Sector'].unique()) > 3 else df_social['Sector'].unique())
+            with sc2:
+                sel_threat = st.multiselect("Filter Threat", df_social['Threat Category'].unique(), default=df_social['Threat Category'].unique()[:3] if len(df_social['Threat Category'].unique()) > 3 else df_social['Threat Category'].unique())
+                
+            df_filtered = df_social[(df_social['Sector'].isin(sel_sector)) & (df_social['Threat Category'].isin(sel_threat))]
+            
+            if len(df_filtered) > 3000:
+                df_filtered = df_filtered.sample(n=3000, random_state=42)
+            
+            import plotly.express as px
+            if not df_filtered.empty:
+                fig = px.scatter(
+                    df_filtered, x="Timestamp", y="Criticality", 
+                    color="Sector", size="Criticality", hover_data=["Threat Category", "Sentiment"],
+                    template="plotly_white", height=300
+                )
+                fig.update_layout(margin=dict(l=0, r=0, t=10, b=0))
+                st.plotly_chart(fig, use_container_width=True)
+                
+                # Inline brief
+                avg_sent = df_filtered['Sentiment'].mean()
+                st.caption(f"**National Sentiment Baseline:** {avg_sent:.2f} | Most strained sector: {df_filtered.groupby('Sector')['Criticality'].mean().idxmax()}")
+                
+    with tab_sim:
+        st.markdown("### Policy Simulator")
+        st.write("Model how a policy intervention in one sector propagates across the national system over a 30-day horizon.")
+        sim_c1, sim_c2 = st.columns([1.5, 1])
+        with sim_c1:
             with st.spinner("Compiling VARX/GARCH Mathematical Models..."):
                 import plotly.graph_objects as go
                 
-                if not global_risks:
-                    df_base, df_base_var = ExecutiveBridge.simulate_policy_shock(0, 0.0, steps=30)
-                else:
-                    df_base, df_base_var = ExecutiveBridge.simulate_policy_shock(1, 4.0, steps=30)
-                    
+                df_base, df_base_var = cached_simulate_policy_shock(1 if global_risks else 0, 4.0 if global_risks else 0.0, 30)
                 fig_base = go.Figure()
                 for col in df_base.columns:
-                    fig_base.add_trace(go.Scatter(
-                        x=df_base.index, y=df_base[col],
-                        mode='lines', name=col,
-                        line=dict(width=2)
-                    ))
-                fig_base.update_layout(
-                    height=200, margin=dict(l=0, r=0, t=10, b=0),
-                    template="plotly_white",
-                    legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1)
-                )
+                    fig_base.add_trace(go.Scatter(x=df_base.index, y=df_base[col], mode='lines', name=col, line=dict(width=2)))
+                fig_base.update_layout(height=250, margin=dict(l=0, r=0, t=10, b=0), template="plotly_white", legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1))
                 st.plotly_chart(fig_base, use_container_width=True)
-        
-            st.divider()
-            st.markdown("#### Policy Action Simulator")
-            
-            sim_c1, sim_c2 = st.columns([1, 1])
-            with sim_c1:
-                live_tiers = ExecutiveBridge.get_tiers()
-                target_name = st.selectbox("Intervention Target", live_tiers)
-                target_idx = live_tiers.index(target_name)
-            with sim_c2:
-                shock_magnitude = st.slider("Intervention Intensity", -10.0, 10.0, -5.0, 0.5)
+                
+        with sim_c2:
+            st.markdown("#### Action Parameters")
+            live_tiers = ExecutiveBridge.get_tiers()
+            target_name = st.selectbox("Intervention Target", live_tiers)
+            target_idx = live_tiers.index(target_name)
+            shock_magnitude = st.slider("Intervention Intensity", -10.0, 10.0, -5.0, 0.5)
             
             if st.button("Project Mitigated Outcome", type="primary", use_container_width=True):
-                with st.spinner("Connecting to Scarcity Engine..."):
-                    df_mitigated, df_var = ExecutiveBridge.simulate_policy_shock(target_idx, shock_magnitude, steps=30)
-                    
-                    end_state = df_mitigated.iloc[-1].mean()
-                    base_end_state = df_base.iloc[-1].mean()
-                    
-                    if end_state < base_end_state:
-                        st.success(f"**Outcome:** Threat topology shows systemic cooling.")
-                        reduction = ((base_end_state - end_state) / (abs(base_end_state) + 1e-9)) * 100
-                        st.metric("Expected Systemic Strain Reduction", f"{reduction:.1f}%")
-                    else:
-                        st.warning(f"**Outcome:** Intervention compounds systemic strain.")
-                        inc = ((end_state - base_end_state) / (abs(base_end_state) + 1e-9)) * 100
-                        st.metric("Expected Systemic Strain Increase", f"{inc:.1f}%")
-                    
-                    st.write("Forecasted Trajectory (Mitigated):")
-                    fig_mitigated = go.Figure()
-                    for col in df_mitigated.columns:
-                        fig_mitigated.add_trace(go.Scatter(
-                            x=df_mitigated.index, y=df_mitigated[col],
-                            mode='lines', name=col,
-                            line=dict(width=2, dash='dot')
-                        ))
-                    fig_mitigated.update_layout(
-                        height=200, margin=dict(l=0, r=0, t=10, b=0),
-                        template="plotly_white",
-                        legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1)
-                    )
-                    st.plotly_chart(fig_mitigated, use_container_width=True)
-
-    st.write("---")
-
-    # 9. STRATEGIC COMMAND & CONTROL (Tabbed)
-    tab_projects, tab_comms, tab_summaries, tab_history = st.tabs([
-        "Active Operational Projects (War Rooms)", 
-        "Command & Control (Comms)",
-        "Sector Summaries",
-        "Institutional Memory Archive"
-    ])
-    
-    with tab_summaries:
-        st.info("### Global Sector States")
-        st.write("Current aggregated intelligence summaries for all active national baskets.")
-        for b_id, b_name in all_baskets.items():
-            # Find any active risk for this basket
-            b_risks = [r for r in global_risks if r['basket_id'] == b_id]
-            status_text = "Stable"
-            if b_risks:
-                status_text = f"{len(b_risks)} Active Anomalies"
+                df_mitigated, df_var = cached_simulate_policy_shock(target_idx, shock_magnitude, 30)
+                end_state, base_end_state = df_mitigated.iloc[-1].mean(), df_base.iloc[-1].mean()
                 
-            with st.expander(f"Sector: {b_name} | Status: {status_text}"):
-                c1, c2 = st.columns([1, 1])
-                c1.write("**Operational Overview**")
-                c1.write(f"The {b_name} sector is currently reporting a {status_text.lower()} state.")
-                
-                c2.write("**Recent Intelligence**")
-                if b_risks:
-                    for r in b_risks:
-                        c2.markdown(f"- **{r['title']}**: Impact {r.get('composite_scores', {}).get('B_Impact', 0)}/10")
+                if end_state < base_end_state:
+                    reduction = ((base_end_state - end_state) / (abs(base_end_state) + 1e-9)) * 100
+                    st.success(f"**Outcome:** Systemic cooling (-{reduction:.1f}%)")
                 else:
-                    c2.caption("No significant structural drift detected.")
-
+                    inc = ((end_state - base_end_state) / (abs(base_end_state) + 1e-9)) * 100
+                    st.error(f"**Outcome:** Compounds strain (+{inc:.1f}%)")
                     
     with tab_projects:
         with st.container(border=True):
-            st.info("#### Initiate National Operational Project")
-            st.write("Create a new strategic war-room connecting specific Sector Admins.")
+            st.markdown("#### Launch National Operational Project")
+            st.write("Create a cross-sector coordination project and assign sector admins to it.")
             
             p_c1, p_c2, p_c3 = st.columns([1, 1, 1])
             with p_c1:
@@ -340,7 +429,7 @@ def render():
             with p_c3:
                 p_baskets = st.multiselect("Assign Sector Admins", options=list(all_baskets.keys()), format_func=lambda x: all_baskets[x], key="ex_p_baskets")
                 st.write("")
-                if st.button("Launch National War Room", type="primary", use_container_width=True, key="ex_btn_launch"):
+                if st.button("Launch National Operational Project", type="primary", use_container_width=True, key="ex_btn_launch"):
                     if p_title and p_desc and p_baskets:
                         ProjectManager.create_project(
                             title=p_title,
@@ -354,14 +443,14 @@ def render():
                         st.error("Please fill in all project details.")
                         
         with st.container(border=True):
-            st.info("#### Active Operational Projects (War Rooms)")
-            st.write("Monitor multi-sector collaboration war rooms. Inject top-down Policy Actions directly into their intelligence streams.")
+            st.info("#### Active Operational Projects")
+            st.write("Monitor multi-sector collaboration projects. Inject top-down Policy Actions directly into their intelligence streams.")
             
             if not active_projects:
                 st.success("No active cross-sector Operational Projects.")
             else:
                 for proj in active_projects:
-                    with st.expander(f"WAR ROOM: {proj['title']} (Severity: {proj['severity']})", expanded=True):
+                    with st.expander(f"ACTIVE PROJECT: {proj['title']} (Severity: {proj['severity']})", expanded=True):
                         project_data = ProjectManager.get_project_details(proj['id'])
                         
                         # 1. Phase Progression Banner
@@ -435,8 +524,8 @@ def render():
 
     with tab_history:
         with st.container(border=True):
-            st.info("#### National Institutional Memory")
-            st.write("Review all closed Operational Projects and their effect on national intelligence baselines.")
+            st.markdown("#### National Archive")
+            st.write("Closed operations and the outcomes they recorded.")
             
             if not memories:
                 st.write("No closed projects in the national archive.")
@@ -457,14 +546,14 @@ def render():
                             
     with tab_comms:
         with st.container(border=True):
-            st.warning("### National Command & Control")
-            st.write("Intercept escalations from Sector Admins and broadcast policy overrides.")
+            st.markdown("### Command & Control")
+            st.write("Read escalations from sector admins and issue directives downward.")
             
             c1, c2 = st.columns([1, 1])
             with c1:
                 with st.container(border=True):
                     st.write("National Escalations (Inbox)")
-                    esc_inbox = SecureMessaging.get_inbox(Role.EXECUTIVE.value, "ALL") # Exec receives ALL escalations
+                    esc_inbox = esc_inbox_global
                     if not esc_inbox:
                         st.caption("No pending escalations.")
                     else:
@@ -478,16 +567,16 @@ def render():
 
             with c2:
                 with st.container(border=True):
-                    st.write("Issue National Directives (Downward)")
-                    target_level = st.selectbox("Target Hierarchy Level", ["Sector Admins", "Local Institutions (Spokes)", "Global Broadcast"])
-                    target_id = st.text_input("Target Node Username (or 'ALL')")
+                    st.write("Issue directives (Downward)")
+                    target_level = st.selectbox("Send to", ["Sector Admins", "Local Institutions", "Broadcast to all"])
+                    target_id = st.text_input("Username (or 'ALL' to broadcast)")
                     directive = st.text_area("Command Payload", height=100)
                     if st.button("Transmit Command", type="primary", use_container_width=True):
                         if directive and target_id:
                             rec_role = Role.BASKET_ADMIN.value
-                            if target_level == "Local Institutions (Spokes)":
+                            if target_level == "Local Institutions":
                                 rec_role = Role.INSTITUTION.value
-                            elif target_level == "Global Broadcast":
+                            elif target_level == "Broadcast to all":
                                 rec_role = "ALL_ROLES"
                                 target_id = "ALL"
                                 
@@ -506,5 +595,78 @@ def render():
                     
 
 
-    with st.container(border=True):
-        st.write("Privacy Matrix Status: Guaranteed 100% Differential Privacy. No raw citizen data or classified operational logs are exposed to this console.")
+    with tab_summaries:
+        st.markdown("### Sector Summaries")
+        st.write("Per-sector snapshot: validated risks, operational project participation, and public sentiment.")
+        st.write("---")
+
+        df_social_sum = get_pulse_data()
+
+        if not all_baskets:
+            st.info("No sectors registered in the system.")
+        else:
+            cols_per_row = 2
+            basket_list = list(all_baskets.items())
+            for row_start in range(0, len(basket_list), cols_per_row):
+                row_items = basket_list[row_start:row_start + cols_per_row]
+                sum_cols = st.columns(len(row_items))
+                for col_idx, (b_id, b_name) in enumerate(row_items):
+                    sector_risks = [r for r in global_risks if r.get('basket_id') == b_id]
+                    sector_projects = [p for p in active_projects]
+                    risk_count = len(sector_risks)
+                    proj_count = len(sector_projects)
+
+                    # Aggregate composite impact
+                    total_impact = sum(r.get('composite_scores', {}).get('B_Impact', 0) for r in sector_risks)
+                    avg_impact = (total_impact / risk_count) if risk_count else 0.0
+
+                    # Social sentiment for this sector (match by sector name in pulse data)
+                    if not df_social_sum.empty and 'Sector' in df_social_sum.columns:
+                        sector_mask = df_social_sum['Sector'].str.contains(b_name.split()[0], case=False, na=False)
+                        sector_df = df_social_sum[sector_mask]
+                        avg_sentiment = sector_df['Sentiment'].mean() if not sector_df.empty else df_social_sum['Sentiment'].mean()
+                    else:
+                        avg_sentiment = None
+
+                    # Color-code card border by severity
+                    if risk_count == 0:
+                        border_color = "#10B981"  # green — clear
+                        status_label = "Clear"
+                    elif avg_impact > 7:
+                        border_color = "#EF4444"  # red — critical
+                        status_label = "Critical"
+                    elif avg_impact > 4:
+                        border_color = "#F59E0B"  # amber — elevated
+                        status_label = "Elevated"
+                    else:
+                        border_color = "#3B82F6"  # blue — low
+                        status_label = "Low"
+
+                    sentiment_str = f"{avg_sentiment:.2f}" if avg_sentiment is not None else "N/A"
+
+                    with sum_cols[col_idx]:
+                        st.markdown(
+                            f'<div style="border: 2px solid {border_color}; border-radius: 8px; padding: 1rem; margin-bottom: 0.5rem; background: #f8fafc;">'
+                            f'<div style="font-weight: bold; font-size: 1rem; color: #1F2937;">{b_name}</div>'
+                            f'<div style="margin-top: 0.4rem;">'
+                            f'<span style="background:{border_color}; color:#fff; border-radius:4px; padding:2px 8px; font-size:0.75rem; font-weight:bold;">{status_label}</span>'
+                            f'</div>'
+                            f'<div style="margin-top: 0.6rem; display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 0.3rem;">'
+                            f'<div style="text-align:center;"><div style="font-size:1.4rem; font-weight:bold; color:{border_color};">{risk_count}</div><div style="font-size:0.7rem; color:#64748b;">Risks</div></div>'
+                            f'<div style="text-align:center;"><div style="font-size:1.4rem; font-weight:bold; color:#1F2937;">{proj_count}</div><div style="font-size:0.7rem; color:#64748b;">Projects</div></div>'
+                            f'<div style="text-align:center;"><div style="font-size:1.4rem; font-weight:bold; color:#1F2937;">{sentiment_str}</div><div style="font-size:0.7rem; color:#64748b;">Sentiment</div></div>'
+                            f'</div>'
+                            f'</div>',
+                            unsafe_allow_html=True
+                        )
+                        if sector_risks:
+                            top_risk = sorted(sector_risks, key=lambda x: x.get('composite_scores', {}).get('B_Impact', 0), reverse=True)[0]
+                            st.caption(f"Top risk: {top_risk['title'][:60]}")
+
+    with tab_collab:
+        render_collab_room(
+            role=Role.EXECUTIVE.value,
+            basket_id=None,
+            username=st.session_state.get('username', 'executive'),
+            all_baskets=all_baskets,
+        )
