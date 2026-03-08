@@ -122,4 +122,16 @@ def build_transport(config: TransportConfig) -> BaseTransport:
         return LoopbackTransport(config)
     if protocol in {"simulated", "simulated_network", "sim"}:
         return SimulatedNetworkTransport(config)
+    if protocol in {"websocket", "ws"}:
+        from .ws_transport import WebSocketTransport, WSTransportConfig
+
+        if isinstance(config, WSTransportConfig):
+            return WebSocketTransport(config)
+        # Wrap plain TransportConfig into WSTransportConfig
+        ws_config = WSTransportConfig(
+            protocol=config.protocol,
+            endpoint=config.endpoint,
+            reconnect_backoff=config.reconnect_backoff,
+        )
+        return WebSocketTransport(ws_config)
     return LoopbackTransport(config)

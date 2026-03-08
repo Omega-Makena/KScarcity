@@ -16,6 +16,7 @@ import numpy as np
 
 from .models import ExchangeAuditRecord, FederatedNode, LocalTrainingMetrics, SyncRoundResult
 from .storage import ControlPlaneStorage, NodeStorage
+from .model_registry import FLModelRegistry, FLUpdate
 
 logger = logging.getLogger("scarcity.federated_databases")
 
@@ -223,7 +224,30 @@ class ScarcityFederationManager:
         x: np.ndarray,
         y: np.ndarray,
         learning_rate: float = 0.12,
+        model_name: str = "logistic",
     ) -> Tuple[np.ndarray, float, float]:
+        """Train one local step using the specified model from the registry.
+
+        Args:
+            weights: Current global weights.
+            x: Feature matrix.
+            y: Label vector.
+            learning_rate: Learning rate.
+            model_name: Name of the registered model to use.
+
+        Returns:
+            Tuple of (updated_weights, loss, gradient_norm).
+        """
+        if FLModelRegistry.has(model_name):
+            model = FLModelRegistry.create(
+                model_name,
+                n_features=x.shape[1],
+                learning_rate=learning_rate,
+            )
+            result: FLUpdate = model.train_local(x, y, global_weights=weights)
+            return result.weights.astype(np.float64), result.loss, result.gradient_norm
+
+        # Fallback: original logistic regression (never breaks)
         logits = x @ weights
         probs = self._sigmoid(logits)
         eps = 1e-8
@@ -250,7 +274,12 @@ class ScarcityFederationManager:
         }
         self.control.set_global_state("global_weights", payload)
 
-    def run_single_node_training(self, node_id: str, learning_rate: float = 0.12) -> Dict[str, Any]:
+    def run_single_node_training(
+        self,
+        node_id: str,
+        learning_rate: float = 0.12,
+        model_name: str = "logistic",
+    ) -> Dict[str, Any]:
         node = node_id.strip().lower()
         store = self._node_store(node)
         features, labels = store.get_training_matrix(limit=15000)
@@ -260,7 +289,9 @@ class ScarcityFederationManager:
         x = np.array(features, dtype=np.float64)
         y = np.array(labels, dtype=np.float64)
         weights = self._global_weights(x.shape[1])
-        next_weights, loss, grad_norm = self._train_local_step(weights, x, y, learning_rate=learning_rate)
+        next_weights, loss, grad_norm = self._train_local_step(
+            weights, x, y, learning_rate=learning_rate, model_name=model_name,
+        )
 
         store.record_model_update(
             round_number=0,
@@ -286,6 +317,7 @@ class ScarcityFederationManager:
         learning_rate: float = 0.12,
         lookback_hours: int = 24,
         source_path: Union[Path, str] = "data/synthetic_kenya_policy/tweets.csv",
+        model_name: str = "logistic",
     ) -> SyncRoundResult:
         nodes = self.control.list_nodes()
         if not nodes:
@@ -311,7 +343,9 @@ class ScarcityFederationManager:
 
             x = np.array(features, dtype=np.float64)
             y = np.array(labels, dtype=np.float64)
-            local_weights, loss, grad_norm = self._train_local_step(global_weights, x, y, learning_rate=learning_rate)
+            local_weights, loss, grad_norm = self._train_local_step(
+                global_weights, x, y, learning_rate=learning_rate, model_name=model_name,
+            )
             sample_count = int(len(y))
             mean_criticality = float(np.mean(y)) if sample_count else 0.0
 
