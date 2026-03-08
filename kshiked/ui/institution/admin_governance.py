@@ -19,6 +19,12 @@ from kshiked.ui.institution.backend.database import get_connection
 from kshiked.ui.institution.style import inject_enterprise_theme
 from kshiked.ui.institution.backend.messaging import SecureMessaging
 from kshiked.ui.institution.collab_room import render_collab_room
+from kshiked.ui.institution.backend.analytics_engine import (
+    generate_inaction_projection,
+    get_historical_context,
+    generate_recommendation,
+    compute_outcome_impact,
+)
 
 def plot_shock_vector(shock_vector, title):
     import plotly.graph_objects as go
@@ -215,6 +221,35 @@ def render():
                         c_col3.metric("C) Certainty Score", f"{payload['composite_scores'].get('C_Certainty', 0.0):.2f} / 10.0")
                         st.write("---")
                     
+                    # ── PILLAR 1: "SO WHAT?" ──
+                    sev = payload.get('severity_score', 0.0)
+                    projection = generate_inaction_projection(
+                        severity=sev,
+                        shock_vector=payload.get('shock_vector'),
+                        incident_type=payload.get('incident_type', 'ANOMALY'),
+                        composite_scores=payload.get('composite_scores'),
+                    )
+                    if projection:
+                        st.markdown(
+                            f'<div style="background:#FEF2F2; border-left:4px solid #DC2626; padding:10px 14px; '
+                            f'border-radius:0 6px 6px 0; margin:8px 0; font-size:0.88rem;">'
+                            f'<strong>⚠ So What?</strong> {projection}</div>',
+                            unsafe_allow_html=True,
+                        )
+
+                    # ── PILLAR 2: "COMPARED TO WHAT?" ──
+                    hist_ctx = get_historical_context(
+                        basket_id=basket_id,
+                        severity=sev,
+                        incident_type=payload.get('incident_type', 'ANOMALY'),
+                    )
+                    st.markdown(
+                        f'<div style="background:#F0F9FF; border-left:4px solid #3B82F6; padding:10px 14px; '
+                        f'border-radius:0 6px 6px 0; margin:8px 0; font-size:0.88rem;">'
+                        f'<strong>📊 Compared to What?</strong> {hist_ctx}</div>',
+                        unsafe_allow_html=True,
+                    )
+
                     if 'shock_vector' in payload:
                         st.plotly_chart(plot_shock_vector(payload['shock_vector'], "Pre vs Post Shock Vector"), use_container_width=True, key=f"pending_{sync['sync_id']}")
                     if 'spoke_interpretation' in payload:
@@ -290,6 +325,27 @@ def render():
                     c1.metric("Detection", f"{scores.get('A_Detection', 0):.2f}/10")
                     c2.metric("Impact", f"{b_impact:.2f}/10")
                     c3.metric("Certainty", f"{scores.get('C_Certainty', 0):.2f}/10")
+
+                    # ── PILLAR 4: "WHAT SHOULD I DO?" ──
+                    rec = generate_recommendation(
+                        risk=risk,
+                        all_baskets=all_baskets,
+                        global_risks=promoted,
+                        historical_syncs=DeltaSyncManager.get_historical_syncs(basket_id),
+                    )
+                    st.markdown(
+                        f'<div style="background:#FFFBEB; border-left:4px solid {rec.level_color}; '
+                        f'padding:10px 14px; border-radius:0 6px 6px 0; margin:8px 0;">'
+                        f'<strong>🎯 Recommendation: '
+                        f'<span style="background:{rec.level_color}; color:#fff; padding:2px 8px; '
+                        f'border-radius:4px; font-size:0.8rem;">{rec.level}</span></strong><br/>'
+                        f'<span style="font-size:0.88rem;">{rec.summary}</span><br/>'
+                        f'<span style="font-size:0.82rem; color:#64748b;">'
+                        f'<b>Who:</b> {", ".join(rec.who[:4])} &nbsp;|&nbsp; '
+                        f'<b>Urgency:</b> {rec.urgency}</span>'
+                        f'</div>',
+                        unsafe_allow_html=True,
+                    )
 
     with tab_proj:
         st.info("### Operational Projects (Cross-Basket Fusion Spaces)")
@@ -429,6 +485,32 @@ def render():
                     with m_col1:
                         st.markdown(f"**Resolution Summary:**<br>{mem['resolution_summary']}", unsafe_allow_html=True)
                         st.write("---")
+
+                        # ── PILLAR 5: "DID IT WORK?" ──
+                        try:
+                            participant_ids = []
+                            with get_connection() as conn_p5:
+                                cp5 = conn_p5.cursor()
+                                cp5.execute("SELECT basket_id FROM project_participants WHERE project_id = ?", (mem['id'],))
+                                participant_ids = [r['basket_id'] for r in cp5.fetchall()]
+                            if participant_ids:
+                                impact = compute_outcome_impact(
+                                    project_id=mem['id'],
+                                    project_created_at=mem.get('created_at', 0),
+                                    project_archived_at=mem.get('updated_at', 0),
+                                    participant_basket_ids=participant_ids,
+                                )
+                                bg = "#F0FDF4" if impact.get('delta_pct', 0) < 0 else "#FEF2F2"
+                                border = "#10B981" if impact.get('delta_pct', 0) < 0 else "#EF4444"
+                                st.markdown(
+                                    f'<div style="background:{bg}; border-left:4px solid {border}; '
+                                    f'padding:10px 14px; border-radius:0 6px 6px 0; margin:8px 0; font-size:0.88rem;">'
+                                    f'<strong>📈 Did it Work?</strong> {impact["narrative"]}</div>',
+                                    unsafe_allow_html=True,
+                                )
+                        except Exception:
+                            pass
+
                         st.write(f"**Learning Payload / Meta Data:**")
                         st.json(mem['learning_payload'])
                     with m_col2:

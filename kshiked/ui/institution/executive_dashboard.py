@@ -20,29 +20,51 @@ from kshiked.ui.institution.style import inject_enterprise_theme
 from kshiked.ui.institution.backend.messaging import SecureMessaging
 from kshiked.ui.institution.collab_room import render_collab_room
 from kshiked.ui.institution.executive_simulator import render_executive_simulator
+from kshiked.ui.institution.backend.analytics_engine import (
+    generate_inaction_projection,
+    get_historical_context,
+    build_county_convergence,
+    generate_recommendation,
+    compute_outcome_impact,
+    get_county_centroid,
+)
 
 @st.cache_data(ttl=3600)
-def load_and_process_geojson(geojson_path):
+def load_and_process_geojson(geojson_path, county_scores=None):
     import json
     with open(geojson_path, "r", encoding="utf-8") as f:
         geojson_data = json.load(f)
-        
-    np.random.seed(42)  # Fixed seed to avoid recalculating random stress
+
     for feature in geojson_data['features']:
-        stress = np.random.randint(5, 100)
-        feature['properties']['stress'] = stress
-        
-        if stress > 80:
-            r, g, b = 239, 68, 68 # Red
-        elif stress > 50:
-            r, g, b = 245, 158, 11 # Amber
+        county_name = feature['properties'].get('shapeName', '').lower()
+
+        # Use real data if available, otherwise show zero (honest absence)
+        if county_scores and county_name in county_scores:
+            stress = int(county_scores[county_name]['score'])
+            has_data = True
         else:
-            r, g, b = 59, 130, 246 # Blue
-            
-        feature['properties']['color'] = [r, g, b, 140]
+            stress = 0
+            has_data = False
+
+        feature['properties']['stress'] = stress
+        feature['properties']['has_data'] = has_data
+
+        if not has_data:
+            r, g, b = 148, 163, 184  # Slate gray — no data
+        elif stress > 80:
+            r, g, b = 239, 68, 68   # Red
+        elif stress > 50:
+            r, g, b = 245, 158, 11  # Amber
+        elif stress > 20:
+            r, g, b = 59, 130, 246  # Blue
+        else:
+            r, g, b = 16, 185, 129  # Green
+
+        alpha = 140 if has_data else 60
+        feature['properties']['color'] = [r, g, b, alpha]
         feature['properties']['line_color'] = [r, g, b, 255]
-        feature['properties']['elevation'] = stress * 1200
-        
+        feature['properties']['elevation'] = stress * 1200 if has_data else 200
+
     return geojson_data
 
 @st.cache_data(ttl=300)
@@ -259,17 +281,73 @@ def render():
                                 unsafe_allow_html=True
                             )
 
+                            # ── PILLAR 1: "SO WHAT?" ──
+                            projection = generate_inaction_projection(
+                                severity=impact,
+                                incident_type='PROMOTED_RISK',
+                                composite_scores=scores,
+                            )
+                            if projection:
+                                st.markdown(
+                                    f'<div style="background:#FEF2F2; border-left:4px solid #DC2626; padding:8px 12px; '
+                                    f'border-radius:0 6px 6px 0; margin:0 0 4px 0; font-size:0.84rem;">'
+                                    f'<strong>⚠ So What?</strong> {projection}</div>',
+                                    unsafe_allow_html=True,
+                                )
+
+                            # ── PILLAR 2: "COMPARED TO WHAT?" ──
+                            hist_ctx = get_historical_context(
+                                basket_id=b_id,
+                                severity=impact,
+                                incident_type='PROMOTED_RISK',
+                            )
+                            st.markdown(
+                                f'<div style="background:#F0F9FF; border-left:4px solid #3B82F6; padding:8px 12px; '
+                                f'border-radius:0 6px 6px 0; margin:0 0 4px 0; font-size:0.84rem;">'
+                                f'<strong>📊 Compared to What?</strong> {hist_ctx}</div>',
+                                unsafe_allow_html=True,
+                            )
+
+                            # ── PILLAR 4: "WHAT SHOULD I DO?" ──
+                            rec = generate_recommendation(
+                                risk=risk,
+                                all_baskets=all_baskets,
+                                global_risks=global_risks,
+                            )
+                            st.markdown(
+                                f'<div style="background:#FFFBEB; border-left:4px solid {rec.level_color}; '
+                                f'padding:8px 12px; border-radius:0 6px 6px 0; margin:0 0 10px 0;">'
+                                f'<strong>🎯 <span style="background:{rec.level_color}; color:#fff; padding:2px 8px; '
+                                f'border-radius:4px; font-size:0.78rem;">{rec.level}</span></strong> '
+                                f'<span style="font-size:0.84rem;">{rec.summary}</span><br/>'
+                                f'<span style="font-size:0.80rem; color:#64748b;">'
+                                f'<b>Who:</b> {", ".join(rec.who[:3])} &nbsp;|&nbsp; '
+                                f'<b>Urgency:</b> {rec.urgency}</span>'
+                                f'</div>',
+                                unsafe_allow_html=True,
+                            )
+
     with tab_map:
         st.markdown("### National Map")
-        st.write("Geospatial distribution of emerging hotspots across Kenyan counties.")
+        st.write("Geospatial distribution of emerging hotspots across Kenyan counties — driven by real promoted risk data.")
         import pydeck as pdk
         import json
         import os
-        
-        # Load local Kenyan counties GeoJSON efficiently
+
+        # ── PILLAR 3: "WHERE EXACTLY?" — Real geographic data ──
+        county_scores = build_county_convergence(global_risks, all_baskets)
+
+        if not county_scores:
+            st.info(
+                "📍 **Geographic metadata unavailable.** No promoted risks contain "
+                "county-level geographic data. The map will activate once risks "
+                "with spatial metadata are promoted by sector admins."
+            )
+
+        # Load local Kenyan counties GeoJSON with real data
         geojson_path = os.path.join(os.path.dirname(__file__), "..", "..", "data", "kenya_adm1_simplified.geojson")
         try:
-            geojson_data = load_and_process_geojson(geojson_path)
+            geojson_data = load_and_process_geojson(geojson_path, county_scores or None)
 
             layer = pdk.Layer(
                 "GeoJsonLayer",
@@ -294,11 +372,17 @@ def render():
                 bearing=15
             )
 
+            tooltip_html = (
+                "<b>County:</b> {shapeName} <br/> "
+                "<b>Convergence Score:</b> {stress}/100 <br/>"
+                "<b>Data:</b> {'Real signal data' if {has_data} else 'No data'}"
+            )
+
             r = pdk.Deck(
                 layers=[layer],
                 initial_view_state=view_state,
                 tooltip={
-                    "html": "<b>County:</b> {shapeName} <br/> <b>Hotspot Stress Index:</b> {stress}/100", 
+                    "html": "<b>County:</b> {shapeName} <br/> <b>Convergence Score:</b> {stress}/100",
                     "style": {
                         "backgroundColor": "#ffffff",
                         "color": "#0f172a",
@@ -313,7 +397,18 @@ def render():
                 map_style="mapbox://styles/mapbox/light-v11"
             )
             st.pydeck_chart(r, height=450, use_container_width=True)
-            
+
+            # Legend
+            if county_scores:
+                data_counties = len(county_scores)
+                total_risks = sum(c['risk_count'] for c in county_scores.values())
+                st.caption(
+                    f"🟢 Low (&lt;20) &nbsp; 🔵 Moderate (20-50) &nbsp; 🟠 Elevated (50-80) &nbsp; 🔴 Critical (&gt;80) &nbsp; ⚪ No data \n\n"
+                    f"**{data_counties} counties** with signal data from **{total_risks} promoted risks**."
+                )
+            else:
+                st.caption("⚪ All counties shown in grey — no active signal data.")
+
         except Exception as e:
             st.error(f"Error loading geospatial topography: {e}")
     
@@ -508,6 +603,32 @@ def render():
                         with m_col1:
                             st.markdown(f"**Executive Debrief:**<br>{mem['resolution_summary']}", unsafe_allow_html=True)
                             st.write("---")
+
+                            # ── PILLAR 5: "DID IT WORK?" ──
+                            try:
+                                participant_ids = []
+                                with get_connection() as conn_p5:
+                                    cp5 = conn_p5.cursor()
+                                    cp5.execute("SELECT basket_id FROM project_participants WHERE project_id = ?", (mem['id'],))
+                                    participant_ids = [r['basket_id'] for r in cp5.fetchall()]
+                                if participant_ids:
+                                    impact = compute_outcome_impact(
+                                        project_id=mem['id'],
+                                        project_created_at=mem.get('created_at', 0),
+                                        project_archived_at=mem.get('updated_at', 0),
+                                        participant_basket_ids=participant_ids,
+                                    )
+                                    bg = "#F0FDF4" if impact.get('delta_pct', 0) < 0 else "#FEF2F2"
+                                    border = "#10B981" if impact.get('delta_pct', 0) < 0 else "#EF4444"
+                                    st.markdown(
+                                        f'<div style="background:{bg}; border-left:4px solid {border}; '
+                                        f'padding:10px 14px; border-radius:0 6px 6px 0; margin:8px 0; font-size:0.88rem;">'
+                                        f'<strong>📈 Did it Work?</strong> {impact["narrative"]}</div>',
+                                        unsafe_allow_html=True,
+                                    )
+                            except Exception:
+                                pass
+
                             st.json(mem['learning_payload'])
                         with m_col2:
                             st.metric("Policy Outcome Score", f"{mem['policy_effectiveness_score']}/10.0")
