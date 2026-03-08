@@ -1,0 +1,37 @@
+--- Start Log ---
+Calling: radio
+  args: ('Interface Mode', ['Strategic Crisis Analysis', 'Econometric Research Workbench'])
+  kwargs: {'horizontal': True, 'key': 'exec_sim_mode_v3', 'help': 'Strategic: narrative-driven 4-step crisis analysis. Econometric: full K-SHIELD research engine with 15+ analytical tools.'}
+Calling: markdown
+  args: ('---',)
+  kwargs: {}
+Calling: markdown
+  args: ('\n    <div style="background:rgba(31, 51, 29, 0.4); padding:1.2rem 1.5rem; border-radius:12px;\n                border:1px solid rgba(255, 255, 255, 0.1); margin-bottom:1rem;">\n        <div style="color:#00ff88; font-weight:700; font-size:0.85rem;\n                    letter-spacing:1px; margin-bottom:0.8rem;">\n            STEP 1 — WHAT HAPPENED?</div>\n    ',)
+  kwargs: {'unsafe_allow_html': True}
+Calling: selectbox
+  args: ('Crisis scenario', ['Oil Price Spike', 'Severe Drought', 'Currency Crisis (-15% KES)', 'Global Recession', 'Sovereign Debt Crisis', 'Perfect Storm (Drought+Oil+FX)'])
+  kwargs: {'key': 'strat_sc_v3'}
+Calling: selectbox
+  args: ('Severity', ['Mild', 'Moderate', 'Severe', 'Critical'])
+  kwargs: {'index': 1, 'key': 'strat_sev_v3'}
+Calling: selectbox
+  args: ('Horizon', ['Short (20Q)', 'Medium (50Q)', 'Long (100Q)'])
+  kwargs: {'index': 1, 'key': 'strat_hz_v3'}
+Calling: markdown
+  args: ('\n        <div style="background:rgba(0,255,136,0.04); border-left:3px solid #00ff88;\n                    padding:0.6rem 1rem; border-radius:0 8px 8px 0; margin:0.4rem 0;\n                    font-size:0.82rem; color:#aabfac;">\n            Global oil prices surge 30%. Kenya imports ~100% of petroleum — transport, manufacturing, and agriculture all face cost pressure.</div>\n    ',)
+  kwargs: {'unsafe_allow_html': True}
+Calling: markdown
+  args: ('</div>',)
+  kwargs: {'unsafe_allow_html': True}
+Calling: markdown
+  args: ('\n    <div style="background:rgba(31, 51, 29, 0.4); padding:1.2rem 1.5rem; border-radius:12px;\n                border:1px solid rgba(255, 255, 255, 0.1); margin-bottom:1rem;">\n        <div style="color:#f5d547; font-weight:700; font-size:0.85rem;\n                    letter-spacing:1px; margin-bottom:0.8rem;">\n            STEP 2 — CHOOSE POLICY RESPONSE</div>\n    ',)
+  kwargs: {'unsafe_allow_html': True}
+Calling: radio
+  args: ('Policy:', ['No Intervention', 'Measured Response', 'Aggressive Intervention', 'IMF Austerity'])
+  kwargs: {'horizontal': True, 'key': 'strat_resp_v3'}
+Calling: markdown
+  args: ('</div>',)
+  kwargs: {'unsafe_allow_html': True}
+Calling: button
+  args: ('RUN FULL 7-TIER SIMULATION',)
+  kwargs: {'type': 'primary', 'use_container_width': True, 'key': 'strat_run_v3'}

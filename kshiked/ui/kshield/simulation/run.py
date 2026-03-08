@@ -109,7 +109,6 @@ def run_simulation(theme, SFCEconomy, SFCConfig, calibrate_from_data,
                 st.session_state["sim_trajectory"] = trajectory
                 st.session_state["sim_selected_dims"] = selected_dims
                 st.session_state["sim_calibration"] = calib
-                st.session_state["sim_steps"] = steps
                 st.session_state["sim_state"] = econ
 
                 # Build descriptive label

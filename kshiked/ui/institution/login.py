@@ -55,6 +55,20 @@ def route_authenticated_user():
             logout_user()
             st.rerun()
 
+        st.write("---")
+        st.markdown("**Reporting Mode**")
+        fl_on = st.toggle(
+            "Enable Federated Learning (Mode B)",
+            value=st.session_state.get('fl_mode_enabled', False),
+            help="Mode A (default): Governance reporting — aggregated data and anomaly types flow upward. "
+                 "Mode B: Federated Learning — local model gradients are also aggregated (raw data never leaves nodes)."
+        )
+        st.session_state['fl_mode_enabled'] = fl_on
+        if fl_on:
+            st.caption("Mode B active: FL training tabs are visible to admins and spokes.")
+        else:
+            st.caption("Mode A: Governance reporting only.")
+
     # Route based on explicit Role Based Access Controls
     if role == Role.EXECUTIVE.value:
         from kshiked.ui.institution.executive_dashboard import render as render_executive

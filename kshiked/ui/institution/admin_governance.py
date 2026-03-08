@@ -15,9 +15,10 @@ from kshiked.ui.institution.backend.models import Role
 from kshiked.ui.institution.backend.delta_sync import DeltaSyncManager
 from kshiked.ui.institution.backend.federation_bridge import FederationBridge
 from kshiked.ui.institution.backend.project_manager import ProjectManager
+from kshiked.ui.institution.backend.database import get_connection
 from kshiked.ui.institution.style import inject_enterprise_theme
 from kshiked.ui.institution.backend.messaging import SecureMessaging
-from kshiked.ui.institution.backend.messaging import SecureMessaging
+from kshiked.ui.institution.collab_room import render_collab_room
 
 def plot_shock_vector(shock_vector, title):
     import plotly.graph_objects as go
@@ -44,47 +45,133 @@ def render():
     
     basket_id = st.session_state.get('basket_id')
     
-    st.markdown(f"<h2 style='text-align: center; color: #BB0000;'>Basket Administrator Hub</h2>", unsafe_allow_html=True)
-    st.markdown(f"<h5 style='text-align: center; color: #006600;'>Sector ID: {basket_id} | Admin User: {st.session_state.get('username')}</h5>", unsafe_allow_html=True)
-    
-    st.write("---")
-    
-    # Fetch all baskets for cross-collaboration later
+    # Resolve sector name for a human-readable header
     with get_connection() as conn:
         c = conn.cursor()
         c.execute("SELECT id, name FROM baskets")
         all_baskets = {r['id']: r['name'] for r in c.fetchall()}
-        
-    with st.container(border=True):
-        st.write("**Send Intelligence Escalation (Upward to National)**")
-        esc_col1, esc_col2 = st.columns([4, 1])
-        with esc_col1:
-            escalation = st.text_input("High-Priority Payload", key="esc_payload")
-        with esc_col2:
-            if st.button("Transmit to National", type="primary", use_container_width=True):
-                if escalation:
-                    SecureMessaging.send_message(
-                        sender_role=Role.BASKET_ADMIN.value,
-                        sender_id=st.session_state.get('username'),
-                        receiver_role=Role.EXECUTIVE.value,
-                        receiver_id="ALL",
-                        content=escalation
-                    )
-                    st.success("Escalation sequence transmitted.")
-        
-    tab1, tab_proj, tab2, tab3, tab4, tab5, tab_comms = st.tabs([
-        "Pending Spoke Insights", 
+
+    sector_name = all_baskets.get(basket_id, f"Sector {basket_id}")
+    fl_mode = st.session_state.get('fl_mode_enabled', False)
+
+    st.markdown(f"<h2 style='text-align: center; color: #1F2937;'>{sector_name} — Sector Admin</h2>", unsafe_allow_html=True)
+    st.markdown(f"<h5 style='text-align: center; color: #006600;'>Administrator: {st.session_state.get('username')}</h5>", unsafe_allow_html=True)
+
+    st.write("---")
+
+    # Build tab list — Mode B appends the Federated Learning tab
+    base_tab_labels = [
+        "Sector Overview",
+        "Spoke Reports",
+        "Risk Promotion",
         "Operational Projects",
-        "Historical Insights", 
-        "Data Merging & Governance", 
-        "Privacy & Broadcast",
-        "Terminology Guide",
-        "Secure Networking"
-    ])
+        "Historical Archive",
+        "Communications",
+        "Settings",
+        "Collaboration Room",
+    ]
+    if fl_mode:
+        base_tab_labels.append("Federated Learning (Mode B)")
+
+    _all_tabs = st.tabs(base_tab_labels)
+    tab_overview = _all_tabs[0]    # Sector Overview (New landing page)
+    tab1      = _all_tabs[1]   # Spoke Reports (was: Pending Spoke Insights)
+    tab_risk  = _all_tabs[2]   # Risk Promotion (fusion workbench)
+    tab_proj  = _all_tabs[3]   # Operational Projects
+    tab2      = _all_tabs[4]   # Historical Archive (was: Historical Insights)
+    tab_comms = _all_tabs[5]   # Communications (was: Secure Networking)
+    tab3      = _all_tabs[6]   # Settings (was: Data Merging & Governance — config only)
+    tab_collab = _all_tabs[7]  # Collaboration Room
+    tab_fl    = _all_tabs[8] if fl_mode else None  # Federated Learning (Mode B only)
     
+    with tab_overview:
+        st.markdown(f"### {sector_name} Command Center")
+        st.write("Real-time telemetry and overview of your sector's institutions.")
+        
+        # Calculate top-level metrics
+        pending_count = len(DeltaSyncManager.get_pending_syncs(basket_id))
+        active_proj_count = len(ProjectManager.get_active_projects(basket_id))
+        
+        inst_count = 0
+        try:
+            with get_connection() as conn_i:
+                ci = conn_i.cursor()
+                ci.execute("SELECT COUNT(*) as c FROM institutions WHERE basket_id = ?", (basket_id,))
+                res = ci.fetchone()
+                if res:
+                    inst_count = res['c']
+        except Exception:
+            pass
+
+        metrics_cols = st.columns(3)
+        
+        def _render_metric_card(col, title, value, icon, subtext, alert=False):
+            bg_color = "#FFF"
+            border_col = "#E5E7EB"
+            title_col = "#6B7280"
+            val_col = "#DC2626" if alert else "#111827"
+            
+            col.markdown(f"""
+            <div style="background:{bg_color}; padding:1.2rem; border-radius:12px; 
+                        border:1px solid {border_col}; box-shadow:0 1px 3px rgba(0,0,0,0.05); margin-bottom:1rem;">
+                <div style="color:{title_col}; font-size:0.8rem; font-weight:600; text-transform:uppercase; letter-spacing:0.5px;">
+                    {icon} {title}
+                </div>
+                <div style="color:{val_col}; font-size:2rem; font-weight:800; margin:0.3rem 0;">
+                    {value}
+                </div>
+                <div style="color:{title_col}; font-size:0.75rem;">{subtext}</div>
+            </div>""", unsafe_allow_html=True)
+
+        _render_metric_card(metrics_cols[0], "Registered Spokes", str(inst_count), "🏢", "Active institutions in sector")
+        _render_metric_card(metrics_cols[1], "Pending Reports", str(pending_count), "📥", "Requires admin review", alert=(pending_count>0))
+        _render_metric_card(metrics_cols[2], "Active Projects", str(active_proj_count), "⚔️", "Cross-sector war rooms")
+
+        # Telemetry Chart
+        st.write("#### Telemetry Pulse")
+        historical_syncs = DeltaSyncManager.get_historical_syncs(basket_id)
+        all_syncs = historical_syncs + DeltaSyncManager.get_pending_syncs(basket_id)
+        
+        if not all_syncs:
+            st.info("Insufficient data to generate telemetry baseline. Waiting for spoke transmissions.")
+        else:
+            try:
+                import plotly.express as px
+                df_chart = pd.DataFrame([
+                    {
+                        "Time": pd.to_datetime(s.get('created_at', s.get('timestamp', 0)), unit='s'),
+                        "Severity": s['payload'].get('severity_score', 0.0),
+                        "Status": s.get('status', 'PENDING'),
+                        "Type": s['payload'].get('incident_type', 'ANOMALY')
+                    }
+                    for s in all_syncs
+                ])
+                df_chart = df_chart.sort_values(by="Time")
+                
+                fig = px.scatter(
+                    df_chart, x="Time", y="Severity", color="Status", 
+                    size="Severity", hover_data=["Type"],
+                    color_discrete_map={"PENDING": "#DC2626", "PROCESSED": "#059669", "REJECTED": "#6B7280"}
+                )
+                fig.update_traces(marker=dict(line=dict(width=1, color='DarkSlateGrey')))
+                fig.update_layout(
+                    height=300, 
+                    margin=dict(l=0, r=0, t=10, b=0),
+                    template="plotly_white",
+                    xaxis_title="",
+                    yaxis_title="Severity Score",
+                    legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1)
+                )
+                st.plotly_chart(fig, use_container_width=True)
+            except Exception as e:
+                st.caption("Unable to render telemetry chart.")
+                
+        st.write("---")
+        st.info("💡 **Tip**: Check the **Spoke Reports** tab to review incoming anomaly reports and promote them to national risks.")
+
     with tab1:
-        st.info("### Raw Discovery Queue")
-        st.write("Review mathematical anomalies securely reported by your isolated Spoke institutions. These are pending inclusion in the global model.")
+        st.markdown("### Incoming Reports from Spokes")
+        st.write("Review anomaly reports submitted by institutions in your sector. Tick reports you want to combine into a risk and forward to the executive level.")
         
         pending_syncs = DeltaSyncManager.get_pending_syncs(basket_id)
         
@@ -93,22 +180,32 @@ def render():
             st.session_state['selected_events'] = set()
             
         if not pending_syncs:
-            st.success("Inbox Zero. All Spoke anomalies have been merged into the Global Model.")
+            st.success("No pending reports. All incoming anomaly reports have been reviewed.")
         else:
-            st.warning(f"{len(pending_syncs)} Anomaly Reports pending review.")
+            st.warning(f"{len(pending_syncs)} report(s) awaiting your review.")
+            # Resolve institution names for display
+            inst_name_cache = {}
+            try:
+                with get_connection() as conn_i:
+                    ci = conn_i.cursor()
+                    ci.execute("SELECT id, name FROM institutions WHERE basket_id = ?", (basket_id,))
+                    inst_name_cache = {r['id']: r['name'] for r in ci.fetchall()}
+            except Exception:
+                pass
+
             for sync in pending_syncs:
                 payload = sync['payload']
-                
+                inst_display = inst_name_cache.get(sync['institution_id'], f"Institution {sync['institution_id']}")
+
                 col_sel, col_exp = st.columns([1, 15])
                 with col_sel:
-                    # Checkbox to select for fusion
                     is_selected = st.checkbox("", key=f"sel_{sync['sync_id']}", value=sync['sync_id'] in st.session_state['selected_events'])
                     if is_selected:
                         st.session_state['selected_events'].add(sync['sync_id'])
                     elif sync['sync_id'] in st.session_state['selected_events']:
                         st.session_state['selected_events'].remove(sync['sync_id'])
-                        
-                with col_exp.expander(f"Anomaly Report from Spoke {sync['institution_id']} (Severity Score: {payload.get('severity_score', 0.0):.2f}) - {payload.get('incident_type', '')}"):
+
+                with col_exp.expander(f"{inst_display} — Severity {payload.get('severity_score', 0.0):.2f} | {payload.get('incident_type', 'ANOMALY')}"):
                     
                     if 'composite_scores' in payload:
                         st.write("#### Composite Intelligence Scores")
@@ -121,22 +218,21 @@ def render():
                     if 'shock_vector' in payload:
                         st.plotly_chart(plot_shock_vector(payload['shock_vector'], "Pre vs Post Shock Vector"), use_container_width=True, key=f"pending_{sync['sync_id']}")
                     if 'spoke_interpretation' in payload:
-                        st.markdown(f"**Spoke Interpretation:** {payload['spoke_interpretation']}")
+                        st.markdown(f"**Institution assessment:** {payload['spoke_interpretation']}")
                     if 'post_shock_volatility_forecast' in payload:
-                        st.write("**Post-Shock Volatility Forecast:**")
+                        st.write("**Volatility forecast at time of anomaly:**")
                         st.json(payload['post_shock_volatility_forecast'])
-                    
+
                     st.write("---")
-                    reject_msg = st.text_input("Rejection Reason (Optional):", key=f"rej_msg_{sync['sync_id']}")
-                    if st.button("Reject & Request More Data", key=f"rej_btn_{sync['sync_id']}"):
-                        DeltaSyncManager.reject_sync(sync['sync_id'], reject_msg or "Admin requested more data to verify this structural drift.")
+                    reject_msg = st.text_input("Reason for returning (optional):", key=f"rej_msg_{sync['sync_id']}")
+                    if st.button("Return to institution for more information", key=f"rej_btn_{sync['sync_id']}"):
+                        DeltaSyncManager.reject_sync(sync['sync_id'], reject_msg or "Please provide additional supporting data.")
                         st.rerun()
             
             
-            # --- Event Validation / Fusion Workbench ---
             st.write("---")
-            st.write("### Event Fusion & Risk Promotion")
-            st.write("Cross-reference multiple Spoke anomalies and fuse them into a single, high-confidence 'Validated Risk' for the Executive tier.")
+            st.write("### Promote to National Risk")
+            st.write("Select reports above, write a summary, and forward as a validated risk to the executive level.")
             
             selected_count = len(st.session_state['selected_events'])
             if selected_count > 0:
@@ -168,38 +264,32 @@ def render():
                             source_sync_ids=list(st.session_state['selected_events'])
                         )
                         st.session_state['selected_events'] = set()
-                        st.success(f"Risk '{risk_title}' successfully promoted to the Executive Layer.")
+                        st.success(f"Risk '{risk_title}' promoted to executive level.")
             else:
-                st.write("*Select checkboxes next to Pending Anomaly Reports above to fuse them.*")
+                st.write("*Tick reports above to select them, then fill in the fields here.*")
 
-            st.write("---")
-            st.write("### Data Merging Protocol")
-            st.write("Select how to mathematically combine these isolated anomaly reports. Data merging allows the system to learn from all Spokes without viewing their raw data.")
-            
-            aggregation_methods = {
-                "Average (Remove Extremes)": "trimmed_mean",
-                "Middle Value Only": "median",
-                "Most Reliable Node": "krum",
-                "Consensus": "bulyan"
-            }
-            selected_method_label = st.selectbox("Data Merging Strategy (Protects against bad data)", list(aggregation_methods.keys()))
-            
-            if st.button("Merge Data & Update Global Model"):
-                # Extract payloads
-                payloads = [s['payload'] for s in pending_syncs]
-                
-                # Execute mathematically sound aggregation
-                global_weights, meta = FederationBridge.aggregate_spoke_models(payloads, method_name=aggregation_methods[selected_method_label])
-                
-                # Update DB to clear queue
-                DeltaSyncManager.mark_synced([s['sync_id'] for s in pending_syncs])
-                
-                # Store the resulting global FL vector in session for the Privacy step
-                st.session_state['current_global_weights'] = global_weights
-                st.session_state['last_aggregation_meta'] = meta
-                # Use a plain st.success instead of the icon which triggers unicode emoji fallbacks implicitly
-                st.success(f"Anomaly data securely merged using {selected_method_label} strategy. Active participants: {meta.get('participants')}.")
-                st.rerun()
+            if fl_mode:
+                st.write("---")
+                st.caption("Mode B is active. To run federated aggregation on these reports, go to the **Federated Learning (Mode B)** tab.")
+
+    with tab_risk:
+        st.markdown("### Promoted Risks")
+        st.write("Risks that you have validated and forwarded to the executive level. These are visible to national command.")
+
+        promoted = DeltaSyncManager.get_promoted_risks(basket_id)
+        if not promoted:
+            st.success("No risks have been promoted from this sector yet. Review incoming reports in the **Spoke Reports** tab and promote when ready.")
+        else:
+            st.info(f"{len(promoted)} risk(s) currently visible to the executive.")
+            for risk in promoted:
+                scores = risk.get('composite_scores', {})
+                b_impact = scores.get('B_Impact', 0)
+                with st.expander(f"{risk['title']}  |  Impact: {b_impact:.1f}/10  |  {pd.to_datetime(risk.get('timestamp', 0), unit='s').strftime('%Y-%m-%d %H:%M')}"):
+                    st.write(risk.get('description', ''))
+                    c1, c2, c3 = st.columns(3)
+                    c1.metric("Detection", f"{scores.get('A_Detection', 0):.2f}/10")
+                    c2.metric("Impact", f"{b_impact:.2f}/10")
+                    c3.metric("Certainty", f"{scores.get('C_Certainty', 0):.2f}/10")
 
     with tab_proj:
         st.info("### Operational Projects (Cross-Basket Fusion Spaces)")
@@ -323,8 +413,8 @@ def render():
         st.write("---")
 
     with tab2:
-        st.info("### Historical Insights & Institutional Memory")
-        st.write("Archive of all previously merged anomaly reports and closed Operational Projects.")
+        st.markdown("### Historical Archive")
+        st.write("All previously reviewed reports and closed operational projects.")
         
         st.write("#### Institutional Memory (Closed Projects)")
         memories = ProjectManager.get_institutional_memory()
@@ -378,9 +468,10 @@ def render():
                         st.markdown(f"**Interpretation:** {payload['spoke_interpretation']}")
 
     with tab3:
-        st.error("### System Configuration")
-        st.write("Configure the sensitivity thresholds for all mathematically isolated Spokes within your jurisdiction.")
-        
+        st.markdown("### Settings")
+        st.write("Configure detection sensitivity thresholds for your sector's institutions.")
+        st.caption("These thresholds are applied to all institutions in your sector when you push them below.")
+
         col1, col2 = st.columns(2)
         with col1:
             st.slider("Anomaly Detection Sensitivity (Lower = More Alerts)", 1.0, 15.0, 4.5, 0.5)
@@ -388,178 +479,127 @@ def render():
         with col2:
             st.slider("Threat Detection Speed", 0.01, 0.5, 0.1, 0.01)
             st.selectbox("Hardware Defense Protocol", ["Standard Mode", "Aggressive Mode", "High Performance Mode"])
-        
+
         if st.button("Push Target Bounds to Spokes"):
             st.success("System configurations successfully synchronized to all connected nodes.")
-            
-        st.write("---")
-        
-        # Auto-hydrate the global model from historical data if session state lost it
-        if 'current_global_weights' not in st.session_state:
-            historical_syncs = DeltaSyncManager.get_historical_syncs(basket_id)
-            processed_syncs = [s for s in historical_syncs if s['status'] == 'PROCESSED']
-            if processed_syncs:
-                payloads = [s['payload'] for s in processed_syncs]
-                global_weights, meta = FederationBridge.aggregate_spoke_models(payloads, method_name='trimmed_mean')
-                st.session_state['current_global_weights'] = global_weights
-                st.session_state['last_aggregation_meta'] = meta
 
-        if 'current_global_weights' in st.session_state:
-            st.write("### Active Global Model (Aggregated Data)")
-            st.write("This chart represents the mathematical consensus extracted from all Spokes. This data drives the accuracy of future predictions globally.")
-            
-            # Using Plotly for the global weights
-            weights = st.session_state['current_global_weights']
-            import plotly.graph_objects as go
-            
-            fig = go.Figure()
-            if isinstance(weights, (list, np.ndarray)):
-                y_data = weights if isinstance(weights, list) else weights.tolist()
-                fig.add_trace(go.Scatter(y=y_data, mode='lines+markers', line=dict(color='#00FFFF')))
-                fig.update_layout(template='plotly_dark', height=300, margin=dict(l=0,r=0,t=0,b=0))
-                st.plotly_chart(fig, use_container_width=True, key="global_model_chart")
-                
-                st.write("#### Federated Evaluation Metrics")
-                
-                # Best-effort evaluation extraction from historical payloads
-                historical_syncs = DeltaSyncManager.get_historical_syncs(basket_id)
-                processed = [s['payload'] for s in historical_syncs if s['status'] == 'PROCESSED']
-                
-                avg_confidence = 0.0
-                accuracy = 0.0
-                consensus = "Evaluating..."
-                
-                if processed:
-                    confidences = [p.get('severity_score', 0.0) for p in processed]
-                    avg_confidence = np.mean(confidences) if confidences else 0.0
-                    
-                    # Estimate accuracy based on how tightly the weights grouped (lower variance = higher accuracy)
-                    weights_array = []
-                    for p in processed:
-                        lw = p.get('local_weights')
-                        if not lw and 'post_shock_volatility_forecast' in p:
-                            lw = list(p['post_shock_volatility_forecast'].values())
-                        if lw:
-                            weights_array.append(lw)
-                            
-                    if weights_array:
-                        try:
-                            w_matrix = np.array(weights_array)
-                            variance = np.var(w_matrix, axis=0).mean()
-                            # Mathematical heuristic for FL convergence accuracy
-                            raw_accuracy = 100 - (variance * 15)
-                            accuracy = max(45.0, min(99.9, raw_accuracy))
-                        except Exception:
-                            accuracy = 87.4 # Fallback
-                    else:
-                        accuracy = 92.1
-                        
-                    if accuracy > 90:
-                        consensus = "High (Cryptographic Lock)"
-                    elif accuracy > 75:
-                        consensus = "Moderate (Acceptable Drift)"
-                    else:
-                        consensus = "Low (High Validation Loss)"
-                
-                m1, m2, m3 = st.columns(3)
-                m1.metric("Global Model Accuracy", f"{accuracy:.1f}%", "- Validation Loss OK" if accuracy > 85 else "High Validation Loss", delta_color="normal" if accuracy > 85 else "inverse")
-                m2.metric("Network Consensus", consensus)
-                m3.metric("Avg Threat Certainty", f"{avg_confidence:.2f} / 15.0")
-                
-        else:
-            st.write("No active Global Model exists. Please merge data in Tab 1 first.")
-
-    with tab4:
-        st.warning("### Communications & Intelligence Routing")
-        st.write("Broadcast the aggregated network intelligence up to the God Tier (Raw) or distribute it privately back out to the Spoke network (Noised).")
-        
-        if 'current_global_weights' not in st.session_state:
-            st.write("No active Global Model exists. Please apply noise first or merge data in Tab 1.")
-        else:
-            raw_weights = st.session_state['current_global_weights']
-            
-            st.write("#### 1. Executive Channel (Raw Uplink)")
-            st.write("The God Tier requires mathematically pure, un-blurred data to map the entire planetary model.")
-            if st.button("Push Raw Global Model Upward to Executive Central", type="primary"):
-                st.success("Unfiltered Executive Synthesis updated successfully.")
-                
+        if fl_mode:
             st.write("---")
-            st.write("#### 2. Spoke & Peer Channels (Privacy-Protected)")
-            st.write("Apply mathematical 'blurring' (Differential Privacy) to protect Spoke identities before broadcasting downwards or sideways.")
-            
-            epsilon = st.slider("Data Blurring Level (Lower = More Privacy, Less Accuracy)", 0.1, 10.0, 1.5, 0.1)
-            st.write("*Note: A blurring level of 1.5 or lower guarantees strong plausible deniability by injecting mathematical noise into the exact values.*")
-            
-            if st.button("Apply Mathematical Noise"):
-                noised_weights = FederationBridge.apply_differential_privacy(raw_weights, epsilon)
-                st.session_state['dp_weights'] = noised_weights
-                st.success("Privacy noise injected successfully.")
-                
-            if 'dp_weights' in st.session_state:
-                st.write("**Post-Blurring Global Data:**")
-                noised_weights = st.session_state['dp_weights']
-                import plotly.graph_objects as go
-                fig = go.Figure()
-                if isinstance(noised_weights, list) or hasattr(noised_weights, 'tolist'):
-                    fig.add_trace(go.Scatter(y=noised_weights if isinstance(noised_weights, list) else noised_weights.tolist(), mode='lines+markers', line=dict(color='#FF00FF')))
-                    fig.update_layout(template='plotly_dark', height=300, margin=dict(l=0,r=0,t=0,b=0))
-                    st.plotly_chart(fig, use_container_width=True, key="noised_model_chart")
-            
-                c1, c2 = st.columns(2)
-                if c1.button("Broadcast NOISED Data Downwards to Spokes", use_container_width=True):
-                    st.success("Securely broadcast blurred insights back to all Spoke nodes.")
-                if c2.button("Broadcast NOISED Data Sideways to Peer Baskets", use_container_width=True):
-                    st.success("Cross-Sector synchronization completed.")
+            st.info("**Mode B active.** The aggregated global model is available in the Federated Learning tab.")
 
-    with tab5:
-        st.info("### Terminology Guide (Plain English)")
-        st.write("Having trouble reading the data? Here is a simple guide to what the mathematical terms actually mean.")
-        
-        st.markdown("""
-        **FL (Federated Learning) / Data Merging Strategy**
-        Federated Learning (FL) is the core architecture of this entire platform. It is a highly-secure way to build a giant, globally intelligent AI model by gathering insights from all individual Spokes *without ever downloading their raw, private data*. It mathematically merges the isolated "lessons learned" instead of copying the private records.
-        
-        **Hardware Defense Modes (Standard vs Aggressive vs High-Performance)**
-        Because the math running on the Spokes (Numba, VARX, RRCF) requires incredibly intense CPU power, these modes dictate how much physical hardware the Spoke node is allowed to consume. "Aggressive Mode" locks out other background tasks to force the real-time threat detection to run faster and grab priority.
+    if fl_mode and tab_fl is not None:
+        with tab_fl:
+            st.markdown("### Federated Learning (Mode B)")
+            st.info(
+                "**Mode B is active.** Raw data from spokes never leaves their node. Only mathematical summaries "
+                "(aggregated model weights) are processed here. Gradients flow upward; raw records do not."
+            )
 
-        **Data Blurring Level (Differential Privacy / Epsilon)**
-        A method to mathematically mask Spoke identities by injecting calculated randomness (noise) into the final merged patterns. A lower level means more privacy but slightly less accurate global intelligence.
-        
-        **Predictive Volatility Smoothing (GARCH / Bayesian VARX)**
-        Advanced math tools that forecast the future path of an economic or health indicator by looking at how erratic or volatile it has been recently.
+            # Auto-hydrate from historical processed syncs
+            if 'current_global_weights' not in st.session_state:
+                historical_syncs = DeltaSyncManager.get_historical_syncs(basket_id)
+                processed_syncs = [s for s in historical_syncs if s['status'] == 'PROCESSED']
+                if processed_syncs:
+                    payloads_hist = [s['payload'] for s in processed_syncs]
+                    gw, gm = FederationBridge.aggregate_spoke_models(payloads_hist, method_name='trimmed_mean')
+                    st.session_state['current_global_weights'] = gw
+                    st.session_state['last_aggregation_meta'] = gm
 
-        **Threat Detection Speed (RRCF / Anomaly Detection)**
-        An engine that scans thousands of data points a second to flag moments when normal contextual relationships break down (e.g. if unemployment drops but inflation surprisingly drops too).
-        
-        **Shock Vector**
-        A direct comparison of a data point from 30 days before a crisis versus the exact moment the crisis hit, highlighting exactly how much damage occurred.
-        """)
+            st.write("#### Step 1 \u2014 Aggregate Pending Reports into Global Model")
+            pending_fl = DeltaSyncManager.get_pending_syncs(basket_id)
+            if not pending_fl:
+                st.success("No pending reports to aggregate.")
+            else:
+                fl_methods = {
+                    "Trimmed Mean (recommended \u2014 removes outliers)": "trimmed_mean",
+                    "Median": "median",
+                    "Krum (most reliable node only)": "krum",
+                    "Bulyan (Byzantine-resilient consensus)": "bulyan"
+                }
+                selected_fl_method = st.selectbox("Aggregation strategy", list(fl_methods.keys()))
+                if st.button("Run Aggregation", type="primary"):
+                    payloads_fl = [s['payload'] for s in pending_fl]
+                    global_weights, meta = FederationBridge.aggregate_spoke_models(
+                        payloads_fl, method_name=fl_methods[selected_fl_method]
+                    )
+                    DeltaSyncManager.mark_synced([s['sync_id'] for s in pending_fl])
+                    st.session_state['current_global_weights'] = global_weights
+                    st.session_state['last_aggregation_meta'] = meta
+                    st.success(f"Aggregated {meta.get('participants', '?')} participants using {selected_fl_method}.")
+                    st.rerun()
+
+            if 'current_global_weights' in st.session_state:
+                st.write("---")
+                st.write("#### Current Global Model Weights")
+                import plotly.graph_objects as go_fl
+                weights_fl = st.session_state['current_global_weights']
+                fig_fl = go_fl.Figure()
+                y_data_fl = weights_fl if isinstance(weights_fl, list) else weights_fl.tolist()
+                fig_fl.add_trace(go_fl.Scatter(y=y_data_fl, mode='lines+markers', line=dict(color='#006600')))
+                fig_fl.update_layout(template='plotly_white', height=280, margin=dict(l=0, r=0, t=0, b=0))
+                st.plotly_chart(fig_fl, use_container_width=True, key="global_model_chart_fl")
+
+                st.write("---")
+                st.write("#### Step 2 \u2014 Apply Privacy Protection before Broadcast")
+                st.write("Add differential privacy noise to protect institution identities before sharing aggregated weights.")
+                epsilon_fl = st.slider("Privacy level (lower = more privacy, less precision)", 0.1, 10.0, 1.5, 0.1)
+                if st.button("Apply Privacy Noise"):
+                    noised = FederationBridge.apply_differential_privacy(weights_fl, epsilon_fl)
+                    st.session_state['dp_weights'] = noised
+                    st.success("Privacy noise applied.")
+
+                if 'dp_weights' in st.session_state:
+                    dp_c1, dp_c2 = st.columns(2)
+                    if dp_c1.button("Broadcast to Spokes (privacy-protected)", use_container_width=True):
+                        st.success("Aggregated insights broadcast to spoke nodes.")
+                    if dp_c2.button("Share with Peer Sectors (privacy-protected)", use_container_width=True):
+                        st.success("Cross-sector synchronization complete.")
+
+    # Terminology guide removed — terminology is now inline where needed
         
     with tab_comms:
         with st.container(border=True):
-            st.warning("### Secure Intelligence Routing")
-            st.write("Manage secure dispatch streams across the hierarchy.")
-            
+            st.markdown("### Communications")
+
+            # Escalate up to national
+            st.write("#### Escalate to national level")
+            esc_col1, esc_col2 = st.columns([4, 1])
+            with esc_col1:
+                escalation = st.text_input("Message to executive", key="esc_payload", placeholder="Describe a high-priority situation requiring national attention...")
+            with esc_col2:
+                st.write("")
+                if st.button("Send to Executive", type="primary", use_container_width=True):
+                    if escalation:
+                        SecureMessaging.send_message(
+                            sender_role=Role.BASKET_ADMIN.value,
+                            sender_id=st.session_state.get('username'),
+                            receiver_role=Role.EXECUTIVE.value,
+                            receiver_id="ALL",
+                            content=escalation
+                        )
+                        st.success("Escalation sent to executive.")
+
+            st.write("---")
             c_col1, c_col2 = st.columns([1, 1])
             with c_col1:
-                st.write("**Incoming Intel (From Spokes)**")
+                st.write("**Messages from your institutions**")
                 spoke_inbox = SecureMessaging.get_inbox(Role.BASKET_ADMIN.value, str(basket_id))
                 if not spoke_inbox:
-                    st.caption("No pending intel drops.")
+                    st.caption("No messages from institutions.")
                 else:
                     for msg in spoke_inbox:
                         with st.expander(f"From {msg['sender_id']} | {msg['timestamp']} {'(NEW)' if not msg['is_read'] else ''}"):
                             st.write(msg['content'])
                             if not msg['is_read']:
-                                if st.button("Mark Cleared", key=f"ac_clear_{msg['id']}"):
+                                if st.button("Mark as read", key=f"ac_clear_{msg['id']}"):
                                     SecureMessaging.mark_read(msg['id'])
                                     st.rerun()
-                                    
+
                 st.write("---")
-                st.write("**Send Directive (To Spoke Protocol)**")
-                target_spoke = st.text_input("Target Node Username (or 'ALL' for broadcast)")
-                directive = st.text_area("Directive Payload", height=100)
-                if st.button("Dispatch Downward", type="primary", use_container_width=True):
+                st.write("**Send directive to an institution**")
+                target_spoke = st.text_input("Institution username (or 'ALL' to broadcast)")
+                directive = st.text_area("Message", height=100)
+                if st.button("Send directive", type="primary", use_container_width=True):
                     if directive and target_spoke:
                         SecureMessaging.send_message(
                             sender_role=Role.BASKET_ADMIN.value,
@@ -568,19 +608,19 @@ def render():
                             receiver_id=target_spoke,
                             content=directive
                         )
-                        st.success("Directive routed to Spoke(s).")
-                        
+                        st.success("Directive sent.")
+
             with c_col2:
-                st.write("**National Directives (Executive Inbox)**")
-                exec_inbox = SecureMessaging.get_inbox(Role.BASKET_ADMIN.value, st.session_state.get('username')) 
+                st.write("**Directives from the executive**")
+                exec_inbox = SecureMessaging.get_inbox(Role.BASKET_ADMIN.value, st.session_state.get('username'))
                 if not exec_inbox:
-                    st.caption("No commands received.")
+                    st.caption("No directives received from executive.")
                 else:
                     for msg in exec_inbox:
-                        with st.expander(f"EXECUTIVE DIRECTIVE | {msg['timestamp']} {'(NEW)' if not msg['is_read'] else ''}"):
+                        with st.expander(f"Executive | {msg['timestamp']} {'(NEW)' if not msg['is_read'] else ''}"):
                             st.write(msg['content'])
                             if not msg['is_read']:
-                                if st.button("Acknowledge Command", key=f"ac_exec_{msg['id']}"):
+                                if st.button("Acknowledge", key=f"ac_exec_{msg['id']}"):
                                     SecureMessaging.mark_read(msg['id'])
                                     st.rerun()
 

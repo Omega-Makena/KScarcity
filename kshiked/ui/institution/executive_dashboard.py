@@ -19,6 +19,7 @@ from kshiked.ui.institution.backend.database import get_connection
 from kshiked.ui.institution.style import inject_enterprise_theme
 from kshiked.ui.institution.backend.messaging import SecureMessaging
 from kshiked.ui.institution.collab_room import render_collab_room
+from kshiked.ui.institution.executive_simulator import render_executive_simulator
 
 @st.cache_data(ttl=3600)
 def load_and_process_geojson(geojson_path):
@@ -383,38 +384,8 @@ def render():
                 st.caption(f"**National Sentiment Baseline:** {avg_sent:.2f} | Most strained sector: {df_filtered.groupby('Sector')['Criticality'].mean().idxmax()}")
                 
     with tab_sim:
-        st.markdown("### Policy Simulator")
-        st.write("Model how a policy intervention in one sector propagates across the national system over a 30-day horizon.")
-        sim_c1, sim_c2 = st.columns([1.5, 1])
-        with sim_c1:
-            with st.spinner("Compiling VARX/GARCH Mathematical Models..."):
-                import plotly.graph_objects as go
-                
-                df_base, df_base_var = cached_simulate_policy_shock(1 if global_risks else 0, 4.0 if global_risks else 0.0, 30)
-                fig_base = go.Figure()
-                for col in df_base.columns:
-                    fig_base.add_trace(go.Scatter(x=df_base.index, y=df_base[col], mode='lines', name=col, line=dict(width=2)))
-                fig_base.update_layout(height=250, margin=dict(l=0, r=0, t=10, b=0), template="plotly_white", legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1))
-                st.plotly_chart(fig_base, use_container_width=True)
-                
-        with sim_c2:
-            st.markdown("#### Action Parameters")
-            live_tiers = ExecutiveBridge.get_tiers()
-            target_name = st.selectbox("Intervention Target", live_tiers)
-            target_idx = live_tiers.index(target_name)
-            shock_magnitude = st.slider("Intervention Intensity", -10.0, 10.0, -5.0, 0.5)
-            
-            if st.button("Project Mitigated Outcome", type="primary", use_container_width=True):
-                df_mitigated, df_var = cached_simulate_policy_shock(target_idx, shock_magnitude, 30)
-                end_state, base_end_state = df_mitigated.iloc[-1].mean(), df_base.iloc[-1].mean()
-                
-                if end_state < base_end_state:
-                    reduction = ((base_end_state - end_state) / (abs(base_end_state) + 1e-9)) * 100
-                    st.success(f"**Outcome:** Systemic cooling (-{reduction:.1f}%)")
-                else:
-                    inc = ((end_state - base_end_state) / (abs(base_end_state) + 1e-9)) * 100
-                    st.error(f"**Outcome:** Compounds strain (+{inc:.1f}%)")
-                    
+        render_executive_simulator()
+        
     with tab_projects:
         with st.container(border=True):
             st.markdown("#### Launch National Operational Project")
