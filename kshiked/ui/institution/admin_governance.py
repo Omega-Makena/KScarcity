@@ -25,6 +25,12 @@ from kshiked.ui.institution.backend.analytics_engine import (
     generate_recommendation,
     compute_outcome_impact,
 )
+from kshiked.ui.institution.backend.report_narrator import (
+    narrate_composite_scores,
+    narrate_severity,
+    narrate_shock_vector,
+    narrate_risk_for_executive,
+)
 
 def plot_shock_vector(shock_vector, title):
     import plotly.graph_objects as go
@@ -219,6 +225,16 @@ def render():
                         c_col1.metric("A) Detection Score", f"{payload['composite_scores'].get('A_Detection', 0.0):.2f} / 10.0")
                         c_col2.metric("B) Impact Score", f"{payload['composite_scores'].get('B_Impact', 0.0):.2f} / 10.0")
                         c_col3.metric("C) Certainty Score", f"{payload['composite_scores'].get('C_Certainty', 0.0):.2f} / 10.0")
+
+                        # Plain-language explanation of what these scores mean
+                        st.markdown(
+                            f'<div style="background:#F0FDF4; border-left:4px solid #10B981; padding:10px 14px; '
+                            f'border-radius:0 6px 6px 0; margin:8px 0; font-size:0.88rem; line-height:1.5;">'
+                            f'<strong>📋 Plain-language interpretation:</strong><br>'
+                            f'{narrate_composite_scores(payload["composite_scores"])}<br><br>'
+                            f'{narrate_severity(payload.get("severity_score", 0.0))}</div>',
+                            unsafe_allow_html=True,
+                        )
                         st.write("---")
                     
                     # ── PILLAR 1: "SO WHAT?" ──
@@ -251,9 +267,17 @@ def render():
                     )
 
                     if 'shock_vector' in payload:
+                        # Plain-language explanation of what changed
+                        sv_narrative = narrate_shock_vector(payload['shock_vector'])
+                        st.markdown(
+                            f'<div style="background:#FFFBEB; border-left:4px solid #F59E0B; padding:10px 14px; '
+                            f'border-radius:0 6px 6px 0; margin:8px 0; font-size:0.88rem;">'
+                            f'{sv_narrative}</div>',
+                            unsafe_allow_html=True,
+                        )
                         st.plotly_chart(plot_shock_vector(payload['shock_vector'], "Pre vs Post Shock Vector"), use_container_width=True, key=f"pending_{sync['sync_id']}")
                     if 'spoke_interpretation' in payload:
-                        st.markdown(f"**Institution assessment:** {payload['spoke_interpretation']}")
+                        st.markdown(f"**Institution's own assessment:** _{payload['spoke_interpretation']}_")
                     if 'post_shock_volatility_forecast' in payload:
                         st.write("**Volatility forecast at time of anomaly:**")
                         st.json(payload['post_shock_volatility_forecast'])

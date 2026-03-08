@@ -28,6 +28,10 @@ from kshiked.ui.institution.backend.analytics_engine import (
     compute_outcome_impact,
     get_county_centroid,
 )
+from kshiked.ui.institution.backend.report_narrator import (
+    narrate_risk_for_executive,
+    narrate_severity,
+)
 
 @st.cache_data(ttl=3600)
 def load_and_process_geojson(geojson_path, county_scores=None):
@@ -271,12 +275,26 @@ def render():
                             certainty = scores.get('C_Certainty', 0)
                             ts = pd.to_datetime(risk.get('timestamp', 0), unit='s').strftime('%Y-%m-%d %H:%M')
                             sev_color = "#BB0000" if impact > 7 else "#F59E0B" if impact > 4 else "#006600"
+
+                            # Executive-ready narrative paragraph
+                            exec_narrative = narrate_risk_for_executive(
+                                title=risk.get('title', 'Untitled Risk'),
+                                description=risk.get('description', ''),
+                                composite_scores=scores,
+                                severity=impact,
+                                sector_name=b_name,
+                                threat_level=risk.get('threat_level', ''),
+                            )
                             st.markdown(
-                                f'<div style="border-left: 4px solid {sev_color}; padding: 0.6rem 1rem; margin-bottom: 0.5rem; background: #f8fafc; border-radius: 0 4px 4px 0;">'
-                                f'<strong>{risk["title"]}</strong><br/>'
-                                f'<span style="font-size:0.82rem; color:#475569;">'
-                                f'Detection {detection:.1f}/10 &nbsp;&middot;&nbsp; Impact {impact:.1f}/10 &nbsp;&middot;&nbsp; Certainty {certainty:.1f}/10 &nbsp;&nbsp; | &nbsp;&nbsp;{ts}'
-                                f'</span><br/><span style="font-size:0.85rem; color:#1F2937;">{risk.get("description", "")[:200]}</span>'
+                                f'<div style="background:#F8FAFC; border-left:4px solid {sev_color}; padding:12px 16px; '
+                                f'border-radius:0 6px 6px 0; margin-bottom:0.5rem; font-size:0.9rem; line-height:1.6;">'
+                                f'{exec_narrative}</div>',
+                                unsafe_allow_html=True
+                            )
+
+                            st.markdown(
+                                f'<div style="padding:0.3rem 1rem; margin-bottom:0.3rem; font-size:0.82rem; color:#64748b;">'
+                                f'Detection {detection:.1f}/10 &middot; Impact {impact:.1f}/10 &middot; Certainty {certainty:.1f}/10 &nbsp;&nbsp;|&nbsp;&nbsp;{ts}'
                                 f'</div>',
                                 unsafe_allow_html=True
                             )

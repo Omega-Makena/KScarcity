@@ -27,6 +27,17 @@ from kshiked.ui.kshield.causal.view import (
     _render_causal_network,
     _render_cross_corr
 )
+from kshiked.ui.institution.backend.report_narrator import (
+    narrate_composite_scores,
+    narrate_severity,
+    narrate_threat_level,
+    narrate_shock_vector,
+    narrate_economic_state,
+    narrate_anomaly_detection,
+    narrate_trend_analysis,
+    narrate_propagation_chain,
+    get_threat_index_explanation,
+)
 
 
 def _get_institution_name(inst_id: int) -> str:
@@ -191,10 +202,23 @@ def render():
 
                 st.write("---")
 
+                # ── PLAIN-LANGUAGE EXPLANATION ────────────────────────────────
+                st.markdown(
+                    f'<div style="background:#F0FDF4; border-left:4px solid #10B981; padding:12px 16px; '
+                    f'border-radius:0 8px 8px 0; margin-bottom:1rem; font-size:0.9rem; line-height:1.6;">'
+                    f'<strong>📋 What does this mean?</strong><br>'
+                    f'{narrate_composite_scores(c)}<br><br>'
+                    f'{narrate_severity(res.peak_score)}</div>',
+                    unsafe_allow_html=True,
+                )
+
                 # ── 1. ANOMALY DETECTION ────────────────────────────────────────
-                with st.expander("1. Anomaly Detection", expanded=True):
+                with st.expander("1. Anomaly Detection — Did something unusual happen?", expanded=True):
+                    # Plain-language summary first
+                    st.markdown(narrate_anomaly_detection(res.peak_score, res.structural_breaks))
+                    st.write("")
                     st.caption(
-                        "RRCF streaming anomaly detection. Each row is scored in real time. "
+                        "**Technical detail:** RRCF streaming anomaly detection. Each row is scored in real time. "
                         "Score > 2.0 = structural shift. Score > 1.0 = moderate deviation."
                     )
                     if res.anomaly_scores:
@@ -205,12 +229,15 @@ def render():
                         st.info("No anomaly scores computed — check that your data has numeric columns.")
 
                 # ── 2. TEMPORAL TREND ANALYSIS ──────────────────────────────────
-                with st.expander("2. Temporal Trend Analysis"):
-                    st.caption(
-                        "Compares first half vs second half of your data per variable. "
-                        "Detects acceleration, deceleration, volatility increase, and structural breaks."
-                    )
+                with st.expander("2. Temporal Trend Analysis — Are things getting better or worse?"):
                     if res.trend_signals:
+                        # Plain-language summary first
+                        st.markdown(narrate_trend_analysis(res.trend_signals))
+                        st.write("")
+                        st.caption(
+                            "**Technical detail:** Compares first half vs second half of your data per variable. "
+                            "Detects acceleration, deceleration, volatility increase, and structural breaks."
+                        )
                         _dir_icons = {"acceleration": "📈", "deceleration": "📉", "stable": "➡️"}
                         _vol_icons = {"increasing volatility": "⚡", "decreasing volatility": "🔇", "stable": "〰️"}
                         _rows = []
@@ -265,12 +292,13 @@ def render():
                         )
 
                 # ── 4. CAUSAL RELATIONSHIP ANALYSIS ────────────────────────────
-                with st.expander("4. Causal Relationship Analysis"):
-                    st.caption(
-                        f"The scarcity discovery engine tested {res.hypotheses_total} relationship hypotheses "
-                        f"and found {res.hypotheses_active} active causal/correlational patterns "
-                        f"(overall confidence: {res.overall_confidence:.0%}). "
-                        "These are data-driven statistical relationships — not confirmed causal facts."
+                with st.expander("4. Causal Relationship Analysis — What is causing what?"):
+                    st.markdown(
+                        f"The system tested **{res.hypotheses_total} possible cause-and-effect relationships** "
+                        f"in your data and found **{res.hypotheses_active} patterns** that appear to be real "
+                        f"(confidence: {res.overall_confidence:.0%}). "
+                        "These are statistically detected patterns — they suggest connections between variables "
+                        "but don't prove one causes the other."
                     )
                     if res.relationship_summary:
                         for sentence in res.relationship_summary:
@@ -307,8 +335,13 @@ def render():
                         st.info("No relationships discovered yet — the engine needs more data rows to learn patterns.")
 
                 # ── 5. CROSS-SECTOR CORRELATION ─────────────────────────────────
-                with st.expander("5. Cross-Sector Correlation Analysis"):
-                    st.caption("How your variables move relative to each other. Red = move together. Blue = move opposite. Identifies inter-sector dependencies.")
+                with st.expander("5. Cross-Sector Correlation — Which variables move together?"):
+                    st.markdown(
+                        "This shows how your data variables relate to each other. "
+                        "**Red** = they tend to rise and fall together. "
+                        "**Blue** = when one goes up, the other goes down. "
+                        "Strong connections (above 0.6) are listed below the map."
+                    )
                     _num_df = st.session_state['local_df'].select_dtypes(include=[np.number])
                     if _num_df.shape[1] >= 2:
                         _corr = _num_df.corr()
@@ -331,16 +364,19 @@ def render():
                         st.info("Need at least 2 numeric variables for correlation analysis.")
 
                 # ── 6. SENTIMENT & SOCIAL SIGNALS ───────────────────────────────
-                with st.expander("6. Sentiment & Social Signals — Threat Index"):
-                    st.caption(
-                        "8 composite threat indices derived from data characteristics. "
-                        "When the pulse/social signal engine is active (live data), these reflect real detected signals. "
-                        "With uploaded CSV data, they are estimated from anomaly patterns and trend degradation signals."
+                with st.expander("6. Public Safety & Social Signal Monitor"):
+                    st.markdown(
+                        "These 8 indices measure different dimensions of national stability — from public opinion "
+                        "to economic resilience to security conditions. Each one tracks a specific type of risk."
                     )
                     if res.threat_report:
                         _tr = res.threat_report
                         _level_bg = {"CRITICAL": "#BB0000", "HIGH": "#E05000", "ELEVATED": "#F59E0B", "GUARDED": "#2563EB", "LOW": "#006600"}
                         _lbg = _level_bg.get(_tr.get("overall_threat_level", "LOW"), "#006600")
+
+                        # Plain-language threat level explanation
+                        st.markdown(narrate_threat_level(_tr.get("overall_threat_level", "LOW")))
+
                         st.markdown(
                             f'<div style="background:{_lbg}22; border:2px solid {_lbg}; border-radius:8px; padding:0.8rem; margin-bottom:1rem; text-align:center;">'
                             f'<span style="color:{_lbg}; font-size:1.4rem; font-weight:bold;">Overall Threat: {_tr.get("overall_threat_level")}</span>'
@@ -364,6 +400,7 @@ def render():
                             _sev = _idx_data.get("severity", "LOW")
                             _sev_color = _level_bg.get(_sev, "#888")
                             with _ia_cols[_i % 2]:
+                                explanation = get_threat_index_explanation(key)
                                 st.markdown(
                                     f'<div style="border-left:3px solid {_sev_color}; padding:0.3rem 0.6rem; margin-bottom:0.4rem;">'
                                     f'<b style="font-size:0.85rem;">{label}</b><br>'
@@ -371,6 +408,8 @@ def render():
                                     f'<span style="font-size:0.75rem; color:{_sev_color}; margin-left:0.4rem;">{_sev}</span>'
                                     f'</div>', unsafe_allow_html=True
                                 )
+                                if explanation:
+                                    st.caption(explanation)
                         _alerts = _tr.get("priority_alerts", [])
                         if _alerts:
                             st.write("**Priority Alerts:**")
@@ -382,14 +421,21 @@ def render():
                         st.info("Threat index computation is not available — ensure kshiked.pulse is installed.")
 
                 # ── 7. POLICY IMPACT ANALYSIS ───────────────────────────────────
-                with st.expander("7. Policy Impact Analysis"):
-                    st.caption(
-                        "Stock-Flow Consistent (SFC) macroeconomic model — real economic dynamics with sector balance sheets, "
-                        "Taylor rule monetary policy, Okun's Law labor market, Phillips Curve inflation. "
-                        "This is the baseline economic state. Use the Policy Simulator tab to test shocks."
+                with st.expander("7. National Economic Health — What's the economy doing?"):
+                    st.markdown(
+                        "This uses a mathematical model of the Kenyan economy to assess overall health. "
+                        "It simulates how households, businesses, banks, and government interact."
                     )
                     if res.economic_state:
                         _es = res.economic_state
+                        # Plain-language economic narrative first
+                        st.markdown(
+                            f'<div style="background:#F0F9FF; border-left:4px solid #3B82F6; padding:10px 14px; '
+                            f'border-radius:0 6px 6px 0; margin:8px 0;">'
+                            f'{narrate_economic_state(_es)}</div>',
+                            unsafe_allow_html=True,
+                        )
+                        st.write("")
                         _p1, _p2, _p3, _p4 = st.columns(4)
                         _p1.metric("GDP Growth", f"{_es.get('gdp_growth', 0):.2%}")
                         _p2.metric("Inflation", f"{_es.get('inflation', 0):.2%}")
@@ -439,20 +485,14 @@ def render():
                         st.info("SFC model not available — resource utilization metrics not computable.")
 
                 # ── 9. RISK PROPAGATION ANALYSIS ────────────────────────────────
-                with st.expander("9. Risk Propagation Analysis"):
-                    st.caption(
-                        "How shocks move through the system. Traces cascading effects from the most volatile variable "
-                        "through discovered causal pathways. Shows the estimated impact chain."
+                with st.expander("9. Risk Propagation — Could this trigger a chain reaction?"):
+                    st.markdown(
+                        "When something goes wrong in one part of the economy, it can cause problems elsewhere — "
+                        "like dominoes falling. This section maps those potential chain reactions."
                     )
                     if res.propagation_chains:
                         for chain_info in res.propagation_chains:
-                            st.markdown(
-                                f'<div style="background:#FFF8E7; border-left:4px solid #F59E0B; padding:0.7rem; border-radius:0 6px 6px 0; margin-bottom:0.5rem;">'
-                                f'<b>Propagation chain:</b> {chain_info.get("description", "")}<br>'
-                                f'<span style="font-size:0.8rem; color:#666;">Trigger: <b>{chain_info.get("trigger", "")}</b> — '
-                                f'Estimated cascade impact: <b>{chain_info.get("estimated_impact", 0):.0%}</b></span>'
-                                f'</div>', unsafe_allow_html=True
-                            )
+                            st.markdown(narrate_propagation_chain(chain_info))
                     elif res.anomaly_scores and res.peak_score > 0.5:
                         st.info(
                             f"An anomaly was detected (peak score: {res.peak_score:.2f}). "
@@ -470,10 +510,11 @@ def render():
                     )
 
                 # ── 10. FORECASTING ──────────────────────────────────────────────
-                with st.expander("10. Forecasting"):
-                    st.caption(
-                        "VARX multi-variate time series forecast with GARCH uncertainty bounds. "
-                        "Grey = your actual data. Teal = forecast trajectory. Shaded band = confidence interval (wider = more uncertain)."
+                with st.expander("10. Forecasting — What might happen next?"):
+                    st.markdown(
+                        "Based on your data's historical patterns, the system projects where each variable is heading. "
+                        "The **teal line** is the forecast. The **shaded area** shows the uncertainty — "
+                        "wider bands mean less certainty about the direction."
                     )
                     if res.forecast_matrix and res.columns:
                         _cols_f = res.columns[:min(4, len(res.columns))]
