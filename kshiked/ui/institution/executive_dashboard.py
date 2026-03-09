@@ -33,6 +33,38 @@ from kshiked.ui.institution.backend.report_narrator import (
     narrate_severity,
 )
 
+def _resolve_risk_scores(risk: dict) -> dict:
+    """Normalize composite_scores regardless of whether they come from the
+    demo seeder (keys: severity, composite_risk, confidence, trend) or from
+    the analysis pipeline (keys: A_Detection, B_Impact, C_Certainty).
+    Returns a dict always containing B_Impact, A_Detection, C_Certainty."""
+    raw = risk.get('composite_scores', {})
+    if isinstance(raw, str):
+        import json as _j
+        try:
+            raw = _j.loads(raw)
+        except Exception:
+            raw = {}
+    if not raw:
+        return {'B_Impact': 0.0, 'A_Detection': 0.0, 'C_Certainty': 0.0}
+    # Pipeline schema
+    if 'B_Impact' in raw or 'A_Detection' in raw:
+        impact = float(raw.get('B_Impact', raw.get('A_Detection', 0.0)))
+        return {
+            'B_Impact': impact,
+            'A_Detection': float(raw.get('A_Detection', impact)),
+            'C_Certainty': float(raw.get('C_Certainty', 0.0)),
+        }
+    # Demo-seeder schema: composite_risk or severity are 0-1 floats — scale to /10
+    composite = float(raw.get('composite_risk', raw.get('severity', 0.0)))
+    confidence = float(raw.get('confidence', raw.get('trend', 0.8)))
+    return {
+        'B_Impact':    round(composite * 10, 2),
+        'A_Detection': round(composite * 10, 2),
+        'C_Certainty': round(confidence * 10, 2),
+    }
+
+
 @st.cache_data(ttl=3600)
 def load_and_process_geojson(geojson_path, county_scores=None):
     import json
@@ -195,7 +227,7 @@ def render():
                 for r in global_risks:
                     threat_data.append({
                         "Sector": all_baskets.get(r['basket_id'], 'Unknown'),
-                        "Impact": r.get('composite_scores', {}).get('B_Impact', 5),
+                        "Impact": _resolve_risk_scores(r)['B_Impact'] or 5.0,
                         "Title": r['title']
                     })
                 df_threats = pd.DataFrame(threat_data)
@@ -241,7 +273,7 @@ def render():
                 """, unsafe_allow_html=True)
                 
             if global_risks:
-                top_r = sorted(global_risks, key=lambda x: x.get('composite_scores', {}).get('B_Impact', 0), reverse=True)[0]
+                top_r = sorted(global_risks, key=lambda x: _resolve_risk_scores(x)['B_Impact'], reverse=True)[0]
                 st.markdown(f"""
                 <div style="background: #F0FDF4; border-left: 4px solid #10B981; padding: 12px; margin-bottom: 10px; border-radius: 4px;">
                     <strong>Signal: {top_r['title']}</strong>
@@ -262,17 +294,17 @@ def render():
             for b_id, b_name in all_baskets.items():
                 sector_risks = [r for r in global_risks if r.get('basket_id') == b_id]
                 sector_projects = [p for p in active_projects if b_id in (ProjectManager.get_project_details(p['id']).get('participants', []))]
-                total_impact = sum(r.get('composite_scores', {}).get('B_Impact', 0) for r in sector_risks)
+                total_impact = sum(_resolve_risk_scores(r)['B_Impact'] for r in sector_risks)
 
-                with st.expander(f"{b_name}  |  {len(sector_risks)} validated risk(s)  |  Cumulative impact: {total_impact:.1f}", expanded=len(sector_risks) > 0):
+                with st.expander(f"{b_name}  |  {len(sector_risks)} validated risk(s)  |  Composite risk: {total_impact:.1f}/10", expanded=len(sector_risks) > 0):
                     if not sector_risks:
                         st.caption("No validated risks from this sector.")
                     else:
                         for risk in sector_risks:
-                            scores = risk.get('composite_scores', {})
-                            impact = scores.get('B_Impact', 0)
-                            detection = scores.get('A_Detection', 0)
-                            certainty = scores.get('C_Certainty', 0)
+                            scores = _resolve_risk_scores(risk)
+                            impact    = scores['B_Impact']
+                            detection = scores['A_Detection']
+                            certainty = scores['C_Certainty']
                             ts = pd.to_datetime(risk.get('timestamp', 0), unit='s').strftime('%Y-%m-%d %H:%M')
                             sev_color = "#BB0000" if impact > 7 else "#F59E0B" if impact > 4 else "#006600"
 
