@@ -19,48 +19,41 @@ def render_landing_page():
     _, center_col, _ = st.columns([1, 2, 1])
     
     with center_col:
-        # WHAT
+        # 5 Ws + 1 H bundled into a single html block for faster rendering
         st.markdown(
-            '''<div style="background:#F8FAFC; border-radius:8px; padding:20px; border-left:4px solid #BB0000; margin-bottom: 1rem; box-shadow:0 4px 6px rgba(0,0,0,0.05);">
-            <h4 style="color:#BB0000; margin-top:0;">What is K-SHIELD?</h4>
-            <p style="color:#475569; font-size:1rem; margin-bottom:0;">An early warning system that detects structural anomalies, trend degradations, and emerging risks across <b>all kinds of national sectors</b> (finance, agriculture, health, security, etc.) before they escalate into systemic crises.</p>
-            </div>''',
-            unsafe_allow_html=True
-        )
-        
-        # WHY
-        st.markdown(
-            '''<div style="background:#F8FAFC; border-radius:8px; padding:20px; border-left:4px solid #F59E0B; margin-bottom: 1rem; box-shadow:0 4px 6px rgba(0,0,0,0.05);">
-            <h4 style="color:#F59E0B; margin-top:0;">Why use it?</h4>
-            <p style="color:#475569; font-size:1rem; margin-bottom:0;">To transform complex, fragmented data into plain-language executive reports, shock propagation forecasts, and clear policy recommendations. It moves national decision-making from reactive to proactive.</p>
-            </div>''',
-            unsafe_allow_html=True
-        )
-        
-        # WHERE
-        st.markdown(
-            '''<div style="background:#F8FAFC; border-radius:8px; padding:20px; border-left:4px solid #3B82F6; margin-bottom: 1rem; box-shadow:0 4px 6px rgba(0,0,0,0.05);">
-            <h4 style="color:#3B82F6; margin-top:0;">Where does it operate?</h4>
-            <p style="color:#475569; font-size:1rem; margin-bottom:0;">Across all geographic domains. From localized, county-level reporting to macro-level national indicators, providing geographic specificity to pinpoint exactly where systemic risks are materializing.</p>
-            </div>''',
-            unsafe_allow_html=True
-        )
-        
-        # HOW
-        st.markdown(
-            '''<div style="background:#F8FAFC; border-radius:8px; padding:20px; border-left:4px solid #006600; margin-bottom: 1rem; box-shadow:0 4px 6px rgba(0,0,0,0.05);">
-            <h4 style="color:#006600; margin-top:0;">How does it work?</h4>
-            <p style="color:#475569; font-size:1rem; margin-bottom:0;">Through <b>Secure Federated Intelligence</b>. Institutions collaborate and train analytical models collectively, ensuring raw sensitive data never leaves their premises while still contributing to the national risk baseline.</p>
-            </div>''',
-            unsafe_allow_html=True
-        )
-        
-        # WHEN
-        st.markdown(
-            '''<div style="background:#F8FAFC; border-radius:8px; padding:20px; border-left:4px solid #8B5CF6; margin-bottom: 2rem; box-shadow:0 4px 6px rgba(0,0,0,0.05);">
-            <h4 style="color:#8B5CF6; margin-top:0;">When should you act?</h4>
-            <p style="color:#475569; font-size:1rem; margin-bottom:0;">Continuous, real-time monitoring categorizes risks by urgency—providing projected consequences of inaction so you know exactly when an intervention is required to prevent a cascading failure.</p>
-            </div>''',
+            '''
+            <div style="display: flex; flex-direction: column; gap: 1rem; margin-bottom: 2rem;">
+                <div style="background:#F8FAFC; border-radius:8px; padding:20px; border-left:4px solid #14B8A6; box-shadow:0 1px 3px rgba(0,0,0,0.1);">
+                    <h4 style="color:#14B8A6; margin-top:0;">Who is it for?</h4>
+                    <p style="color:#475569; font-size:1rem; margin-bottom:0;">Government executives, sector administrators, and institutional leaders managing national stability and security.</p>
+                </div>
+                
+                <div style="background:#F8FAFC; border-radius:8px; padding:20px; border-left:4px solid #BB0000; box-shadow:0 1px 3px rgba(0,0,0,0.1);">
+                    <h4 style="color:#BB0000; margin-top:0;">What is K-SHIELD?</h4>
+                    <p style="color:#475569; font-size:1rem; margin-bottom:0;">An early warning system that detects structural anomalies, trend degradations, and emerging risks across <b>all kinds of national sectors</b> (finance, agriculture, health, security, etc.) before they escalate into systemic crises.</p>
+                </div>
+                
+                <div style="background:#F8FAFC; border-radius:8px; padding:20px; border-left:4px solid #3B82F6; box-shadow:0 1px 3px rgba(0,0,0,0.1);">
+                    <h4 style="color:#3B82F6; margin-top:0;">Where does it operate?</h4>
+                    <p style="color:#475569; font-size:1rem; margin-bottom:0;">Across all geographic domains. From localized, county-level reporting to macro-level national indicators, providing geographic specificity to pinpoint exactly where systemic risks are materializing.</p>
+                </div>
+                
+                <div style="background:#F8FAFC; border-radius:8px; padding:20px; border-left:4px solid #8B5CF6; box-shadow:0 1px 3px rgba(0,0,0,0.1);">
+                    <h4 style="color:#8B5CF6; margin-top:0;">When should you act?</h4>
+                    <p style="color:#475569; font-size:1rem; margin-bottom:0;">Continuous, real-time monitoring categorizes risks by urgency—providing projected consequences of inaction so you know exactly when an intervention is required to prevent a cascading failure.</p>
+                </div>
+                
+                <div style="background:#F8FAFC; border-radius:8px; padding:20px; border-left:4px solid #F59E0B; box-shadow:0 1px 3px rgba(0,0,0,0.1);">
+                    <h4 style="color:#F59E0B; margin-top:0;">Why use it?</h4>
+                    <p style="color:#475569; font-size:1rem; margin-bottom:0;">To transform complex, fragmented data into plain-language executive reports, shock propagation forecasts, and clear policy recommendations. It moves national decision-making from reactive to proactive.</p>
+                </div>
+                
+                <div style="background:#F8FAFC; border-radius:8px; padding:20px; border-left:4px solid #006600; box-shadow:0 1px 3px rgba(0,0,0,0.1);">
+                    <h4 style="color:#006600; margin-top:0;">How does it work?</h4>
+                    <p style="color:#475569; font-size:1rem; margin-bottom:0;">Through <b>Secure Federated Intelligence</b>. Institutions collaborate and train analytical models collectively, ensuring raw sensitive data never leaves their premises while still contributing to the national risk baseline.</p>
+                </div>
+            </div>
+            ''',
             unsafe_allow_html=True
         )
         
