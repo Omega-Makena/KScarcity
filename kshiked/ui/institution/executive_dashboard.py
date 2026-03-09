@@ -283,96 +283,135 @@ def render():
             
     # --- SECTOR REPORTS TAB ---
     with tab_sectors:
-        st.markdown("### Sector Reports")
-        st.write("Validated risks and recent activity reported by each sector admin. This is Mode A governance data — no raw institutional data is shown.")
+        st.markdown("### Sector Command Overview")
+        st.caption("Live status of all active national sectors. Each sector admin reports validated risks upward to this view.")
 
-        fl_mode = st.session_state.get('fl_mode_enabled', False)
+        # Pre-fetch spoke counts per basket
+        spoke_counts = {}
+        try:
+            with get_connection() as _conn:
+                _cc = _conn.cursor()
+                _cc.execute("SELECT basket_id, COUNT(*) as n FROM institutions GROUP BY basket_id")
+                for _rr in _cc.fetchall():
+                    spoke_counts[_rr['basket_id']] = _rr['n']
+        except Exception:
+            pass
 
-        if not global_risks and not active_projects:
-            st.success("No active sector reports at this time.")
-        else:
+        _SECTOR_ICONS = {
+            "Public Health": "🏥",
+            "Water & Sanitation": "💧",
+            "Transport & Logistics": "🚛",
+            "Security & Border": "🛡️",
+            "Displacement & IDP": "🏕️",
+            "Food & Markets": "🌾",
+            "Communications & Information": "📡",
+        }
+
+        # ── SECTION 1: STATUS GRID (always shows ALL sectors) ──
+        basket_list = list(all_baskets.items())
+        for row_start in range(0, len(basket_list), 3):
+            cols = st.columns(3)
+            for col_idx, (b_id, b_name) in enumerate(basket_list[row_start : row_start + 3]):
+                s_risks  = [r for r in global_risks if r.get('basket_id') == b_id]
+                top_imp  = max((_resolve_risk_scores(r)['B_Impact'] for r in s_risks), default=0.0)
+                n_spokes = spoke_counts.get(b_id, 0)
+                icon     = _SECTOR_ICONS.get(b_name, "📊")
+                if top_imp >= 8:
+                    cborder = "#BB0000"; slabel = "CRITICAL"; sbg = "#BB0000"
+                elif top_imp >= 6:
+                    cborder = "#E05000"; slabel = "HIGH";     sbg = "#E05000"
+                elif top_imp >= 4:
+                    cborder = "#F59E0B"; slabel = "ELEVATED"; sbg = "#F59E0B"
+                elif s_risks:
+                    cborder = "#3B82F6"; slabel = "ACTIVE";   sbg = "#3B82F6"
+                else:
+                    cborder = "#10B981"; slabel = "CLEAR";    sbg = "#10B981"
+                risk_tag = f"&nbsp;|&nbsp; 🔴 {round(top_imp,1)}/10" if s_risks else ""
+                cols[col_idx].markdown(
+                    f'<div style="background:#F8FAFC; border-radius:10px; border-top:4px solid {cborder}; '
+                    f'padding:14px 16px; margin-bottom:12px; min-height:100px;">'
+                    f'<div style="font-size:1.05rem; font-weight:700; color:#1F2937; margin-bottom:4px;">{icon} {b_name}</div>'
+                    f'<div style="margin-bottom:6px;"><span style="background:{sbg}; color:#fff; padding:2px 8px; '
+                    f'border-radius:4px; font-size:0.75rem; font-weight:600;">{slabel}</span></div>'
+                    f'<div style="font-size:0.79rem; color:#475569;">'
+                    f'🏢 {n_spokes} spoke{"s" if n_spokes != 1 else ""} &nbsp;|&nbsp; '
+                    f'⚠️ {len(s_risks)} risk{"s" if len(s_risks) != 1 else ""} promoted{risk_tag}</div></div>',
+                    unsafe_allow_html=True
+                )
+
+        st.write("---")
+        st.markdown("#### Validated Risks — All Sectors")
+        st.markdown("#### Promoted Risks — All Sectors")
+        # ── SECTION 2: DETAILED RISK CARDS (one expander per sector, all visible) ──
+        if True:  # always enter — no early-exit guard
+
             for b_id, b_name in all_baskets.items():
                 sector_risks = [r for r in global_risks if r.get('basket_id') == b_id]
-                sector_projects = [p for p in active_projects if b_id in (ProjectManager.get_project_details(p['id']).get('participants', []))]
                 total_impact = sum(_resolve_risk_scores(r)['B_Impact'] for r in sector_risks)
-
-                with st.expander(f"{b_name}  |  {len(sector_risks)} validated risk(s)  |  Composite risk: {total_impact:.1f}/10", expanded=len(sector_risks) > 0):
+                icon         = _SECTOR_ICONS.get(b_name, "📊")
+                with st.expander(
+                    f"{icon} {b_name}  |  {len(sector_risks)} risk(s)"
+                    + (f"  |  Composite: {total_impact:.1f}/10" if sector_risks else "  |  CLEAR"),
+                    expanded=len(sector_risks) > 0
+                ):
                     if not sector_risks:
-                        st.caption("No validated risks from this sector.")
+                        st.success("✅ No promoted risks from this sector. All clear.")
                     else:
                         for risk in sector_risks:
-                            scores = _resolve_risk_scores(risk)
+                            scores    = _resolve_risk_scores(risk)
                             impact    = scores['B_Impact']
                             detection = scores['A_Detection']
                             certainty = scores['C_Certainty']
-                            ts = pd.to_datetime(risk.get('timestamp', 0), unit='s').strftime('%Y-%m-%d %H:%M')
-                            sev_color = "#BB0000" if impact > 7 else "#F59E0B" if impact > 4 else "#006600"
-
-                            # Executive-ready narrative paragraph
-                            exec_narrative = narrate_risk_for_executive(
-                                title=risk.get('title', 'Untitled Risk'),
-                                description=risk.get('description', ''),
-                                composite_scores=scores,
-                                severity=impact,
-                                sector_name=b_name,
-                                threat_level=risk.get('threat_level', ''),
+                            ts        = pd.to_datetime(risk.get('timestamp', 0), unit='s').strftime('%Y-%m-%d %H:%M')
+                            sev_color = "#BB0000" if impact > 7 else "#E05000" if impact > 5 else "#F59E0B" if impact > 3 else "#059669"
+                            st.markdown(
+                                f'<div style="background:{sev_color}; color:#fff; padding:8px 14px; '
+                                f'border-radius:6px 6px 0 0; font-weight:700; font-size:0.92rem; margin-top:8px;">'
+                                f'{risk.get("title","Untitled Risk")}</div>',
+                                unsafe_allow_html=True,
                             )
                             st.markdown(
-                                f'<div style="background:#F8FAFC; border-left:4px solid {sev_color}; padding:12px 16px; '
-                                f'border-radius:0 6px 6px 0; margin-bottom:0.5rem; font-size:0.9rem; line-height:1.6;">'
-                                f'{exec_narrative}</div>',
-                                unsafe_allow_html=True
+                                f'<div style="background:#F8FAFC; border:1px solid #E5E7EB; border-top:none; '
+                                f'padding:12px 16px; border-radius:0 0 6px 6px; font-size:0.88rem; line-height:1.6; margin-bottom:4px;">'
+                                f'{risk.get("description","")}</div>',
+                                unsafe_allow_html=True,
                             )
-
                             st.markdown(
-                                f'<div style="padding:0.3rem 1rem; margin-bottom:0.3rem; font-size:0.82rem; color:#64748b;">'
-                                f'Detection {detection:.1f}/10 &middot; Impact {impact:.1f}/10 &middot; Certainty {certainty:.1f}/10 &nbsp;&nbsp;|&nbsp;&nbsp;{ts}'
-                                f'</div>',
-                                unsafe_allow_html=True
+                                f'<div style="padding:4px 0 4px 2px; font-size:0.8rem; color:#475569;">'
+                                f'<b>Detection</b> {detection:.1f}/10 &middot; <b>Impact</b> {impact:.1f}/10 &middot; '
+                                f'<b>Certainty</b> {certainty:.1f}/10 &nbsp;|&nbsp; {ts}</div>',
+                                unsafe_allow_html=True,
                             )
-
-                            # ── PILLAR 1: "SO WHAT?" ──
                             projection = generate_inaction_projection(
-                                severity=impact,
-                                incident_type='PROMOTED_RISK',
-                                composite_scores=scores,
+                                severity=impact / 10.0, incident_type='PROMOTED_RISK', composite_scores=scores,
                             )
                             if projection:
                                 st.markdown(
                                     f'<div style="background:#FEF2F2; border-left:4px solid #DC2626; padding:8px 12px; '
-                                    f'border-radius:0 6px 6px 0; margin:0 0 4px 0; font-size:0.84rem;">'
-                                    f'<strong>⚠ So What?</strong> {projection}</div>',
+                                    f'border-radius:0 6px 6px 0; margin:4px 0; font-size:0.84rem;">'
+                                    f'<strong>⚠️ So What?</strong> {projection}</div>',
                                     unsafe_allow_html=True,
                                 )
-
-                            # ── PILLAR 2: "COMPARED TO WHAT?" ──
                             hist_ctx = get_historical_context(
-                                basket_id=b_id,
-                                severity=impact,
-                                incident_type='PROMOTED_RISK',
+                                basket_id=b_id, severity=impact / 10.0, incident_type='PROMOTED_RISK',
                             )
                             st.markdown(
                                 f'<div style="background:#F0F9FF; border-left:4px solid #3B82F6; padding:8px 12px; '
-                                f'border-radius:0 6px 6px 0; margin:0 0 4px 0; font-size:0.84rem;">'
+                                f'border-radius:0 6px 6px 0; margin:4px 0 8px 0; font-size:0.84rem;">'
                                 f'<strong>📊 Compared to What?</strong> {hist_ctx}</div>',
                                 unsafe_allow_html=True,
                             )
-
-                            # ── PILLAR 4: "WHAT SHOULD I DO?" ──
                             rec = generate_recommendation(
-                                risk=risk,
-                                all_baskets=all_baskets,
-                                global_risks=global_risks,
+                                risk=risk, all_baskets=all_baskets, global_risks=global_risks,
                             )
                             st.markdown(
                                 f'<div style="background:#FFFBEB; border-left:4px solid {rec.level_color}; '
-                                f'padding:8px 12px; border-radius:0 6px 6px 0; margin:0 0 10px 0;">'
+                                f'padding:8px 12px; border-radius:0 6px 6px 0; margin:0 0 12px 0;">'
                                 f'<strong>🎯 <span style="background:{rec.level_color}; color:#fff; padding:2px 8px; '
                                 f'border-radius:4px; font-size:0.78rem;">{rec.level}</span></strong> '
                                 f'<span style="font-size:0.84rem;">{rec.summary}</span><br/>'
                                 f'<span style="font-size:0.80rem; color:#64748b;">'
-                                f'<b>Who:</b> {", ".join(rec.who[:3])} &nbsp;|&nbsp; '
-                                f'<b>Urgency:</b> {rec.urgency}</span>'
+                                f'<b>Who:</b> {", ".join(rec.who[:3])} &nbsp;|&nbsp; <b>Urgency:</b> {rec.urgency}</span>'
                                 f'</div>',
                                 unsafe_allow_html=True,
                             )
