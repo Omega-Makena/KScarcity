@@ -12,6 +12,48 @@ from kshiked.ui.institution.backend.auth import login_user, logout_user
 from kshiked.ui.institution.backend.models import Role
 from kshiked.ui.institution.style import inject_enterprise_theme
 
+def render_landing_page():
+    inject_enterprise_theme(include_watermark=True)
+    st.markdown("<h1 style='text-align: center; color: #1F2937; padding-top: 2rem;'>K-SHIELD</h1>", unsafe_allow_html=True)
+    st.markdown("<h3 style='text-align: center; color: #475569; padding-bottom: 2rem;'>National Intelligence & Systemic Risk Gateway</h3>", unsafe_allow_html=True)
+    
+    c1, c2, c3 = st.columns(3)
+    
+    with c1:
+        st.markdown(
+            '''<div style="background:#F8FAFC; border-radius:8px; padding:20px; border-top:4px solid #BB0000; box-shadow:0 4px 6px rgba(0,0,0,0.05); height:100%;">
+            <h4 style="color:#BB0000; margin-top:0;">📡 Early Warning System</h4>
+            <p style="color:#475569; font-size:0.95rem;">Detect structural anomalies, trend degradations, and emerging risks across national sectors before they escalate into systemic crises.</p>
+            </div>''',
+            unsafe_allow_html=True
+        )
+    with c2:
+        st.markdown(
+            '''<div style="background:#F8FAFC; border-radius:8px; padding:20px; border-top:4px solid #006600; box-shadow:0 4px 6px rgba(0,0,0,0.05); height:100%;">
+            <h4 style="color:#006600; margin-top:0;">🛡️ Federated Intelligence</h4>
+            <p style="color:#475569; font-size:0.95rem;">Securely collaborate across institutions. Train analytical models collectively while ensuring your raw data never leaves your premises.</p>
+            </div>''',
+            unsafe_allow_html=True
+        )
+    with c3:
+        st.markdown(
+            '''<div style="background:#F8FAFC; border-radius:8px; padding:20px; border-top:4px solid #F59E0B; box-shadow:0 4px 6px rgba(0,0,0,0.05); height:100%;">
+            <h4 style="color:#F59E0B; margin-top:0;">📊 Executable Analytics</h4>
+            <p style="color:#475569; font-size:0.95rem;">Transform complex data into plain-language executive reports, shock propagation forecasts, and clear policy recommendations.</p>
+            </div>''',
+            unsafe_allow_html=True
+        )
+        
+    st.write("")
+    st.write("")
+    st.write("")
+    
+    col1, col2, col3 = st.columns([1, 1, 1])
+    with col2:
+        if st.button("Enter Secure Portal", type="primary", use_container_width=True):
+            st.session_state['show_login'] = True
+            st.rerun()
+
 def render_login_page():
     inject_enterprise_theme(include_watermark=True)
     st.markdown("<h1 style='text-align: center; color: #BB0000;'>National Intelligence Gateway</h1>", unsafe_allow_html=True)
@@ -21,6 +63,11 @@ def render_login_page():
     
     col1, col2, col3 = st.columns([1, 2, 1])
     with col2:
+        if st.button("← Return to Home", use_container_width=True):
+            st.session_state['show_login'] = False
+            st.rerun()
+            
+        st.write("")
         with st.form("login_form"):
             username = st.text_input("Username / Spoke ID")
             password = st.text_input("Passkey", type="password")
@@ -88,7 +135,10 @@ def main():
     
     # Check if this user is already authenticated via Streamlit Session State
     if not st.session_state.get("authenticated", False):
-        render_login_page()
+        if st.session_state.get('show_login', False):
+            render_login_page()
+        else:
+            render_landing_page()
     else:
         route_authenticated_user()
 
