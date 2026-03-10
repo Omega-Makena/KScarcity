@@ -74,15 +74,15 @@ def render_login_page():
         st.write("")
         with st.form("login_form"):
             username = st.text_input("Username / Spoke ID")
-            password = st.text_input("Passkey", type="password")
+            # password = st.text_input("Passkey", type="password")  # DEMO: password disabled
             submitted = st.form_submit_button("Authenticate", use_container_width=True)
             
             if submitted:
-                if login_user(username, password):
+                if login_user(username, ""):  # password bypassed for demo
                     st.success(f"Authentication Successful: Clearance {st.session_state['role']}")
                     st.rerun()
                 else:
-                    st.error("Invalid Credentials or Biometrics Failure.")
+                    st.error("Username not found.")
 
 def route_authenticated_user():
     role = st.session_state.get('role')

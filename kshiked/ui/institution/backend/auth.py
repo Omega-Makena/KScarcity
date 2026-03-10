@@ -3,15 +3,15 @@ from .database import get_connection
 from .models import Role
 
 def verify_credentials(username, password):
-    """Verifies user credentials against the hashed data in the SQLite DB."""
+    """Verifies user credentials against the DB. Password check disabled for demo."""
     with get_connection() as conn:
         cursor = conn.cursor()
-        # In production this would use bcrypt to verify the hash.
-        # For the dashboard demo, we match the seed passwords.
         cursor.execute("SELECT id, username, password_hash, role, basket_id, institution_id FROM users WHERE username = ?", (username,))
         user = cursor.fetchone()
         
-        if user and user['password_hash'] == password:
+        if user:
+            # DEMO MODE: password check disabled — any valid username is accepted
+            # Re-enable for production: if user['password_hash'] == password:
             return user
     return None
 
