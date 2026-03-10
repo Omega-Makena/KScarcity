@@ -136,6 +136,20 @@ def run_simulation(theme, SFCEconomy, SFCConfig, calibrate_from_data,
                 })
                 st.session_state["sim_compare_history"] = history[-5:]
 
+                from kshiked.ui.institution.backend.history_middleware import save_analysis_history
+                save_analysis_history(
+                    analysis_type="Executive Simulation",
+                    sector="All Sectors",
+                    input_params={
+                        "scenarios": [s.name for s in selected_scenarios],
+                        "policy_keys": list(selected_policy_keys),
+                        "steps": steps,
+                        "dims": selected_dims
+                    },
+                    result_payload={"trajectory": trajectory},
+                    summary=f"Simulation Run: {run_label}"
+                )
+
             except Exception as e:
                 st.error(f"Simulation error: {e}")
                 import traceback

@@ -154,6 +154,109 @@ def init_db():
             )
         """)
         
+        # Historical Analysis Tracker
+        cursor.execute("""
+            CREATE TABLE IF NOT EXISTS analysis_history (
+                id TEXT PRIMARY KEY,
+                timestamp TEXT NOT NULL,
+                analysis_type TEXT NOT NULL,
+                user_id INTEGER NOT NULL,
+                username TEXT NOT NULL,
+                role TEXT NOT NULL,
+                basket_id INTEGER,
+                sector TEXT,
+                input_parameters TEXT NOT NULL,
+                result_summary TEXT NOT NULL,
+                full_result_path TEXT NOT NULL,
+                FOREIGN KEY (user_id) REFERENCES users (id)
+            )
+        """)
+        
+        try:
+            cursor.execute("ALTER TABLE operational_projects ADD COLUMN vision TEXT")
+        except sqlite3.OperationalError:
+            pass # Column likely already exists
+
+        # Data Schemas (Admin defined tracking)
+        cursor.execute("""
+            CREATE TABLE IF NOT EXISTS data_schemas (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                admin_id INTEGER NOT NULL,
+                sector TEXT NOT NULL,
+                project_type TEXT NOT NULL,
+                version INTEGER NOT NULL DEFAULT 1,
+                status TEXT NOT NULL DEFAULT 'DRAFT',
+                schema_definition TEXT NOT NULL,
+                created_at REAL NOT NULL,
+                updated_at REAL NOT NULL,
+                FOREIGN KEY (admin_id) REFERENCES users (id)
+            )
+        """)
+
+        # Structured Project Tracking
+        cursor.execute("""
+            CREATE TABLE IF NOT EXISTS project_objectives (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                project_id INTEGER NOT NULL,
+                title TEXT NOT NULL,
+                description TEXT,
+                success_metric TEXT NOT NULL,
+                status TEXT NOT NULL DEFAULT 'PENDING',
+                FOREIGN KEY (project_id) REFERENCES operational_projects (id)
+            )
+        """)
+
+        cursor.execute("""
+            CREATE TABLE IF NOT EXISTS project_milestones (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                project_id INTEGER NOT NULL,
+                title TEXT NOT NULL,
+                description TEXT,
+                due_date REAL NOT NULL,
+                assigned_to TEXT NOT NULL,
+                status TEXT NOT NULL DEFAULT 'NOT_STARTED',
+                linked_objectives_json TEXT,
+                FOREIGN KEY (project_id) REFERENCES operational_projects (id)
+            )
+        """)
+
+        cursor.execute("""
+            CREATE TABLE IF NOT EXISTS project_outcomes (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                project_id INTEGER NOT NULL,
+                title TEXT NOT NULL,
+                description TEXT,
+                measurable_target TEXT,
+                achieved TEXT DEFAULT 'PENDING',
+                actual_result TEXT,
+                FOREIGN KEY (project_id) REFERENCES operational_projects (id)
+            )
+        """)
+
+        cursor.execute("""
+            CREATE TABLE IF NOT EXISTS project_post_mortem (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                project_id INTEGER NOT NULL UNIQUE,
+                verdict TEXT NOT NULL,
+                justification TEXT NOT NULL,
+                lessons_learned TEXT,
+                FOREIGN KEY (project_id) REFERENCES operational_projects (id)
+            )
+        """)
+
+        cursor.execute("""
+            CREATE TABLE IF NOT EXISTS milestone_activity_log (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                milestone_id INTEGER NOT NULL,
+                changed_by TEXT NOT NULL,
+                old_status TEXT NOT NULL,
+                new_status TEXT NOT NULL,
+                note TEXT,
+                timestamp REAL NOT NULL,
+                FOREIGN KEY (milestone_id) REFERENCES project_milestones (id)
+            )
+        """)
+        
         conn.commit()
 
 def seed_database():

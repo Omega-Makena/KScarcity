@@ -1043,6 +1043,16 @@ def _render_granger_section(df: pd.DataFrame, cols: List[str], theme):
         theme,
     )
 
+    from kshiked.ui.institution.backend.history_middleware import save_analysis_history
+    if not granger_df.empty:
+        save_analysis_history(
+            analysis_type="Granger Causality",
+            sector=st.session_state.get("basket_id", "Unknown"),
+            input_params={"indicators": cols, "max_lag": max_lag},
+            result_payload=granger_df.to_dict(orient="records"),
+            summary=f"Tested pairs for {len(cols)} indicators. Found {len(sig)} significant causal links."
+        )
+
 
 def _render_causal_network(df: pd.DataFrame, cols: List[str], theme):
     """Causal network graph."""
@@ -1170,6 +1180,15 @@ def _render_cross_corr(df: pd.DataFrame, cols: List[str], theme):
     if not ccf_results:
         st.warning("Insufficient data for cross-correlation analysis.")
         return
+
+    from kshiked.ui.institution.backend.history_middleware import save_analysis_history
+    save_analysis_history(
+        analysis_type="Cross-Correlation",
+        sector=st.session_state.get("basket_id", "Unknown"),
+        input_params={"indicators": cols, "max_lag": max_lag},
+        result_payload={f"{k[0]}::{k[1]}": v for k, v in ccf_results.items()},
+        summary=f"Computed cross-correlations for {len(ccf_results)} pairs up to lag {max_lag}."
+    )
 
     pair_labels = [f"{a}  /  {b}" for (a, b) in ccf_results.keys()]
     selected_pair = st.selectbox("Select pair", pair_labels)

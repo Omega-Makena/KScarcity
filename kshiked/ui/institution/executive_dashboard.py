@@ -572,31 +572,10 @@ def render():
         
     with tab_projects:
         with st.container(border=True):
-            st.markdown("#### Launch National Operational Project")
-            st.write("Create a cross-sector coordination project and assign sector admins to it.")
+            from kshiked.ui.institution.project_components import render_project_wizard
+            # Executive doesn't have a specific basket ID, so pass 0 to show all baskets
+            render_project_wizard(all_baskets, current_basket_id=0)
             
-            p_c1, p_c2, p_c3 = st.columns([1, 1, 1])
-            with p_c1:
-                p_title = st.text_input("Project Codename/Title", key="ex_p_title")
-                p_sev = st.selectbox("Initial Severity", [1, 2, 3, 4, 5], index=2, key="ex_p_sev")
-            with p_c2:
-                p_desc = st.text_area("Strategic Objective", key="ex_p_desc", height=100)
-            with p_c3:
-                p_baskets = st.multiselect("Assign Sector Admins", options=list(all_baskets.keys()), format_func=lambda x: all_baskets[x], key="ex_p_baskets")
-                st.write("")
-                if st.button("Launch National Operational Project", type="primary", use_container_width=True, key="ex_btn_launch"):
-                    if p_title and p_desc and p_baskets:
-                        ProjectManager.create_project(
-                            title=p_title,
-                            description=p_desc,
-                            severity=p_sev,
-                            participants=p_baskets
-                        )
-                        st.success("National Operational Project initiated.")
-                        st.rerun()
-                    else:
-                        st.error("Please fill in all project details.")
-                        
         with st.container(border=True):
             st.info("#### Active Operational Projects")
             st.write("Monitor multi-sector collaboration projects. Inject top-down Policy Actions directly into their intelligence streams.")
@@ -676,6 +655,11 @@ def render():
                                         payload = {"final_severity": proj['severity'], "active_participants": len(project_data['participants']), "archived_by": "Executive"}
                                         ProjectManager.archive_project(proj['id'], res_state, pol_score, res_sum, payload)
                                         st.rerun()
+
+                        st.write("---")
+                        st.markdown("#### Structured Project Health")
+                        from kshiked.ui.institution.project_components import render_project_overview
+                        render_project_overview(project_data, "Executive", 0, all_baskets)
 
     with tab_history:
         with st.container(border=True):

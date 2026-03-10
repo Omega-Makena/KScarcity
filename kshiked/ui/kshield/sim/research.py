@@ -356,7 +356,7 @@ def render_inequality_tab(theme):
         ))
         fig_ppg.add_hline(y=0, line_color=theme.text_muted, line_dash="dot")
         ppg_label = "<span style='color:" + (PALETTE[0] if is_pro_poor else PALETTE[3]) + "'>" + \
-                    ("✓ PRO-POOR" if is_pro_poor else "✗ PRO-RICH") + "</span>"
+                    ("PRO-POOR" if is_pro_poor else "✗ PRO-RICH") + "</span>"
         fig_ppg.update_layout(**base_layout(theme, height=350,
             title=dict(text=f"Income Growth by Quintile — {ppg_label}",
                        font=dict(color=theme.text_muted, size=13)),

@@ -13,15 +13,19 @@ class ProjectManager:
     """
 
     @staticmethod
-    def create_project(title: str, description: str, severity: float, participant_basket_ids: List[int]) -> int:
+    def create_project(title: str, description: str, severity: float, participant_basket_ids: List[int], vision: str = "", objectives: List[Dict] = None, milestones: List[Dict] = None, outcomes: List[Dict] = None) -> int:
         timestamp = time.time()
+        objectives = objectives or []
+        milestones = milestones or []
+        outcomes = outcomes or []
+        
         with get_connection() as conn:
             cursor = conn.cursor()
             
             # Create the project container
             cursor.execute(
-                "INSERT INTO operational_projects (title, description, severity, status, current_phase, created_at, updated_at) VALUES (?, ?, ?, 'ACTIVE', 'EMERGENCE', ?, ?)",
-                (title, description, severity, timestamp, timestamp)
+                "INSERT INTO operational_projects (title, description, severity, status, current_phase, created_at, updated_at, vision) VALUES (?, ?, ?, 'ACTIVE', 'EMERGENCE', ?, ?, ?)",
+                (title, description, severity, timestamp, timestamp, vision)
             )
             project_id = cursor.lastrowid
             
@@ -37,6 +41,29 @@ class ProjectManager:
                     "INSERT INTO project_participants (project_id, basket_id) VALUES (?, ?)",
                     (project_id, b_id)
                 )
+
+            # Insert Objectives
+            for obj in objectives:
+                cursor.execute(
+                    "INSERT INTO project_objectives (project_id, title, description, success_metric, status) VALUES (?, ?, ?, ?, 'PENDING')",
+                    (project_id, obj.get('title', ''), obj.get('description', ''), obj.get('success_metric', ''))
+                )
+                
+            # Insert Milestones
+            for ms in milestones:
+                linked_objs = json.dumps(ms.get('linked_objectives', []))
+                cursor.execute(
+                    "INSERT INTO project_milestones (project_id, title, description, due_date, assigned_to, status, linked_objectives_json) VALUES (?, ?, ?, ?, ?, 'NOT_STARTED', ?)",
+                    (project_id, ms.get('title', ''), ms.get('description', ''), ms.get('due_date', 0.0), ms.get('assigned_to', ''), linked_objs)
+                )
+
+            # Insert Outcomes
+            for out in outcomes:
+                cursor.execute(
+                    "INSERT INTO project_outcomes (project_id, title, description, measurable_target, achieved) VALUES (?, ?, ?, ?, 'PENDING')",
+                    (project_id, out.get('title', ''), out.get('description', ''), out.get('measurable_target', ''))
+                )
+
             conn.commit()
             return project_id
 
@@ -94,17 +121,33 @@ class ProjectManager:
             participants = [b['basket_id'] for b in cursor.fetchall()]
             
             cursor.execute("SELECT * FROM project_updates WHERE project_id = ? ORDER BY timestamp ASC", (project_id,))
-            updates = []
-            for u in cursor.fetchall():
-                updates.append({
-                    "id": u['id'],
-                    "author_name": u['author_name'],
-                    "update_type": u['update_type'],
-                    "content": u['content'],
-                    "certainty": u['certainty'],
-                    "timestamp": u['timestamp']
-                })
+            updates = [dict(u) for u in cursor.fetchall()]
+
+            cursor.execute("SELECT * FROM project_objectives WHERE project_id = ?", (project_id,))
+            objectives = [dict(row) for row in cursor.fetchall()]
+            
+            cursor.execute("SELECT * FROM project_milestones WHERE project_id = ? ORDER BY due_date ASC", (project_id,))
+            milestones = [dict(row) for row in cursor.fetchall()]
+            for m in milestones:
+                if m.get('linked_objectives_json'):
+                    try:
+                        m['linked_objectives'] = json.loads(m['linked_objectives_json'])
+                    except:
+                        m['linked_objectives'] = []
+                else:
+                    m['linked_objectives'] = []
+                    
+            cursor.execute("SELECT * FROM project_outcomes WHERE project_id = ?", (project_id,))
+            outcomes = [dict(row) for row in cursor.fetchall()]
+
+            cursor.execute("SELECT * FROM project_post_mortem WHERE project_id = ?", (project_id,))
+            post_mortem = cursor.fetchone()
+            if post_mortem:
+                post_mortem = dict(post_mortem)
                 
+            cursor.execute("SELECT * FROM milestone_activity_log WHERE milestone_id IN (SELECT id FROM project_milestones WHERE project_id = ?) ORDER BY timestamp DESC", (project_id,))
+            activity_log = [dict(row) for row in cursor.fetchall()]
+
             return {
                 "id": proj['id'],
                 "title": proj['title'],
@@ -114,8 +157,14 @@ class ProjectManager:
                 "current_phase": proj['current_phase'],
                 "created_at": proj['created_at'],
                 "updated_at": proj['updated_at'],
+                "vision": proj['vision'] if 'vision' in proj.keys() else '',
                 "participants": participants,
-                "updates": updates
+                "updates": updates,
+                "objectives": objectives,
+                "milestones": milestones,
+                "outcomes": outcomes,
+                "post_mortem": post_mortem,
+                "activity_log": activity_log
             }
 
     @staticmethod

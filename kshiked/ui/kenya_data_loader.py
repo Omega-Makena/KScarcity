@@ -267,7 +267,7 @@ if __name__ == "__main__":
     # Test the loader
     loader = KenyaEconomicDataLoader()
     if loader.load():
-        print("✓ Data loaded successfully")
+        print("Data loaded successfully")
         print(f"\nLoaded {len(loader._time_series)} indicators")
         
         # Show GDP

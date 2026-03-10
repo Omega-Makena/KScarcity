@@ -81,10 +81,13 @@ def render():
     st.markdown(f"<h5 style='text-align: center; color: #006600;'>Reporting to: {basket_name} &nbsp;|&nbsp; User: {st.session_state.get('username')}</h5>", unsafe_allow_html=True)
     st.write("---")
 
-    # Fetch schema early so it's available across all tabs
+    # Fetch schemas early so they are available across all tabs
     schema = OntologyEnforcer.get_basket_schema(basket_id)
+    from kshiked.ui.institution.backend.schema_manager import SchemaManager
+    custom_schemas = SchemaManager.get_schemas(basket_id)
+    latest_custom_schema = custom_schemas[0] if custom_schemas else None
 
-    _base_tabs = ["Data Intake", "Signal Analysis", "Granger Causality", "Causal Network", "Cross-Correlations", "Inbox", "Collaboration Room"]
+    _base_tabs = ["Data Intake", "Signal Analysis", "Granger Causality", "Causal Network", "Cross-Correlations", "Active Projects", "Inbox", "Collaboration Room"]
     if fl_mode:
         _base_tabs.append("FL Training Log")
     _all_spoke_tabs = st.tabs(_base_tabs)
@@ -93,17 +96,23 @@ def render():
     tab_granger  = _all_spoke_tabs[2]
     tab_network  = _all_spoke_tabs[3]
     tab_cross    = _all_spoke_tabs[4]
-    tab3         = _all_spoke_tabs[5]
-    tab_collab   = _all_spoke_tabs[6]
-    tab_fl_log   = _all_spoke_tabs[7] if fl_mode else None
+    tab_projects = _all_spoke_tabs[5]
+    tab3         = _all_spoke_tabs[6]
+    tab_collab   = _all_spoke_tabs[7]
+    tab_fl_log   = _all_spoke_tabs[8] if fl_mode else None
     
     with tab1:
         st.markdown("### Data Preparation")
         st.write("Upload your institution's data. It will be validated against your sector's expected format. The data is processed locally and never transmitted anywhere.")
 
-        if schema:
+        if schema or latest_custom_schema:
             with st.expander("View required column format for this sector"):
-                st.json(schema)
+                if schema:
+                    st.write("**Base Sector Ontology:**")
+                    st.json(schema)
+                if latest_custom_schema:
+                    st.write(f"**Admin Defined Schema: {latest_custom_schema['schema_name']}**")
+                    st.json(latest_custom_schema['fields'])
         else:
             st.error("No reporting schema is defined for your sector. Contact your sector admin to define one before uploading data.")
             st.stop()
@@ -119,13 +128,21 @@ def render():
             st.write("Local Data Preview:")
             st.dataframe(df.head(3))
             
-            is_valid, message = OntologyEnforcer.validate_dataset_signature(basket_id, list(df.columns))
+            is_valid_base, message_base = OntologyEnforcer.validate_dataset_signature(basket_id, list(df.columns)) if schema else (True, "No base ontology")
             
-            if is_valid:
-                st.success(f"Data format validated. {message}")
+            is_valid_custom = True
+            message_custom = ""
+            if latest_custom_schema:
+                is_valid_custom, message_custom = SchemaManager.validate_dataframe(latest_custom_schema['fields'], df)
+            
+            if is_valid_base and is_valid_custom:
+                st.success("Data format validated.")
                 st.session_state['local_df'] = df
             else:
-                st.error(f"Format mismatch — {message}")
+                errors = []
+                if not is_valid_base: errors.append(f"Base Ontology Error: {message_base}")
+                if not is_valid_custom: errors.append(f"Custom Schema Error: {message_custom}")
+                st.error("Format mismatch — " + " | ".join(errors))
                 st.session_state['local_df'] = None
 
     with tab2:
@@ -607,6 +624,25 @@ def render():
             st.warning("Upload data first to run causal analysis.")
         with tab_cross:
             st.warning("Upload data first to run causal analysis.")
+
+    with tab_projects:
+        with st.container(border=True):
+            st.markdown("### Operational Projects")
+            st.write("Track active cross-sector projects, view shared goals, and update milestones assigned to your sector.")
+            from kshiked.ui.institution.backend.project_manager import ProjectManager
+            active_projects = ProjectManager.get_active_projects(basket_id)
+            
+            if not active_projects:
+                st.success("No active operational projects demand your attention at this time.")
+            else:
+                for proj in active_projects:
+                    with st.expander(f"WAR ROOM: {proj['title']} (Severity: {proj['severity']})", expanded=True):
+                        project_data = ProjectManager.get_project_details(proj['id'])
+                        
+                        st.write("---")
+                        st.markdown("#### Structured Project Health")
+                        from kshiked.ui.institution.project_components import render_project_overview
+                        render_project_overview(project_data, "Spoke", basket_id, all_baskets)
 
     with tab3:
         with st.container(border=True):

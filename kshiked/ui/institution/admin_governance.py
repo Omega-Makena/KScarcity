@@ -79,7 +79,7 @@ def render():
         "Operational Projects",
         "Historical Archive",
         "Communications",
-        "Settings",
+        "Data Governance & Schemas",
         "Collaboration Room",
     ]
     if fl_mode:
@@ -437,29 +437,12 @@ def render():
         st.info("### Operational Projects (Cross-Basket Fusion Spaces)")
         st.write("Temporary collaboration containers linking multiple baskets to one evolving complex situation.")
         
-        # 1. Launch New Project (Moved to Top)
+        # 1. Launch New Structured Project
         st.write("---")
         with st.container(border=True):
-            st.write("#### Launch New Operational Project")
-            st.write("Elevate a systemic threat into a cross-basket shared war room.")
-            new_title = st.text_input("Project Name")
-            new_desc = st.text_area("Initial SitRep / Description")
-            new_severity = st.slider("Assigned Severity", 1.0, 10.0, 5.0, 0.5)
+            from kshiked.ui.institution.project_components import render_project_wizard
+            render_project_wizard(all_baskets, basket_id)
             
-            # Select participants (excluding self)
-            other_baskets = {k: v for k, v in all_baskets.items() if k != basket_id}
-            selected_participants = st.multiselect("Invite Sector Baskets", options=list(other_baskets.keys()), format_func=lambda x: other_baskets[x])
-            
-            if st.button("Initialize Shared Space", type="primary", key="init_proj_btn"):
-                if new_title and selected_participants:
-                    # include self in participants
-                    participants_list = [basket_id] + selected_participants
-                    ProjectManager.create_project(new_title, new_desc, new_severity, participants_list)
-                    st.success(f"Operational Project '{new_title}' launched successfully.")
-                    st.rerun()
-                else:
-                    st.error("Please provide a Title and select at least one other Sector Basket to invite.")
-                    
         st.write("---")
         
         # 2. View Active Projects
@@ -550,7 +533,11 @@ def render():
                                     payload = {"final_severity": proj['severity'], "active_participants": len(project_data['participants'])}
                                     ProjectManager.archive_project(proj['id'], res_state, pol_score, res_sum, payload)
                                     st.rerun()
-                            
+                                    
+                    st.write("---")
+                    st.markdown("#### Structured Project Health")
+                    from kshiked.ui.institution.project_components import render_project_overview
+                    render_project_overview(project_data, "Admin", basket_id, all_baskets)
                             
         st.write("---")
 
@@ -636,7 +623,57 @@ def render():
                         st.markdown(f"**Interpretation:** {payload['spoke_interpretation']}")
 
     with tab3:
-        st.markdown("### Settings")
+        st.markdown("### Data Governance & Custom Schemas")
+        st.write("Enforce structured reporting by defining exact column schemas that your assigned Spokes must follow.")
+        
+        from kshiked.ui.institution.backend.schema_manager import SchemaManager
+        
+        with st.expander("Create New Custom Schema", expanded=True):
+            st.write("Define fields for a new schema to deploy to institutions.")
+            new_schema_name = st.text_input("Schema Name", key="new_schema_name")
+            
+            if 'schema_builder_fields' not in st.session_state:
+                st.session_state['schema_builder_fields'] = [{"name": "", "type": "number", "required": True}]
+                
+            for i, field in enumerate(st.session_state['schema_builder_fields']):
+                col_f1, col_f2, col_f3 = st.columns([2, 2, 1])
+                with col_f1:
+                    field["name"] = st.text_input("Field Name", key=f"f_name_{i}", value=field["name"])
+                with col_f2:
+                    field["type"] = st.selectbox("Type", ["number", "text", "date", "bool"], index=["number", "text", "date", "bool"].index(field["type"]), key=f"f_type_{i}")
+                with col_f3:
+                    field["required"] = st.checkbox("Required", value=field["required"], key=f"f_req_{i}")
+                    
+            if st.button("+ Add Field"):
+                st.session_state['schema_builder_fields'].append({"name": "", "type": "number", "required": True})
+                st.rerun()
+                
+            if st.button("Save & Deploy Schema", type="primary"):
+                valid_fields = [f for f in st.session_state['schema_builder_fields'] if f['name'].strip()]
+                if not new_schema_name:
+                    st.error("Schema Name is required.")
+                elif not valid_fields:
+                    st.error("At least one valid field is required.")
+                else:
+                    SchemaManager.save_schema(basket_id, new_schema_name, valid_fields)
+                    st.success(f"Schema '{new_schema_name}' saved.")
+                    # Reset state
+                    st.session_state['schema_builder_fields'] = [{"name": "", "type": "number", "required": True}]
+                    import time 
+                    time.sleep(1)
+                    st.rerun()
+                    
+        schemas = SchemaManager.get_schemas(basket_id)
+        if schemas:
+            st.write("#### Deployed Schemas (Active)")
+            for sc in schemas:
+                with st.expander(f"{sc['schema_name']} ({len(sc['fields'])} fields)"):
+                    st.json(sc['fields'])
+                    import datetime
+                    st.caption(f"Created/Updated: {datetime.datetime.fromtimestamp(sc['created_at']).strftime('%Y-%m-%d %H:%M')}")
+                    
+        st.write("---")
+        st.markdown("### Global Settings")
         st.write("Configure detection sensitivity thresholds for your sector's institutions.")
         st.caption("These thresholds are applied to all institutions in your sector when you push them below.")
 

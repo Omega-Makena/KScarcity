@@ -107,6 +107,10 @@ def route_authenticated_user():
             st.rerun()
 
         st.write("---")
+        st.markdown("**Navigation**")
+        current_view = st.radio("Portal View", ["Live Dashboard", "Historical Analysis"], label_visibility="collapsed")
+
+        st.write("---")
         st.markdown("**Reporting Mode**")
         fl_on = st.toggle(
             "Enable Federated Learning (Mode B)",
@@ -119,6 +123,13 @@ def route_authenticated_user():
             st.caption("Mode B active: FL training tabs are visible to admins and spokes.")
         else:
             st.caption("Mode A: Governance reporting only.")
+
+    # Intercept for globally shared views
+    if current_view == "Historical Analysis":
+        from kshiked.ui.institution.history_tab import render_history_tab
+        from kshiked.ui.theme import LIGHT_THEME
+        render_history_tab(LIGHT_THEME)
+        return
 
     # Route based on explicit Role Based Access Controls
     if role == Role.EXECUTIVE.value:
