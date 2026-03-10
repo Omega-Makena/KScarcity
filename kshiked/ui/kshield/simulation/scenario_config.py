@@ -103,18 +103,22 @@ def render_scenario_config(theme, scenario_library, policy_templates,
                 for k, v in overrides.items():
                     shock_summary[k] = shock_summary.get(k, 0) + v
             if shock_summary:
-                try:
-                    parts = [f"{shock_registry.get(k, {}).get('label', k)}: "
-                             f"<b>{v:+.2f}</b>" for k, v in shock_summary.items()]
-                except Exception as e:
-                    import traceback
-                    with open("debug_log.txt", "w") as f:
-                        f.write(f"k type: {type(k) if 'k' in locals() else 'unknown'}\n")
-                        f.write(f"v type: {type(v) if 'v' in locals() else 'unknown'}\n")
-                        f.write(f"shock_summary keys: {[type(key) for key in shock_summary.keys()]}\n")
-                        f.write(f"shock_registry type: {type(shock_registry)}\n")
-                        f.write(f"traceback: {traceback.format_exc()}\n")
-                    raise e
+                parts = []
+                for k, v in shock_summary.items():
+                    if isinstance(v, dict):
+                        # Safely handle the bizarre case where v is a dict
+                        val_str = str(v)
+                    else:
+                        val_str = f"{v:+.2f}"
+                    
+                    label = str(k)
+                    if hasattr(shock_registry, "get"):
+                        reg_entry = shock_registry.get(k)
+                        if isinstance(reg_entry, dict):
+                            label = reg_entry.get("label", str(k))
+                    
+                    parts.append(f"{label}: <b>{val_str}</b>")
+                
                 st.markdown(f"<div style='font-size:0.75rem; color:{theme.text_muted};'>"
                             f"Combined shocks: {' | '.join(parts)}</div>",
                             unsafe_allow_html=True)
