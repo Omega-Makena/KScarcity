@@ -234,7 +234,7 @@ def render():
                         st.markdown(
                             f'<div style="background:#F8FAFC; border-left:4px solid #1F2937; padding:10px 14px; '
                             f'border-radius:0 6px 6px 0; margin:8px 0; font-size:0.9rem; line-height:1.6;">'
-                            f'<strong>📋 Field Report</strong><br>{_summary}</div>',
+                            f'<strong>Field Report</strong><br>{_summary}</div>',
                             unsafe_allow_html=True,
                         )
 
@@ -253,7 +253,7 @@ def render():
                         st.markdown(
                             f'<div style="background:#FEF2F2; border-left:4px solid #DC2626; padding:10px 14px; '
                             f'border-radius:0 6px 6px 0; margin:8px 0; font-size:0.88rem;">'
-                            f'<strong>⚠️ So What? (Consequence of Inaction)</strong><br>{_so_what}</div>',
+                            f'<strong>So What? (Consequence of Inaction)</strong><br>{_so_what}</div>',
                             unsafe_allow_html=True,
                         )
 
@@ -261,7 +261,7 @@ def render():
                         st.markdown(
                             f'<div style="background:#F0F9FF; border-left:4px solid #3B82F6; padding:10px 14px; '
                             f'border-radius:0 6px 6px 0; margin:8px 0; font-size:0.88rem;">'
-                            f'<strong>📊 Compared to What? (Historical Context)</strong><br>{_hist_cmp}</div>',
+                            f'<strong>Compared to What? (Historical Context)</strong><br>{_hist_cmp}</div>',
                             unsafe_allow_html=True,
                         )
 
@@ -271,7 +271,7 @@ def render():
                         st.markdown(
                             f'<div style="background:#FFF7ED; border-left:4px solid {_rc}; padding:10px 14px; '
                             f'border-radius:0 6px 6px 0; margin:8px 0; font-size:0.88rem;">'
-                            f'<strong>🔗 Propagation Risk</strong><br>{_prop_risk}</div>',
+                            f'<strong>Propagation Risk</strong><br>{_prop_risk}</div>',
                             unsafe_allow_html=True,
                         )
 
@@ -287,7 +287,7 @@ def render():
                         st.markdown(
                             f'<div style="background:#F0FDF4; border-left:4px solid #10B981; padding:10px 14px; '
                             f'border-radius:0 6px 6px 0; margin:8px 0; font-size:0.88rem; line-height:1.5;">'
-                            f'<strong>📋 Plain-language interpretation:</strong><br>'
+                            f'<strong>Plain-language interpretation:</strong><br>'
                             f'{narrate_composite_scores(payload["composite_scores"])}<br><br>'
                             f'{narrate_severity(payload.get("severity_score", 0.0))}</div>',
                             unsafe_allow_html=True,
@@ -323,7 +323,7 @@ def render():
                         st.markdown(
                             f'<div style="background:#F0F9FF; border-left:4px solid #3B82F6; padding:10px 14px; '
                             f'border-radius:0 6px 6px 0; margin:8px 0; font-size:0.88rem;">'
-                            f'<strong>📊 Compared to What?</strong> {hist_ctx}</div>',
+                            f'<strong>Compared to What?</strong> {hist_ctx}</div>',
                             unsafe_allow_html=True,
                         )
 
@@ -422,7 +422,7 @@ def render():
                     st.markdown(
                         f'<div style="background:#FFFBEB; border-left:4px solid {rec.level_color}; '
                         f'padding:10px 14px; border-radius:0 6px 6px 0; margin:8px 0;">'
-                        f'<strong>🎯 Recommendation: '
+                        f'<strong>Recommendation: '
                         f'<span style="background:{rec.level_color}; color:#fff; padding:2px 8px; '
                         f'border-radius:4px; font-size:0.8rem;">{rec.level}</span></strong><br/>'
                         f'<span style="font-size:0.88rem;">{rec.summary}</span><br/>'

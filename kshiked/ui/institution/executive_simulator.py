@@ -310,7 +310,7 @@ def _render_strategic_mode(theme):
                     "scenario": scenario_name, "severity": severity,
                     "response": response_name, "steps": steps,
                 }
-                st.success(f"✓ Simulation complete: {steps} quarters × {len(run_configs)} scenarios")
+                st.success(f"Simulation complete: {steps} quarters × {len(run_configs)} scenarios")
 
             except Exception as e:
                 st.error(f"Simulation error: {e}")
@@ -442,7 +442,7 @@ def _render_strategic_results(theme, results, meta):
                     <div style="color:{theme.text_muted}; font-size:0.7rem; font-weight:700;">🏦 BANKING</div>
                     <div style="font-size:0.82rem; margin-top:0.4rem; color:{theme.text_secondary};">
                         CAR: {pre_car:.1f}% → <b style="color:{bc};">{post_car:.1f}%</b><br/>
-                        Breach: <b style="color:{bc};">{"YES ⚠️" if breach else "NO ✓"}</b><br/>
+                        Breach: <b style="color:{bc};">{"YES " if breach else "NO "}</b><br/>
                         Shortfall: <b>KES {fin_stress.get('capital_shortfall', 0):.0f}B</b>
                     </div>
                 </div>""", unsafe_allow_html=True)

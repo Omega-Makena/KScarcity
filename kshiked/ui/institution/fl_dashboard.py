@@ -9,7 +9,7 @@ import pandas as pd
 import time
 from pathlib import Path
 
-st.set_page_config(page_title="Federated Learning", page_icon="🔗", layout="wide")
+st.set_page_config(page_title="Federated Learning", page_icon="", layout="wide")
 
 # ── Styling ──────────────────────────────────────────────────────────
 st.markdown("""
@@ -60,7 +60,7 @@ def _get_model_registry():
 # ── Header ───────────────────────────────────────────────────────────
 st.markdown("""
 <div class="fl-header">
-    <h1>🔗 Federated Learning</h1>
+    <h1>Federated Learning</h1>
     <p>Event-driven distributed training across county nodes</p>
 </div>
 """, unsafe_allow_html=True)
@@ -85,7 +85,7 @@ with col3:
     st.metric("📉 Latest Loss", loss_val)
 with col4:
     total_samples = sum(n.get("sample_count", 0) for n in nodes)
-    st.metric("📊 Total Samples", f"{total_samples:,}")
+    st.metric("Total Samples", f"{total_samples:,}")
 
 st.divider()
 
@@ -136,7 +136,7 @@ with tab_upload:
                         model_name=model_name,
                     )
                     st.success(
-                        f"✅ Training complete! "
+                        f"Training complete! "
                         f"Loss: {result['loss']:.4f}, "
                         f"Samples: {result['sample_count']}"
                     )
@@ -171,7 +171,7 @@ with tab_upload:
                     source_path=source_path,
                 )
                 st.success(
-                    f"✅ Round #{result.round_number} complete! "
+                    f"Round #{result.round_number} complete! "
                     f"Participants: {result.participants}, "
                     f"Loss: {result.global_loss:.4f}"
                 )

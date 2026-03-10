@@ -190,7 +190,7 @@ def _render_upload_workspace(theme):
                     
                     result = manager.run_sync_round(learning_rate=0.15, lookback_hours=168)
                     
-                st.success(f"✅ Data ingested successfully! Triggered FL Sync Round #{result.round_number}.")
+                st.success(f"Data ingested successfully! Triggered FL Sync Round #{result.round_number}.")
                 st.info(
                     f"**Round Details**: Participants = {result.participants}, "
                     f"Samples Processed = {result.total_samples}, "

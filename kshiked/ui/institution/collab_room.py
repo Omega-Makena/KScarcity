@@ -314,7 +314,7 @@ def render_collab_room(
         sev_color = "#BB0000" if severity >= 4 else "#F59E0B" if severity >= 2.5 else "#006600"
 
         with st.expander(
-            f"{'🔴' if severity >= 4 else '🟠' if severity >= 2.5 else '🟢'}  "
+            f"{'' if severity >= 4 else '' if severity >= 2.5 else ''}  "
             f"{proj['title']}  —  Phase: {phase}  —  Severity: {severity}",
             expanded=(len(projects) == 1)
         ):

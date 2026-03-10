@@ -298,13 +298,13 @@ def render():
             pass
 
         _SECTOR_ICONS = {
-            "Public Health": "🏥",
-            "Water & Sanitation": "💧",
-            "Transport & Logistics": "🚛",
-            "Security & Border": "🛡️",
-            "Displacement & IDP": "🏕️",
-            "Food & Markets": "🌾",
-            "Communications & Information": "📡",
+            "Public Health": "",
+            "Water & Sanitation": "",
+            "Transport & Logistics": "",
+            "Security & Border": "",
+            "Displacement & IDP": "",
+            "Food & Markets": "",
+            "Communications & Information": "",
         }
 
         # ── SECTION 1: STATUS GRID (always shows ALL sectors) ──
@@ -315,7 +315,7 @@ def render():
                 s_risks  = [r for r in global_risks if r.get('basket_id') == b_id]
                 top_imp  = max((_resolve_risk_scores(r)['B_Impact'] for r in s_risks), default=0.0)
                 n_spokes = spoke_counts.get(b_id, 0)
-                icon     = _SECTOR_ICONS.get(b_name, "📊")
+                icon     = _SECTOR_ICONS.get(b_name, "")
                 if top_imp >= 8:
                     cborder = "#BB0000"; slabel = "CRITICAL"; sbg = "#BB0000"
                 elif top_imp >= 6:
@@ -326,7 +326,7 @@ def render():
                     cborder = "#3B82F6"; slabel = "ACTIVE";   sbg = "#3B82F6"
                 else:
                     cborder = "#10B981"; slabel = "CLEAR";    sbg = "#10B981"
-                risk_tag = f"&nbsp;|&nbsp; 🔴 {round(top_imp,1)}/10" if s_risks else ""
+                risk_tag = f"&nbsp;|&nbsp; {round(top_imp,1)}/10" if s_risks else ""
                 cols[col_idx].markdown(
                     f'<div style="background:#F8FAFC; border-radius:10px; border-top:4px solid {cborder}; '
                     f'padding:14px 16px; margin-bottom:12px; min-height:100px;">'
@@ -335,7 +335,7 @@ def render():
                     f'border-radius:4px; font-size:0.75rem; font-weight:600;">{slabel}</span></div>'
                     f'<div style="font-size:0.79rem; color:#475569;">'
                     f'🏢 {n_spokes} spoke{"s" if n_spokes != 1 else ""} &nbsp;|&nbsp; '
-                    f'⚠️ {len(s_risks)} risk{"s" if len(s_risks) != 1 else ""} promoted{risk_tag}</div></div>',
+                    f'{len(s_risks)} risk{"s" if len(s_risks) != 1 else ""} promoted{risk_tag}</div></div>',
                     unsafe_allow_html=True
                 )
 
@@ -348,14 +348,14 @@ def render():
             for b_id, b_name in all_baskets.items():
                 sector_risks = [r for r in global_risks if r.get('basket_id') == b_id]
                 total_impact = sum(_resolve_risk_scores(r)['B_Impact'] for r in sector_risks)
-                icon         = _SECTOR_ICONS.get(b_name, "📊")
+                icon         = _SECTOR_ICONS.get(b_name, "")
                 with st.expander(
                     f"{icon} {b_name}  |  {len(sector_risks)} risk(s)"
                     + (f"  |  Composite: {total_impact:.1f}/10" if sector_risks else "  |  CLEAR"),
                     expanded=len(sector_risks) > 0
                 ):
                     if not sector_risks:
-                        st.success("✅ No promoted risks from this sector. All clear.")
+                        st.success("No promoted risks from this sector. All clear.")
                     else:
                         for risk in sector_risks:
                             scores    = _resolve_risk_scores(risk)
@@ -389,7 +389,7 @@ def render():
                                 st.markdown(
                                     f'<div style="background:#FEF2F2; border-left:4px solid #DC2626; padding:8px 12px; '
                                     f'border-radius:0 6px 6px 0; margin:4px 0; font-size:0.84rem;">'
-                                    f'<strong>⚠️ So What?</strong> {projection}</div>',
+                                    f'<strong>So What?</strong> {projection}</div>',
                                     unsafe_allow_html=True,
                                 )
                             hist_ctx = get_historical_context(
@@ -398,7 +398,7 @@ def render():
                             st.markdown(
                                 f'<div style="background:#F0F9FF; border-left:4px solid #3B82F6; padding:8px 12px; '
                                 f'border-radius:0 6px 6px 0; margin:4px 0 8px 0; font-size:0.84rem;">'
-                                f'<strong>📊 Compared to What?</strong> {hist_ctx}</div>',
+                                f'<strong>Compared to What?</strong> {hist_ctx}</div>',
                                 unsafe_allow_html=True,
                             )
                             rec = generate_recommendation(
@@ -407,7 +407,7 @@ def render():
                             st.markdown(
                                 f'<div style="background:#FFFBEB; border-left:4px solid {rec.level_color}; '
                                 f'padding:8px 12px; border-radius:0 6px 6px 0; margin:0 0 12px 0;">'
-                                f'<strong>🎯 <span style="background:{rec.level_color}; color:#fff; padding:2px 8px; '
+                                f'<strong><span style="background:{rec.level_color}; color:#fff; padding:2px 8px; '
                                 f'border-radius:4px; font-size:0.78rem;">{rec.level}</span></strong> '
                                 f'<span style="font-size:0.84rem;">{rec.summary}</span><br/>'
                                 f'<span style="font-size:0.80rem; color:#64748b;">'
@@ -428,7 +428,7 @@ def render():
 
         if not county_scores:
             st.info(
-                "📍 **Geographic metadata unavailable.** No promoted risks contain "
+                "**Geographic metadata unavailable.** No promoted risks contain "
                 "county-level geographic data. The map will activate once risks "
                 "with spatial metadata are promoted by sector admins."
             )
@@ -492,11 +492,11 @@ def render():
                 data_counties = len(county_scores)
                 total_risks = sum(c['risk_count'] for c in county_scores.values())
                 st.caption(
-                    f"🟢 Low (&lt;20) &nbsp; 🔵 Moderate (20-50) &nbsp; 🟠 Elevated (50-80) &nbsp; 🔴 Critical (&gt;80) &nbsp; ⚪ No data \n\n"
+                    f"Low (&lt;20) &nbsp; Moderate (20-50) &nbsp; Elevated (50-80) &nbsp; Critical (&gt;80) &nbsp; No data \n\n"
                     f"**{data_counties} counties** with signal data from **{total_risks} promoted risks**."
                 )
             else:
-                st.caption("⚪ All counties shown in grey — no active signal data.")
+                st.caption("All counties shown in grey — no active signal data.")
 
         except Exception as e:
             st.error(f"Error loading geospatial topography: {e}")

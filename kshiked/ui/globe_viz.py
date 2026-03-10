@@ -420,7 +420,7 @@ def get_globe_html(counties_data=None, height=700):
             }}
         }}, 5000);
         
-        console.log("✅ Globe initialized successfully!");
+        console.log("Globe initialized successfully!");
         
         // 7. REMOVED DEBUG INTERVAL
         

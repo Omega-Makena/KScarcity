@@ -96,12 +96,12 @@ KENYA_COUNTIES = {
 
 # Threat types with colors
 THREAT_TYPES = {
-    "survival_stress": {"color": "#ff3333", "name": "Survival Stress", "icon": "🔴"},
-    "mobilization": {"color": "#f5d547", "name": "Mobilization", "icon": "🟠"},
+    "survival_stress": {"color": "#ff3333", "name": "Survival Stress", "icon": ""},
+    "mobilization": {"color": "#f5d547", "name": "Mobilization", "icon": ""},
     "scapegoating": {"color": "#f5d547", "name": "Scapegoating", "icon": "🟡"},
     "grievance": {"color": "#ff6699", "name": "Grievance", "icon": "🩷"},
     "polarization": {"color": "#cc33ff", "name": "Polarization", "icon": "🟣"},
-    "delegitimization": {"color": "#3399ff", "name": "Delegitimization", "icon": "🔵"},
+    "delegitimization": {"color": "#3399ff", "name": "Delegitimization", "icon": ""},
 }
 
 # =============================================================================
@@ -281,7 +281,7 @@ def render_kenya_threatmap(
     <div class="threatmap-container">
         <div class="threatmap-header">
             <div>
-                <div class="threatmap-title">🛡️ SENTINEL THREAT MAP</div>
+                <div class="threatmap-title">SENTINEL THREAT MAP</div>
                 <div class="threatmap-subtitle">Real-time National Security Intelligence</div>
             </div>
             <div class="live-indicator">
@@ -446,7 +446,7 @@ def _render_threat_stats(threats: pd.DataFrame) -> None:
     st.markdown(f"""
     <div class="stats-panel">
         <div style="color: #00ff88; font-weight: 600; margin-bottom: 0.75rem; font-size: 0.9rem;">
-            📊 THREAT ANALYSIS
+            THREAT ANALYSIS
         </div>
         
         <div class="stat-row">
@@ -478,7 +478,7 @@ def _render_threat_stats(threats: pd.DataFrame) -> None:
             <div class="stat-row">
                 <span class="stat-label">National Status</span>
                 <span class="stat-value {'critical' if critical_count > 5 else 'warning' if critical_count > 2 else 'normal'}">
-                    {'🔴 ELEVATED' if critical_count > 5 else '🟠 GUARDED' if critical_count > 2 else '🟢 STABLE'}
+                    {'ELEVATED' if critical_count > 5 else 'GUARDED' if critical_count > 2 else 'STABLE'}
                 </span>
             </div>
         </div>
@@ -567,7 +567,7 @@ def main():
     """Run threat map standalone."""
     st.set_page_config(
         page_title="SENTINEL Threat Map",
-        page_icon="🛡️",
+        page_icon="",
         layout="wide",
         initial_sidebar_state="collapsed",
     )

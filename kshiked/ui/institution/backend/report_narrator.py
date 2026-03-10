@@ -125,12 +125,12 @@ def narrate_threat_level(level: str) -> str:
     """What does each threat level actually mean for decision-makers?"""
     explanations = {
         "CRITICAL": (
-            "🔴 **CRITICAL** — Multiple severe anomalies are active simultaneously. "
+            "**CRITICAL** — Multiple severe anomalies are active simultaneously. "
             "The system recommends convening an emergency coordination meeting. "
             "Inaction at this level has historically led to cascading failures."
         ),
         "HIGH": (
-            "🟠 **HIGH** — Significant anomalies detected that could escalate. "
+            "**HIGH** — Significant anomalies detected that could escalate. "
             "Senior officials should be briefed. Prepare contingency responses "
             "and increase monitoring frequency."
         ),
@@ -139,11 +139,11 @@ def narrate_threat_level(level: str) -> str:
             "Schedule a review meeting this week. Ensure reporting channels are open."
         ),
         "GUARDED": (
-            "🔵 **GUARDED** — Minor signals present but within acceptable bounds. "
+            "**GUARDED** — Minor signals present but within acceptable bounds. "
             "Routine monitoring continues. No special action needed."
         ),
         "LOW": (
-            "🟢 **LOW** — All indicators are within the normal range. "
+            "**LOW** — All indicators are within the normal range. "
             "Standard operations continue."
         ),
     }
@@ -392,7 +392,7 @@ def narrate_anomaly_detection(peak_score: float, structural_breaks: List[int]) -
     """Plain-language summary of anomaly detection results."""
     if peak_score >= 2.0:
         narrative = (
-            f"🔴 **The system found a major anomaly** (score: {peak_score:.1f}). "
+            f"**The system found a major anomaly** (score: {peak_score:.1f}). "
             "This means something in your data changed sharply and unexpectedly — "
             "it's far outside the normal pattern. "
             "Think of it like a temperature reading that suddenly spikes: "
@@ -400,7 +400,7 @@ def narrate_anomaly_detection(peak_score: float, structural_breaks: List[int]) -
         )
     elif peak_score >= 1.0:
         narrative = (
-            f"🟠 **A moderate anomaly detected** (score: {peak_score:.1f}). "
+            f"**A moderate anomaly detected** (score: {peak_score:.1f}). "
             "Your data shows an unusual shift. It's not dramatic, but it's enough "
             "to warrant attention. Monitor whether the trend continues."
         )
@@ -412,7 +412,7 @@ def narrate_anomaly_detection(peak_score: float, structural_breaks: List[int]) -
         )
     else:
         narrative = (
-            f"🟢 **Your data looks normal** (score: {peak_score:.1f}). "
+            f"**Your data looks normal** (score: {peak_score:.1f}). "
             "No meaningful anomalies were detected."
         )
 

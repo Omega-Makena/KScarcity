@@ -206,7 +206,7 @@ def render():
                 st.markdown(
                     f'<div style="background:#F0FDF4; border-left:4px solid #10B981; padding:12px 16px; '
                     f'border-radius:0 8px 8px 0; margin-bottom:1rem; font-size:0.9rem; line-height:1.6;">'
-                    f'<strong>📋 What does this mean?</strong><br>'
+                    f'<strong>What does this mean?</strong><br>'
                     f'{narrate_composite_scores(c)}<br><br>'
                     f'{narrate_severity(res.peak_score)}</div>',
                     unsafe_allow_html=True,
