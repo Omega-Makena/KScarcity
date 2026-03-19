@@ -1,0 +1,67 @@
+{
+  "summary": {
+    "run_id": "9087b967-f967-4874-95b1-556f04aa6bec",
+    "total_specs": 1,
+    "succeeded": 1,
+    "failed": 0,
+    "started_at": "2026-03-11T10:33:04.026746",
+    "finished_at": "2026-03-11T10:33:05.419352",
+    "duration_sec": 1.392606,
+    "status": "success",
+    "fail_policy": "continue",
+    "parallelism": "none"
+  },
+  "metadata": {
+    "run_id": "9087b967-f967-4874-95b1-556f04aa6bec",
+    "runtime": {
+      "refute_random_common_cause": false,
+      "refute_placebo_treatment": false,
+      "refute_data_subset": false,
+      "refutation_simulations": 100,
+      "n_jobs": 1,
+      "seed": 42,
+      "confidence_level": 0.95,
+      "estimator_method": null,
+      "estimator_params": {},
+      "parallelism": "none",
+      "fail_policy": "continue",
+      "chunk_size": 1,
+      "time_series_policy": "none",
+      "blas_thread_policy": {
+        "OMP_NUM_THREADS": 1,
+        "MKL_NUM_THREADS": 1,
+        "OPENBLAS_NUM_THREADS": 1,
+        "NUMEXPR_NUM_THREADS": 1,
+        "VECLIB_MAXIMUM_THREADS": 1
+      },
+      "dot_path": null,
+      "artifact_root": "artifacts",
+      "run_id": "9087b967-f967-4874-95b1-556f04aa6bec",
+      "export_graphs": true
+    },
+    "python_version": "3.11.9",
+    "platform": "Windows-10-10.0.26200-SP0",
+    "dowhy_version": "0.14",
+    "econml_version": "0.16.0",
+    "data_signature": {
+      "rows": 500,
+      "columns": [
+        "patient_intake",
+        "essential_drug_stock",
+        "timestamp",
+        "location",
+        "sector",
+        "bed_occupancy"
+      ],
+      "dtypes": {
+        "patient_intake": "float64",
+        "essential_drug_stock": "float64",
+        "timestamp": "object",
+        "location": "object",
+        "sector": "object",
+        "bed_occupancy": "float64"
+      },
+      "hash": "b6cc0964fca4fa8b1b70c091eccf0e93ef3f51cd9d3c5106cfa3fd45b05c1aae"
+    }
+  }
+}

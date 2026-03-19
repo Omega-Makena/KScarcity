@@ -1,0 +1,376 @@
+﻿============================= test session starts =============================
+platform win32 -- Python 3.11.9, pytest-8.4.2, pluggy-1.6.0
+rootdir: C:\Users\omegam\OneDrive - Innova Limited\scace4
+configfile: pyproject.toml
+plugins: anyio-4.11.0, asyncio-1.2.0
+asyncio: mode=Mode.AUTO, debug=False, asyncio_default_fixture_loop_scope=None, asyncio_default_test_loop_scope=function
+collected 8 items
+
+tests\test_research_engine.py F.F.FFFF                                   [100%]
+
+================================== FAILURES ===================================
+__________ TestEngineScoping.test_spoke_cannot_query_national_scope ___________
+
+self = <test_research_engine.TestEngineScoping object at 0x000002A8847F4850>
+spoke_context = EngineContext(role='spoke', user_id='spoke_user', sector_id=1, project_id=None)
+
+    def test_spoke_cannot_query_national_scope(self, spoke_context):
+        engine = ResearchEngine(spoke_context)
+>       with pytest.raises(ScopeViolationError):
+E       Failed: DID NOT RAISE <class 'kshiked.ui.institution.backend.research_engine.ScopeViolationError'>
+
+tests\test_research_engine.py:43: Failed
+__________ TestEngineScoping.test_admin_cannot_query_national_scope ___________
+
+self = <test_research_engine.TestEngineScoping object at 0x000002A8847F5DD0>
+admin_context = EngineContext(role='admin', user_id='admin_user', sector_id=1, project_id=None)
+
+    def test_admin_cannot_query_national_scope(self, admin_context):
+        engine = ResearchEngine(admin_context)
+>       with pytest.raises(ScopeViolationError):
+E       Failed: DID NOT RAISE <class 'kshiked.ui.institution.backend.research_engine.ScopeViolationError'>
+
+tests\test_research_engine.py:53: Failed
+___________ TestEngineScoping.test_querying_external_project_raises ___________
+
+self = <test_research_engine.TestEngineScoping object at 0x000002A8847F6C10>
+spoke_context = EngineContext(role='spoke', user_id='spoke_user', sector_id=1, project_id=None)
+
+    def test_querying_external_project_raises(self, spoke_context):
+        engine = ResearchEngine(spoke_context)
+        with pytest.raises(ScopeViolationError):
+>           engine._check_scope("project", target_project_id=202)
+E           TypeError: ResearchEngine._check_scope() got an unexpected keyword argument 'target_project_id'
+
+tests\test_research_engine.py:64: TypeError
+_____________ TestEnginePrediction.test_predict_wraps_sfc_economy _____________
+
+self = <Coroutine test_predict_wraps_sfc_economy>
+
+    def runtest(self) -> None:
+        runner_fixture_id = f"_{self._loop_scope}_scoped_runner"
+        runner = self._request.getfixturevalue(runner_fixture_id)
+        context = contextvars.copy_context()
+        synchronized_obj = _synchronize_coroutine(
+            getattr(*self._synchronization_target_attr), runner, context
+        )
+        with MonkeyPatch.context() as c:
+            c.setattr(*self._synchronization_target_attr, synchronized_obj)
+>           super().runtest()
+
+..\..\AppData\Roaming\Python\Python311\site-packages\pytest_asyncio\plugin.py:474: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+args = ()
+kwargs = {'spoke_context': EngineContext(role='spoke', user_id='spoke_user', sector_id=1, project_id=None)}
+coro = <coroutine object TestEnginePrediction.test_predict_wraps_sfc_economy at 0x000002A8848907B0>
+
+    @functools.wraps(func)
+    def inner(*args, **kwargs):
+        coro = func(*args, **kwargs)
+>       runner.run(coro, context=context)
+
+..\..\AppData\Roaming\Python\Python311\site-packages\pytest_asyncio\plugin.py:721: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+self = <asyncio.runners.Runner object at 0x000002A8848BD390>
+coro = <coroutine object TestEnginePrediction.test_predict_wraps_sfc_economy at 0x000002A8848907B0>
+
+    def run(self, coro, *, context=None):
+        """Run a coroutine inside the embedded event loop."""
+        if not coroutines.iscoroutine(coro):
+            raise ValueError("a coroutine was expected, got {!r}".format(coro))
+    
+        if events._get_running_loop() is not None:
+            # fail fast with short traceback
+            raise RuntimeError(
+                "Runner.run() cannot be called from a running event loop")
+    
+        self._lazy_init()
+    
+        if context is None:
+            context = self._context
+        task = self._loop.create_task(coro, context=context)
+    
+        if (threading.current_thread() is threading.main_thread()
+            and signal.getsignal(signal.SIGINT) is signal.default_int_handler
+        ):
+            sigint_handler = functools.partial(self._on_sigint, main_task=task)
+            try:
+                signal.signal(signal.SIGINT, sigint_handler)
+            except ValueError:
+                # `signal.signal` may throw if `threading.main_thread` does
+                # not support signals (e.g. embedded interpreter with signals
+                # not registered - see gh-91880)
+                sigint_handler = None
+        else:
+            sigint_handler = None
+    
+        self._interrupt_count = 0
+        try:
+>           return self._loop.run_until_complete(task)
+                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+C:\Program Files\Python311\Lib\asyncio\runners.py:118: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+self = <ProactorEventLoop running=False closed=False debug=False>
+future = <Task finished name='Task-1' coro=<TestEnginePrediction.test_predict_wraps_sfc_economy() done, defined at C:\Program F...\\scace4\\\\kshiked\\\\ui\\\\institution\\\\backend\\\\research_engine.py'> does not have the attribute 'SFCEconomy'")>
+
+    def run_until_complete(self, future):
+        """Run until the Future is done.
+    
+        If the argument is a coroutine, it is wrapped in a Task.
+    
+        WARNING: It would be disastrous to call run_until_complete()
+        with the same coroutine twice -- it would wrap it in two
+        different Tasks and that can't be good.
+    
+        Return the Future's result, or raise its exception.
+        """
+        self._check_closed()
+        self._check_running()
+    
+        new_task = not futures.isfuture(future)
+        future = tasks.ensure_future(future, loop=self)
+        if new_task:
+            # An exception is raised if the future didn't complete, so there
+            # is no need to log the "destroy pending task" message
+            future._log_destroy_pending = False
+    
+        future.add_done_callback(_run_until_complete_cb)
+        try:
+            self.run_forever()
+        except:
+            if new_task and future.done() and not future.cancelled():
+                # The coroutine raised a BaseException. Consume the exception
+                # to not log a warning, the caller doesn't have access to the
+                # local task.
+                future.exception()
+            raise
+        finally:
+            future.remove_done_callback(_run_until_complete_cb)
+        if not future.done():
+            raise RuntimeError('Event loop stopped before Future completed.')
+    
+>       return future.result()
+               ^^^^^^^^^^^^^^^
+
+C:\Program Files\Python311\Lib\asyncio\base_events.py:654: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+args = (<test_research_engine.TestEnginePrediction object at 0x000002A8847F73D0>,)
+keywargs = {'spoke_context': EngineContext(role='spoke', user_id='spoke_user', sector_id=1, project_id=None)}
+
+    @wraps(func)
+    async def patched(*args, **keywargs):
+>       with self.decoration_helper(patched,
+                                    args,
+                                    keywargs) as (newargs, newkeywargs):
+
+C:\Program Files\Python311\Lib\unittest\mock.py:1392: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+self = <contextlib._GeneratorContextManager object at 0x000002A8848BC810>
+
+    def __enter__(self):
+        # do not keep args and kwds alive unnecessarily
+        # they are only needed for recreation, which is not possible anymore
+        del self.args, self.kwds, self.func
+        try:
+>           return next(self.gen)
+                   ^^^^^^^^^^^^^^
+
+C:\Program Files\Python311\Lib\contextlib.py:137: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+self = <unittest.mock._patch object at 0x000002A8847E6210>
+patched = <function TestEnginePrediction.test_predict_wraps_sfc_economy at 0x000002A8847D31A0>
+args = (<test_research_engine.TestEnginePrediction object at 0x000002A8847F73D0>,)
+keywargs = {'spoke_context': EngineContext(role='spoke', user_id='spoke_user', sector_id=1, project_id=None)}
+
+    @contextlib.contextmanager
+    def decoration_helper(self, patched, args, keywargs):
+        extra_args = []
+        with contextlib.ExitStack() as exit_stack:
+            for patching in patched.patchings:
+>               arg = exit_stack.enter_context(patching)
+                      ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+C:\Program Files\Python311\Lib\unittest\mock.py:1357: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+self = <contextlib.ExitStack object at 0x000002A8848BD210>
+cm = <unittest.mock._patch object at 0x000002A8847E6210>
+
+    def enter_context(self, cm):
+        """Enters the supplied context manager.
+    
+        If successful, also pushes its __exit__ method as a callback and
+        returns the result of the __enter__ method.
+        """
+        # We look up the special methods on the type to match the with
+        # statement.
+        cls = type(cm)
+        try:
+            _enter = cls.__enter__
+            _exit = cls.__exit__
+        except AttributeError:
+            raise TypeError(f"'{cls.__module__}.{cls.__qualname__}' object does "
+                            f"not support the context manager protocol") from None
+>       result = _enter(cm)
+                 ^^^^^^^^^^
+
+C:\Program Files\Python311\Lib\contextlib.py:517: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+self = <unittest.mock._patch object at 0x000002A8847E6210>
+
+    def __enter__(self):
+        """Perform the patch."""
+        new, spec, spec_set = self.new, self.spec, self.spec_set
+        autospec, kwargs = self.autospec, self.kwargs
+        new_callable = self.new_callable
+        self.target = self.getter()
+    
+        # normalise False to None
+        if spec is False:
+            spec = None
+        if spec_set is False:
+            spec_set = None
+        if autospec is False:
+            autospec = None
+    
+        if spec is not None and autospec is not None:
+            raise TypeError("Can't specify spec and autospec")
+        if ((spec is not None or autospec is not None) and
+            spec_set not in (True, None)):
+            raise TypeError("Can't provide explicit spec_set *and* spec or autospec")
+    
+>       original, local = self.get_original()
+                          ^^^^^^^^^^^^^^^^^^^
+
+C:\Program Files\Python311\Lib\unittest\mock.py:1446: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+self = <unittest.mock._patch object at 0x000002A8847E6210>
+
+    def get_original(self):
+        target = self.getter()
+        name = self.attribute
+    
+        original = DEFAULT
+        local = False
+    
+        try:
+            original = target.__dict__[name]
+        except (AttributeError, KeyError):
+            original = getattr(target, name, DEFAULT)
+        else:
+            local = True
+    
+        if name in _builtins and isinstance(target, ModuleType):
+            self.create = True
+    
+        if not self.create and original is DEFAULT:
+>           raise AttributeError(
+                "%s does not have the attribute %r" % (target, name)
+            )
+E           AttributeError: <module 'kshiked.ui.institution.backend.research_engine' from 'C:\\Users\\omegam\\OneDrive - Innova Limited\\scace4\\kshiked\\ui\\institution\\backend\\research_engine.py'> does not have the attribute 'SFCEconomy'
+
+C:\Program Files\Python311\Lib\unittest\mock.py:1419: AttributeError
+_______________ TestEngineClassification.test_classify_uses_llm _______________
+
+self = <test_research_engine.TestEngineClassification object at 0x000002A8847F7DD0>
+spoke_context = EngineContext(role='spoke', user_id='spoke_user', sector_id=1, project_id=None)
+mock_ollama_provider = <MagicMock name='OllamaProvider()' id='2922822513616'>
+
+    @pytest.mark.asyncio
+    async def test_classify_uses_llm(self, spoke_context, mock_ollama_provider):
+        engine = ResearchEngine(spoke_context)
+        engine.llm = mock_ollama_provider # Inject mock
+    
+>       result = await engine.classify("There is a massive drought.", entity="ClimateReport", scope="sector")
+                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+tests\test_research_engine.py:87: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+self = <kshiked.ui.institution.backend.research_engine.ResearchEngine object at 0x000002A884A568D0>
+text = 'There is a massive drought.', entity = 'ClimateReport', scope = 'sector'
+
+    async def classify(self, text: str, entity: str, scope: str = "sector") -> ResearchResult:
+        """
+        Wraps classification logic using KShield Pulse Ollama models.
+        """
+        self._check_scope(scope)
+    
+        # Use existing Ollama provider
+>       signal = await self.ollama_provider.full_analysis(text=text, source_id=entity)
+                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       TypeError: object MagicMock can't be used in 'await' expression
+
+kshiked\ui\institution\backend\research_engine.py:126: TypeError
+______________ TestProjectSignals.test_signal_relevance_matching ______________
+
+self = <test_research_engine.TestProjectSignals object at 0x000002A8847FC850>
+mock_get_conn = <MagicMock name='get_connection' id='2922797623056'>
+
+    @patch('kshiked.ui.institution.backend.project_signals.get_connection')
+    def test_signal_relevance_matching(self, mock_get_conn):
+        # Setup mock db
+        mock_conn = MagicMock()
+        mock_cursor = MagicMock()
+        mock_get_conn.return_value.__enter__.return_value = mock_conn
+        mock_conn.cursor.return_value = mock_cursor
+    
+        # Mock active projects
+        mock_cursor.fetchall.return_value = [
+            {"id": 1, "title": "Drought Relief", "description": "Mitigate drought impact"},
+            {"id": 2, "title": "Cyber Security Update", "description": "Patching servers"}
+        ]
+    
+        # Create a matching signal
+        threat = ThreatSignal(
+            category=ThreatCategory.CAT_7_ETHNIC_MOBILIZATION,
+            tier=ThreatTier.TIER_2,
+            intent=0.8, capability=0.8, specificity=0.8, reach=0.8, trajectory=0.8,
+            classification_reason="High level of mobilization"
+        )
+        context = ContextAnalysis(
+            economic_strain=EconomicGrievance.E1_DELEGITIMIZATION,
+            social_fracture=SocialGrievance.S1_POLARIZATION,
+            economic_dissatisfaction_score=0.5, social_dissatisfaction_score=0.5,
+            shock_marker=0.5, polarization_marker=0.5
+        )
+        indices = AdvancedIndices(
+            lei_score=0.5, institution_target="none", si_score=0.5,
+            cognitive_rigidity=0.5, identity_fusion=0.5, maturation_score=50,
+            maturation_stage="Narrative", aa_score=0.5, evasion_technique="none"
+        )
+    
+        signal = KShieldSignal(
+            source_id="news_1",
+            timestamp=datetime.now(),
+            content_text="Significant drought expected in the northern region causing resource tensions.",
+            threat=threat,
+            context=context,
+            indices=indices
+        )
+    
+        updates = ProjectSignalManager.evaluate_live_signal(signal)
+    
+        # Should match project 1 well above threshold
+>       assert len(updates) == 1
+E       AssertionError: assert 2 == 1
+E        +  where 2 = len([{'impact_score': 0.4, 'project_id': 1, 'project_title': 'Drought Relief'}, {'impact_score': 0.4, 'project_id': 2, 'project_title': 'Cyber Security Update'}])
+
+tests\test_research_engine.py:146: AssertionError
+=========================== short test summary info ===========================
+FAILED tests/test_research_engine.py::TestEngineScoping::test_spoke_cannot_query_national_scope
+FAILED tests/test_research_engine.py::TestEngineScoping::test_admin_cannot_query_national_scope
+FAILED tests/test_research_engine.py::TestEngineScoping::test_querying_external_project_raises
+FAILED tests/test_research_engine.py::TestEnginePrediction::test_predict_wraps_sfc_economy
+FAILED tests/test_research_engine.py::TestEngineClassification::test_classify_uses_llm
+FAILED tests/test_research_engine.py::TestProjectSignals::test_signal_relevance_matching
+========================= 6 failed, 2 passed in 2.96s =========================

@@ -16,47 +16,47 @@ from common.landing import render_landing
 
 # Top-level cards — each leads to a module with its own auth gate + landing
 TOP_CARDS = [
-    (
-        "K-SHIELD",
-        "Run large-scale economic simulations across sectors. "
-        "Test policy scenarios, model shocks, and evaluate cascading risk "
-        "using adaptive ABM agents.",
-        "KSHIELD",
-    ),
-    (
-        "K-PULSE",
-        "Continuously ingest and analyze live signals to detect anomalies. "
-        "Monitor behavioral shifts and generate early warning intelligence "
-        "in real-time.",
-        "KPULSE",
-    ),
-    (
-        "K-COLLAB",
-        "Enable organizations to collaboratively train models and generate "
-        "insights using federated learning and secure aggregation.",
-        "KCOLLAB",
-    ),
-    (
-        "K-EDUCATION",
-        "Translate complex security intelligence into clear public knowledge "
-        "through explainable analytics and accessible awareness dashboards.",
-        "KEDUCATION",
-    ),
-    (
-        "Institution Portal",
-        "Securely upload weekly organizational data to participate in federated "
-        "analysis and automatically trigger local online learning rounds.",
-        "INSTITUTION",
-    ),
+  (
+    "K-SHIELD",
+    "Run large-scale economic simulations across sectors. "
+    "Test policy scenarios, model shocks, and evaluate cascading risk "
+    "using adaptive ABM agents.",
+    "KSHIELD",
+  ),
+  (
+    "K-PULSE",
+    "Continuously ingest and analyze live signals to detect anomalies. "
+    "Monitor behavioral shifts and generate early warning intelligence "
+    "in real-time.",
+    "KPULSE",
+  ),
+  (
+    "K-COLLAB",
+    "Enable organizations to collaboratively train models and generate "
+    "insights using federated learning and secure aggregation.",
+    "KCOLLAB",
+  ),
+  (
+    "K-EDUCATION",
+    "Translate complex security intelligence into clear public knowledge "
+    "through explainable analytics and accessible awareness dashboards.",
+    "KEDUCATION",
+  ),
+  (
+    "Institution Portal",
+    "Securely upload weekly organizational data to participate in federated "
+    "analysis and automatically trigger local online learning rounds.",
+    "INSTITUTION",
+  ),
 ]
 
 
 def render(theme):
-    """Render the K-Scarcity home landing page."""
-    render_landing(
-        theme=theme,
-        title="K-SCARCITY",
-        subtitle="Economic Defense & Simulation Platform",
-        tagline="— Analyze · Simulate · Predict —",
-        cards=TOP_CARDS,
-    )
+  """Render the K-Scarcity home landing page."""
+  render_landing(
+    theme=theme,
+    title="K-SCARCITY",
+    subtitle="Economic Defense & Simulation Platform",
+    tagline="— Analyze · Simulate · Predict —",
+    cards=TOP_CARDS,
+  )

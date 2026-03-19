@@ -14,20 +14,20 @@ import os
 
 # FORCE: Add user site-packages to path so Streamlit sees pip installed libs
 try:
-    user_site = site.getusersitepackages()
-    if user_site not in sys.path:
-        sys.path.insert(0, user_site)
+  user_site = site.getusersitepackages()
+  if user_site not in sys.path:
+    sys.path.insert(0, user_site)
 except Exception:
-    pass
+  pass
 
 import streamlit as st
 from theme import DARK_THEME, generate_css
 
 st.set_page_config(
-    page_title="Kenya Causal Analysis",
-    page_icon="S",
-    layout="wide",
-    initial_sidebar_state="collapsed",
+  page_title="Kenya Causal Analysis",
+  page_icon="S",
+  layout="wide",
+  initial_sidebar_state="collapsed",
 )
 
 # Use the real SENTINEL theme

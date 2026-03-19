@@ -53,11 +53,17 @@ def reset_db():
         for table in [
             "institutional_memory", "project_updates", "project_phases",
             "project_participants", "operational_projects",
+            "project_objectives", "project_milestones", "project_outcomes", 
+            "project_post_mortem", "milestone_activity_log", "data_schemas", 
+            "analysis_history",
             "validated_risks", "delta_queue", "ontology_schemas",
             "users", "institutions", "baskets"
         ]:
-            cur.execute(f"DELETE FROM {table}")
-            cur.execute(f"DELETE FROM sqlite_sequence WHERE name='{table}'")
+            try:
+                cur.execute(f"DELETE FROM {table}")
+                cur.execute(f"DELETE FROM sqlite_sequence WHERE name='{table}'")
+            except Exception:
+                pass # Safe skip if table doesn't exist yet
         conn.commit()
     print("[RESET] Done.\n")
 

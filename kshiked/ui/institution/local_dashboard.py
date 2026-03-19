@@ -446,35 +446,36 @@ def render(active_section: str = "Data Intake", use_enterprise_theme: bool = Tru
           elif res.relationship_summary:
             for sentence in res.relationship_summary[:8]:
               st.markdown(f"- {sentence}")
-          if res.knowledge_graph:
-            st.write("**Causal Network Graph**")
-            try:
-              import networkx as nx
-              G = nx.DiGraph()
-              for edge in res.knowledge_graph[:40]:
-                src = edge.get('source') or (edge.get('variables', ['?', '?'])[0])
-                tgt = edge.get('target') or (edge.get('variables', ['?', '?'])[-1])
-                G.add_edge(src, tgt, weight=edge.get('confidence', 0.5))
-              pos = nx.spring_layout(G, seed=42)
-              edge_x, edge_y = [], []
-              for u, v in G.edges():
-                x0, y0 = pos[u]; x1, y1 = pos[v]
-                edge_x += [x0, x1, None]; edge_y += [y0, y1, None]
-              fig_kg = go.Figure()
-              fig_kg.add_trace(go.Scatter(x=edge_x, y=edge_y, mode='lines', line=dict(width=1, color='#aaa'), hoverinfo='none'))
-              fig_kg.add_trace(go.Scatter(
-                x=[pos[n][0] for n in G.nodes()], y=[pos[n][1] for n in G.nodes()],
-                mode='markers+text', text=list(G.nodes()), textposition='top center',
-                marker=dict(size=10, color='#006600'), hoverinfo='text'
-              ))
-              fig_kg.update_layout(height=340, margin=dict(l=0,r=0,t=0,b=0), showlegend=False,
-                         paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(0,0,0,0)",
-                         xaxis=dict(showgrid=False, zeroline=False, showticklabels=False),
-                         yaxis=dict(showgrid=False, zeroline=False, showticklabels=False))
-              _apply_plotly_numeric_font(fig_kg)
-              st.plotly_chart(fig_kg, use_container_width=True)
-            except Exception:
-              st.caption("Install networkx for causal network graph: pip install networkx")
+          # Temporarily disabled per request: hide causal network visualization in Signal Analysis.
+          # if res.knowledge_graph:
+          #   st.write("**Causal Network Graph**")
+          #   try:
+          #     import networkx as nx
+          #     G = nx.DiGraph()
+          #     for edge in res.knowledge_graph[:40]:
+          #       src = edge.get('source') or (edge.get('variables', ['?', '?'])[0])
+          #       tgt = edge.get('target') or (edge.get('variables', ['?', '?'])[-1])
+          #       G.add_edge(src, tgt, weight=edge.get('confidence', 0.5))
+          #     pos = nx.spring_layout(G, seed=42)
+          #     edge_x, edge_y = [], []
+          #     for u, v in G.edges():
+          #       x0, y0 = pos[u]; x1, y1 = pos[v]
+          #       edge_x += [x0, x1, None]; edge_y += [y0, y1, None]
+          #     fig_kg = go.Figure()
+          #     fig_kg.add_trace(go.Scatter(x=edge_x, y=edge_y, mode='lines', line=dict(width=1, color='#aaa'), hoverinfo='none'))
+          #     fig_kg.add_trace(go.Scatter(
+          #       x=[pos[n][0] for n in G.nodes()], y=[pos[n][1] for n in G.nodes()],
+          #       mode='markers+text', text=list(G.nodes()), textposition='top center',
+          #       marker=dict(size=10, color='#006600'), hoverinfo='text'
+          #     ))
+          #     fig_kg.update_layout(height=340, margin=dict(l=0,r=0,t=0,b=0), showlegend=False,
+          #                paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(0,0,0,0)",
+          #                xaxis=dict(showgrid=False, zeroline=False, showticklabels=False),
+          #                yaxis=dict(showgrid=False, zeroline=False, showticklabels=False))
+          #     _apply_plotly_numeric_font(fig_kg)
+          #     st.plotly_chart(fig_kg, use_container_width=True)
+          #   except Exception:
+          #     st.caption("Install networkx for causal network graph: pip install networkx")
           if not res.relationship_summary and not res.knowledge_graph:
             st.info("No relationships discovered yet — the engine needs more data rows to learn patterns.")
 

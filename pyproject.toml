@@ -28,7 +28,8 @@ dashboard = [
   "fastapi>=0.110",
   "uvicorn[standard]>=0.27",
   "python-multipart>=0.0.9",
-  "pydantic>=2.6"
+  "pydantic>=2.6",
+  "qrcode[pil]>=7.4"
 ]
 # GPU telemetry, rendering, and heavy ops
 gpu = [

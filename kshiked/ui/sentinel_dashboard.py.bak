@@ -436,7 +436,7 @@ def _render_top_counties(data: DashboardData, theme):
         st.markdown(f"""
         <div style="display: flex; justify-content: space-between; padding: 0.5rem 0; border-bottom: 1px solid {theme.border_subtle};">
             <span>{name}</span>
-            <span style="color: {color}; font-family: 'Space Mono', monospace;">{county.risk_score:.0%}</span>
+            <span style="color: {color}; font-family: 'IBM Plex Mono', monospace;">{county.risk_score:.0%}</span>
         </div>
         """, unsafe_allow_html=True)
 
@@ -1963,7 +1963,7 @@ def _render_document_intel_tab(theme):
                 content = file_path.read_text(encoding="utf-8")
                 st.markdown(f"""
                 <div class="glass-card" style="padding: 2rem; border: 1px solid {theme.accent_primary}; margin-top: 1rem;">
-                <div style="font-family: 'Courier New', monospace; color: {theme.accent_primary}; font-size: 0.8rem; margin-bottom: 1rem;">
+                <div style="font-family: 'IBM Plex Mono', monospace; color: {theme.accent_primary}; font-size: 0.8rem; margin-bottom: 1rem;">
                     SOURCE: {file_path.name}
                 </div>
                 </div>
@@ -2361,7 +2361,7 @@ def _render_home(theme):
     }}
 
     .hero-title {{
-        font-family: 'Courier New', monospace;
+        font-family: 'IBM Plex Sans', sans-serif;
         font-size: 3.5rem;
         font-weight: 800;
         background: linear-gradient(90deg, {theme.text_primary}, {theme.accent_primary});

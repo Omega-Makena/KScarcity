@@ -1,0 +1,67 @@
+{
+  "summary": {
+    "run_id": "8e67b55d-7353-4e23-8b0b-32004a046809",
+    "total_specs": 1,
+    "succeeded": 1,
+    "failed": 0,
+    "started_at": "2026-03-11T09:32:38.667562",
+    "finished_at": "2026-03-11T09:32:38.765430",
+    "duration_sec": 0.097868,
+    "status": "success",
+    "fail_policy": "continue",
+    "parallelism": "none"
+  },
+  "metadata": {
+    "run_id": "8e67b55d-7353-4e23-8b0b-32004a046809",
+    "runtime": {
+      "refute_random_common_cause": false,
+      "refute_placebo_treatment": false,
+      "refute_data_subset": false,
+      "refutation_simulations": 100,
+      "n_jobs": 1,
+      "seed": 42,
+      "confidence_level": 0.95,
+      "estimator_method": null,
+      "estimator_params": {},
+      "parallelism": "none",
+      "fail_policy": "continue",
+      "chunk_size": 1,
+      "time_series_policy": "none",
+      "blas_thread_policy": {
+        "OMP_NUM_THREADS": 1,
+        "MKL_NUM_THREADS": 1,
+        "OPENBLAS_NUM_THREADS": 1,
+        "NUMEXPR_NUM_THREADS": 1,
+        "VECLIB_MAXIMUM_THREADS": 1
+      },
+      "dot_path": null,
+      "artifact_root": "artifacts",
+      "run_id": "8e67b55d-7353-4e23-8b0b-32004a046809",
+      "export_graphs": true
+    },
+    "python_version": "3.11.9",
+    "platform": "Windows-10-10.0.26200-SP0",
+    "dowhy_version": "0.14",
+    "econml_version": "0.16.0",
+    "data_signature": {
+      "rows": 25,
+      "columns": [
+        "Access to electricity, rural (% of rural population)",
+        "Unemployment, female (% of female labor force) (modeled ILO estimate)",
+        "Access to clean fuels and technologies for cooking (% of population)",
+        "Access to clean fuels and technologies for cooking, rural (% of rural population)",
+        "Access to clean fuels and technologies for cooking, urban (% of urban population)",
+        "Access to electricity (% of population)"
+      ],
+      "dtypes": {
+        "Access to electricity, rural (% of rural population)": "float64",
+        "Unemployment, female (% of female labor force) (modeled ILO estimate)": "float64",
+        "Access to clean fuels and technologies for cooking (% of population)": "float64",
+        "Access to clean fuels and technologies for cooking, rural (% of rural population)": "float64",
+        "Access to clean fuels and technologies for cooking, urban (% of urban population)": "float64",
+        "Access to electricity (% of population)": "float64"
+      },
+      "hash": "8304cb34af9c97149b58cffe62a6cec972a5b7a74734380bcc3ecf77c6f71f53"
+    }
+  }
+}

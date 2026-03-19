@@ -1,0 +1,12 @@
+digraph LearnedGraph {
+  rankdir=LR;
+  "timestamp" -> "patient_intake";
+  "timestamp" -> "essential_drug_stock";
+  "location" -> "patient_intake";
+  "location" -> "essential_drug_stock";
+  "sector" -> "patient_intake";
+  "sector" -> "essential_drug_stock";
+  "bed_occupancy" -> "patient_intake";
+  "bed_occupancy" -> "essential_drug_stock";
+  "patient_intake" -> "essential_drug_stock";
+}

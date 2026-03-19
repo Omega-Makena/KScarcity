@@ -171,7 +171,7 @@ def _base_layout(theme, height=400, **extra):
         margin=dict(l=40, r=20, t=30, b=40),
         paper_bgcolor="rgba(0,0,0,0)",
         plot_bgcolor="rgba(0,0,0,0)",
-        font=dict(family="Space Mono, monospace", color=theme.text_muted, size=11),
+        font=dict(family="IBM Plex Sans, sans-serif", color=theme.text_muted, size=11),
         xaxis=dict(gridcolor="rgba(255,255,255,0.05)", linecolor=theme.border_default,
                    tickfont=dict(color=theme.text_muted)),
         yaxis=dict(gridcolor="rgba(255,255,255,0.05)", linecolor=theme.border_default,
