@@ -59,6 +59,28 @@ The federation page (`kshiked/ui/sentinel/federation.py`) displays:
 
 ---
 
+## Institutional Assurance Views
+
+The institutional shell runs from `kshiked/ui/institution/login.py` and exposes role-gated views for sector executives and developers.
+
+| View | Main implementation | Purpose |
+|---|---|---|
+| Institution login | `kshiked/ui/institution/login.py` | Auth + role routing |
+| Executive assurance | `kshiked/ui/institution/executive_dashboard.py` | Risk, assurance verdict, decision context |
+| Developer assurance | `kshiked/ui/institution/developer_dashboard.py` | Benchmark diagnostics and runtime evidence |
+| Shared assurance backend | `kshiked/ui/institution/backend/model_quality.py` | Computes assurance snapshot consumed by both views |
+
+Assurance now includes a DRG-backed deployment realism term and explicit explainability payloads:
+
+- overall weighted formula (metric credibility, robustness, traceability, deployment realism)
+- criterion-level formula strings and weighted component rows
+- per-criterion score breakdowns (signals/components)
+- transparency decomposition and recent quality override samples
+- DRG readiness/activity evidence from code presence, runtime logs, and artifact availability
+- export controls from the UI (`JSON` explainability snapshot + `CSV` component/signal breakdown)
+
+---
+
 ## Running the Dashboard
 
 ```bash
@@ -75,4 +97,4 @@ Deep-link examples:
 
 ---
 
-*Source: `kshiked/ui/` · Last updated: 2026-02-19*
+*Source: `kshiked/ui/` · Last updated: 2026-03-31*

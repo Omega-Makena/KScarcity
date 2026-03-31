@@ -718,6 +718,41 @@ Spokes submit gradient payloads (not raw data)
   → Admin UI shows: convergence curve, privacy budget spent, outlier flags
 ```
 
+  ### Example D: Institution assurance snapshot with DRG explainability
+
+  ```
+  Executive or Developer opens "Model Assurance Snapshot"
+    → build_quality_assurance_snapshot() in model_quality.py
+    → Collect benchmark evidence:
+      fl_model_accuracy_*.json
+      meta_model_accuracy_*.json
+      statistical_model_accuracy_*.json
+      online_model_accuracy_*.json
+    → Collect robustness/traceability/deployment evidence:
+      benchmark freshness, drift sensitivity, fallback coverage,
+      docs + artifact traceability, deployment and config indicators
+    → Collect DRG evidence for deployment realism:
+      scarcity/governor/drg_core.py presence
+      scarcity bridge hooks for DRG events
+      logs/drg/ runtime activity
+      DRG documentation candidates
+    → Compute criterion scores + formulas:
+      metric_credibility_score
+      robustness_score
+      traceability_score
+      deployment_realism_score (includes DRG contribution)
+    → Compute overall assurance:
+      weighted sum + traffic light band + rationale note
+    → Return explainability payload:
+      overall formula + weighted components
+      criterion formulas + score_breakdown blocks
+      transparency_breakdown + recent_override_samples
+      dynamic_resource_allocator detail block
+    → UI rendering (executive/developer dashboards):
+      KPI row + DRG chip + "Why this score?" panel
+      export buttons for JSON and CSV evidence packs
+  ```
+
 ---
 
 ## 10. Meta-Learning System — Full Component Interaction Map

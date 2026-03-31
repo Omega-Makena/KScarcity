@@ -1,8 +1,10 @@
 ﻿import streamlit as st
 import sys
 import os
+import re
 import pandas as pd
 import numpy as np
+import json
 from pathlib import Path
 import time
 from html import escape
@@ -35,6 +37,7 @@ from kshiked.ui.institution.backend.report_narrator import (
   narrate_severity,
   get_threat_index_explanation,
 )
+from kshiked.ui.institution.backend.model_quality import build_quality_assurance_snapshot
 from kshiked.ui.institution.shared_sidebar import render_shared_sidebar
 from kshiked.ui.theme import LIGHT_THEME as theme
 
@@ -82,6 +85,351 @@ EXEC_NAV_KEY_TO_SECTION = {
   "collaboration-room": "Collaboration Room",
   "archive": "Archive",
 }
+
+AGENCY_APPROVALS_FILE = Path(__file__).resolve().parent / "agency_approvals.json"
+AGENCY_APPROVAL_AUDIT_FILE = Path(__file__).resolve().parent / "agency_approval_audit.jsonl"
+
+
+def _load_agency_pending_requests() -> list[dict]:
+  if not AGENCY_APPROVALS_FILE.exists():
+    return []
+  try:
+    with open(AGENCY_APPROVALS_FILE, "r", encoding="utf-8") as f:
+      data = json.load(f)
+    pending = data.get("pending", {}) if isinstance(data, dict) else {}
+    rows = []
+    for node_id, payload in pending.items():
+      rows.append({
+        "node_id": str(node_id),
+        "institution_name": str(payload.get("institution_name", "")),
+        "domain": str(payload.get("domain", "")),
+        "requested_at": float(payload.get("requested_at", 0.0) or 0.0),
+      })
+    return sorted(rows, key=lambda r: r.get("requested_at", 0.0), reverse=True)
+  except Exception:
+    return []
+
+
+def _load_agency_approval_audit(limit: int = 25) -> list[dict]:
+  if not AGENCY_APPROVAL_AUDIT_FILE.exists():
+    return []
+  rows = []
+  try:
+    with open(AGENCY_APPROVAL_AUDIT_FILE, "r", encoding="utf-8") as f:
+      for line in f:
+        line = str(line).strip()
+        if not line:
+          continue
+        try:
+          event = json.loads(line)
+        except json.JSONDecodeError:
+          continue
+        rows.append({
+          "timestamp": float(event.get("timestamp", 0.0) or 0.0),
+          "action": str(event.get("action", "")),
+          "node_id": str(event.get("node_id", "")),
+          "actor": str(event.get("actor", "")),
+          "domain": str((event.get("details") or {}).get("domain", "")),
+        })
+  except Exception:
+    return []
+
+  rows = sorted(rows, key=lambda r: r.get("timestamp", 0.0), reverse=True)
+  return rows[: max(1, int(limit))]
+
+
+def _render_agency_onboarding_snapshot() -> None:
+  pending_rows = _load_agency_pending_requests()
+  audit_rows = _load_agency_approval_audit(limit=20)
+
+  with st.expander("Agency Onboarding Queue", expanded=False):
+    domain_options = sorted({str(r.get("domain", "")) for r in pending_rows if str(r.get("domain", ""))})
+    selected_domain = st.selectbox(
+      "Filter Domain",
+      options=["All"] + domain_options,
+      key="exec_onboarding_domain_filter",
+    )
+
+    if selected_domain != "All":
+      pending_rows = [r for r in pending_rows if str(r.get("domain", "")) == selected_domain]
+      audit_rows = [r for r in audit_rows if str(r.get("domain", "")) == selected_domain]
+
+    c1, c2, c3 = st.columns(3)
+    c1.metric("Pending Requests", len(pending_rows))
+    approved_24h = sum(
+      1
+      for r in audit_rows
+      if r.get("action") == "APPROVED" and (time.time() - float(r.get("timestamp", 0.0))) <= 86400
+    )
+    rejected_24h = sum(
+      1
+      for r in audit_rows
+      if r.get("action") == "REJECTED" and (time.time() - float(r.get("timestamp", 0.0))) <= 86400
+    )
+    c2.metric("Approved (24h)", approved_24h)
+    c3.metric("Rejected (24h)", rejected_24h)
+
+    if pending_rows:
+      df_pending = pd.DataFrame(pending_rows)
+      if "requested_at" in df_pending.columns:
+        df_pending["requested_at"] = pd.to_datetime(df_pending["requested_at"], unit="s", errors="coerce")
+      st.dataframe(df_pending, use_container_width=True, hide_index=True)
+      st.download_button(
+        "Export Pending CSV",
+        data=df_pending.to_csv(index=False).encode("utf-8"),
+        file_name="agency_pending_requests.csv",
+        mime="text/csv",
+        key="exec_export_pending_agencies_csv",
+      )
+    else:
+      st.caption("No pending agency onboarding requests.")
+
+    st.markdown("##### Recent Approval Audit")
+    if audit_rows:
+      df_audit = pd.DataFrame(audit_rows)
+      if "timestamp" in df_audit.columns:
+        df_audit["timestamp"] = pd.to_datetime(df_audit["timestamp"], unit="s", errors="coerce")
+      st.dataframe(df_audit, use_container_width=True, hide_index=True)
+      st.download_button(
+        "Export Audit CSV",
+        data=df_audit.to_csv(index=False).encode("utf-8"),
+        file_name="agency_approval_audit.csv",
+        mime="text/csv",
+        key="exec_export_agency_audit_csv",
+      )
+    else:
+      st.caption("No approval audit actions yet.")
+
+
+def _render_executive_assurance_snapshot(snapshot: dict | None = None) -> None:
+  if snapshot is None:
+    snapshot = build_quality_assurance_snapshot()
+  overall = snapshot.get("overall_assurance", {}) if isinstance(snapshot, dict) else {}
+  metric = snapshot.get("metric_credibility", {}) if isinstance(snapshot, dict) else {}
+  robustness = snapshot.get("robustness", {}) if isinstance(snapshot, dict) else {}
+  traceability = snapshot.get("traceability", {}) if isinstance(snapshot, dict) else {}
+  deployability = snapshot.get("deployment_realism", {}) if isinstance(snapshot, dict) else {}
+  drg_allocator = deployability.get("dynamic_resource_allocator", {}) if isinstance(deployability.get("dynamic_resource_allocator"), dict) else {}
+  summary_rows = snapshot.get("summary_rows", []) if isinstance(snapshot.get("summary_rows"), list) else []
+
+  with st.expander("Model Assurance Snapshot", expanded=False):
+    st.caption("Credibility vs baseline, robustness under drift/partial failure, and audit traceability.")
+
+    light = str(overall.get("traffic_light", "amber")).lower()
+    light_color = "#006600" if light == "green" else "#b54708" if light == "amber" else "#BB0000"
+    light_label = "GREEN" if light == "green" else "AMBER" if light == "amber" else "RED"
+    note = str(overall.get("note", ""))
+    st.markdown(
+      (
+        f"<div style='background:#FFFFFF; border:0.5px solid rgba(26,26,26,0.12); border-left:4px solid {light_color}; "
+        f"border-radius:8px; padding:10px 12px; margin-bottom:8px;'>"
+        f"<div style='font-size:0.78rem; color:#6B6B6B; text-transform:uppercase;'>Overall Assurance Verdict</div>"
+        f"<div style='font-size:1.02rem; font-weight:600; color:{light_color}; margin-top:2px;'>"
+        f"{light_label} | {float(overall.get('score', 0.0) or 0.0) * 100:.0f}%"
+        f"</div>"
+        f"<div style='font-size:0.84rem; color:#4B5563; margin-top:4px;'>{escape(note)}</div>"
+        f"</div>"
+      ),
+      unsafe_allow_html=True,
+    )
+
+    c1, c2, c3, c4, c5 = st.columns(5)
+    c1.metric(
+      "Metric Credibility",
+      f"{float(metric.get('score', 0.0) or 0.0) * 100:.0f}%",
+      str(metric.get("band", "n/a")),
+    )
+    c2.metric(
+      "Robustness",
+      f"{float(robustness.get('score', 0.0) or 0.0) * 100:.0f}%",
+      str(robustness.get("band", "n/a")),
+    )
+    c3.metric(
+      "Traceability",
+      f"{float(traceability.get('score', 0.0) or 0.0) * 100:.0f}%",
+      str(traceability.get("band", "n/a")),
+    )
+    c4.metric(
+      "Deployment Realism",
+      f"{float(deployability.get('score', 0.0) or 0.0) * 100:.0f}%",
+      str(deployability.get("band", "n/a")),
+    )
+    c5.metric(
+      "DRG Allocator",
+      f"{float(drg_allocator.get('score', 0.0) or 0.0) * 100:.0f}%",
+      str(drg_allocator.get("activity_score", "n/a")),
+    )
+
+    with st.expander("Why this score?", expanded=False):
+      st.caption("Formal scoring equations and weighted contributions used in this assurance verdict.")
+      overall_formula = str(overall.get("formula") or "")
+      if overall_formula:
+        st.code(overall_formula, language="text")
+
+      export_payload = {
+        "overall_assurance": overall,
+        "metric_credibility": metric,
+        "robustness": robustness,
+        "traceability": traceability,
+        "deployment_realism": deployability,
+        "summary_rows": summary_rows,
+      }
+      ex1, ex2, ex3 = st.columns(3)
+      ex1.download_button(
+        "Export Explainability JSON",
+        data=json.dumps(export_payload, ensure_ascii=True, indent=2).encode("utf-8"),
+        file_name="assurance_explainability_executive.json",
+        mime="application/json",
+        key="exec_assurance_explainability_json_export",
+      )
+
+      components = overall.get("components", []) if isinstance(overall.get("components"), list) else []
+      if components:
+        df_components = pd.DataFrame(components)
+        if "weight" in df_components.columns:
+          df_components["weight_pct"] = df_components["weight"].astype(float) * 100.0
+        if "score" in df_components.columns:
+          df_components["score_pct"] = df_components["score"].astype(float) * 100.0
+        if "contribution" in df_components.columns:
+          df_components["contribution_pct"] = df_components["contribution"].astype(float) * 100.0
+        st.dataframe(df_components, use_container_width=True, hide_index=True)
+        ex2.download_button(
+          "Export Components CSV",
+          data=df_components.to_csv(index=False).encode("utf-8"),
+          file_name="assurance_components_executive.csv",
+          mime="text/csv",
+          key="exec_assurance_components_csv_export",
+        )
+
+      def _render_breakdown(title: str, obj: dict) -> None:
+        st.markdown(f"##### {title}")
+        formula = str(obj.get("formula") or "")
+        if formula:
+          st.code(formula, language="text")
+        parts = obj.get("score_breakdown", {}) if isinstance(obj.get("score_breakdown"), dict) else {}
+        if parts:
+          rows = []
+          for name, payload in parts.items():
+            if not isinstance(payload, dict):
+              continue
+            weight = float(payload.get("weight", 0.0) or 0.0)
+            value = float(payload.get("value", 0.0) or 0.0)
+            rows.append(
+              {
+                "signal": str(name),
+                "weight": weight,
+                "value": value,
+                "contribution": weight * value,
+                "formula": str(payload.get("formula") or ""),
+              }
+            )
+          if rows:
+            st.dataframe(pd.DataFrame(rows), use_container_width=True, hide_index=True)
+
+      _render_breakdown("Metric Credibility Formula", metric)
+      _render_breakdown("Robustness Formula", robustness)
+      _render_breakdown("Deployment Realism Formula", deployability)
+
+      breakdown_rows = []
+      for criterion_name, criterion_payload in (
+        ("metric_credibility", metric),
+        ("robustness", robustness),
+        ("deployment_realism", deployability),
+        ("traceability", traceability),
+      ):
+        parts = criterion_payload.get("score_breakdown", {}) if isinstance(criterion_payload.get("score_breakdown"), dict) else {}
+        if not parts and criterion_name == "traceability":
+          parts = criterion_payload.get("transparency_breakdown", {}) if isinstance(criterion_payload.get("transparency_breakdown"), dict) else {}
+        for signal_name, payload in parts.items():
+          if not isinstance(payload, dict):
+            continue
+          w = float(payload.get("weight", 0.0) or 0.0)
+          v = float(payload.get("value", 0.0) or 0.0)
+          breakdown_rows.append(
+            {
+              "criterion": criterion_name,
+              "signal": str(signal_name),
+              "weight": w,
+              "value": v,
+              "contribution": w * v,
+              "raw_count": int(float(payload.get("raw_count", 0) or 0)),
+              "formula": str(payload.get("formula") or ""),
+            }
+          )
+      if breakdown_rows:
+        ex3.download_button(
+          "Export Signal Breakdown CSV",
+          data=pd.DataFrame(breakdown_rows).to_csv(index=False).encode("utf-8"),
+          file_name="assurance_signal_breakdown_executive.csv",
+          mime="text/csv",
+          key="exec_assurance_breakdown_csv_export",
+        )
+
+    baseline_rows = metric.get("baseline_rows", []) if isinstance(metric.get("baseline_rows"), list) else []
+    if baseline_rows:
+      st.markdown("##### Baseline Deltas")
+      st.dataframe(pd.DataFrame(baseline_rows), use_container_width=True, hide_index=True)
+
+    r1, r2, r3 = st.columns(3)
+    r1.metric("Drift Detect Rate", f"{float(robustness.get('detect_rate', 0.0) or 0.0):.2f}")
+    r2.metric("Drift Split Rate", f"{float(robustness.get('split_rate', 0.0) or 0.0):.2f}")
+    r3.metric("Fallback Signals", int(robustness.get("fallback_signals", 0) or 0))
+
+    t1, t2 = st.columns(2)
+    t1.metric("Override Events", int(traceability.get("override_events", 0) or 0))
+    t2.metric("Decision Artifacts", int(traceability.get("decision_artifacts", 0) or 0))
+
+    docs = traceability.get("documentation_paths", []) if isinstance(traceability.get("documentation_paths"), list) else []
+    if docs:
+      st.caption("Audit and explanation documentation")
+      st.code("\n".join(docs), language="text")
+
+    transparency_breakdown = traceability.get("transparency_breakdown", {}) if isinstance(traceability.get("transparency_breakdown"), dict) else {}
+    if transparency_breakdown:
+      st.markdown("##### Transparency Breakdown")
+      rows = []
+      for name, payload in transparency_breakdown.items():
+        if not isinstance(payload, dict):
+          continue
+        weight = float(payload.get("weight", 0.0) or 0.0)
+        value = float(payload.get("value", 0.0) or 0.0)
+        rows.append(
+          {
+            "signal": str(name),
+            "weight": weight,
+            "value": value,
+            "contribution": weight * value,
+            "raw_count": int(float(payload.get("raw_count", 0) or 0)),
+            "formula": str(payload.get("formula") or ""),
+          }
+        )
+      if rows:
+        st.dataframe(pd.DataFrame(rows), use_container_width=True, hide_index=True)
+
+    recent_overrides = traceability.get("recent_override_samples", []) if isinstance(traceability.get("recent_override_samples"), list) else []
+    if recent_overrides:
+      st.markdown("##### Recent Override Decisions")
+      df_overrides = pd.DataFrame(recent_overrides)
+      if "created_at" in df_overrides.columns:
+        df_overrides["created_at"] = pd.to_datetime(df_overrides["created_at"], unit="s", errors="coerce")
+      st.dataframe(df_overrides, use_container_width=True, hide_index=True)
+
+    assumptions = deployability.get("assumptions", []) if isinstance(deployability.get("assumptions"), list) else []
+    if assumptions:
+      st.caption("Deployment assumptions")
+      st.code("\n".join(assumptions), language="text")
+
+    if drg_allocator:
+      st.markdown("##### Dynamic Resource Allocator Signals")
+      d1, d2, d3, d4 = st.columns(4)
+      d1.metric("Readiness", f"{float(drg_allocator.get('readiness_score', 0.0) or 0.0) * 100:.0f}%")
+      d2.metric("Activity", f"{float(drg_allocator.get('activity_score', 0.0) or 0.0) * 100:.0f}%")
+      d3.metric("Runtime Files", int(drg_allocator.get("runtime_activity_files", 0) or 0))
+      d4.metric("Keyword Hits", int(drg_allocator.get("runtime_keyword_hits", 0) or 0))
+
+    if summary_rows:
+      st.markdown("##### Assurance Criteria Summary")
+      st.dataframe(pd.DataFrame(summary_rows), use_container_width=True, hide_index=True)
 
 
 @st.cache_data(show_spinner=False)
@@ -421,7 +769,15 @@ def _apply_plotly_numeric_font(fig):
   return fig
 
 
-def _render_exec_content_chrome(active_section: str, strain_score: float, strain_label: str, strain_color: str):
+def _render_exec_content_chrome(
+  active_section: str,
+  strain_score: float,
+  strain_label: str,
+  strain_color: str,
+  topbar_title: str = "Presidency Intelligence & Coordinated Response",
+  dashboard_label: str = "National Executive Dashboard",
+  command_subtitle: str = "Presidency Intelligence & Coordinated Response",
+):
   strain_pct = max(0.0, min(100.0, (strain_score / 10.0) * 100.0))
   st.markdown(
     f"""
@@ -431,16 +787,16 @@ def _render_exec_content_chrome(active_section: str, strain_score: float, strain
         <span class="exec-topbar-dot" style="background:{EXEC_COLORS['red']};"></span>
         <span class="exec-topbar-dot" style="background:{EXEC_COLORS['white']}; border:0.5px solid {EXEC_COLORS['border_strong']};"></span>
       </div>
-      <div class="exec-topbar-center">Presidency Intelligence &amp; Coordinated Response</div>
+      <div class="exec-topbar-center">{escape(topbar_title)}</div>
       <div class="exec-topbar-actions">
         <button class="exec-btn exec-btn-stop" type="button">Stop</button>
         <button class="exec-btn exec-btn-deploy" type="button">Deploy</button>
       </div>
     </div>
     <div class="exec-command-header">
-      <div class="exec-command-label">National Executive Dashboard</div>
+      <div class="exec-command-label">{escape(dashboard_label)}</div>
       <div class="exec-command-title">{escape(active_section)}</div>
-      <div class="exec-command-subtitle">Presidency Intelligence &amp; Coordinated Response</div>
+      <div class="exec-command-subtitle">{escape(command_subtitle)}</div>
       <div class="exec-strain-wrap">
         <div class="exec-strain-head">
           <span class="exec-strain-label">National Systemic Strain</span>
@@ -454,6 +810,100 @@ def _render_exec_content_chrome(active_section: str, strain_score: float, strain
     """,
     unsafe_allow_html=True,
   )
+
+
+def _tail_file_lines(file_path: Path, max_lines: int = 120) -> str:
+  try:
+    with file_path.open("r", encoding="utf-8", errors="replace") as fh:
+      lines = fh.readlines()
+    return "".join(lines[-max_lines:])
+  except Exception as exc:
+    return f"Failed to read log file: {exc}"
+
+
+def _render_developer_only_panels(
+  active_projects,
+  global_risks,
+  unread_escs: int,
+):
+  st.markdown("### Developer Console")
+
+  with st.expander("Debug Controls", expanded=False):
+    c1, c2, c3, c4 = st.columns(4)
+    with c1:
+      st.session_state["dev_show_raw_payloads"] = st.toggle(
+        "Show Raw Payloads",
+        value=bool(st.session_state.get("dev_show_raw_payloads", False)),
+      )
+    with c2:
+      st.session_state["dev_trace_queries"] = st.toggle(
+        "Trace Queries",
+        value=bool(st.session_state.get("dev_trace_queries", False)),
+      )
+    with c3:
+      st.session_state["dev_disable_cache"] = st.toggle(
+        "Disable Cache",
+        value=bool(st.session_state.get("dev_disable_cache", False)),
+      )
+    with c4:
+      if st.button("Clear Cache", use_container_width=True, key="dev_clear_cache"):
+        st.cache_data.clear()
+        st.success("Streamlit cache cleared.")
+
+  with st.expander("Model Diagnostics", expanded=False):
+    d1, d2, d3, d4 = st.columns(4)
+    with d1:
+      st.metric("Active Projects", len(active_projects))
+    with d2:
+      st.metric("Promoted Risks", len(global_risks))
+    with d3:
+      st.metric("Unread Escalations", unread_escs)
+
+    try:
+      with get_connection() as conn:
+        c = conn.cursor()
+        c.execute("SELECT COUNT(*) AS c FROM users")
+        users_count = int(c.fetchone()["c"])
+        c.execute("SELECT COUNT(*) AS c FROM institutions")
+        institutions_count = int(c.fetchone()["c"])
+        c.execute(
+          "SELECT timestamp, analysis_type, username, role FROM analysis_history ORDER BY timestamp DESC LIMIT 5"
+        )
+        recent_analysis = [dict(r) for r in c.fetchall()]
+    except Exception:
+      users_count = 0
+      institutions_count = 0
+      recent_analysis = []
+
+    with d4:
+      st.metric("Registered Users", users_count)
+    st.caption(f"Institutions tracked: {institutions_count}")
+
+    if recent_analysis:
+      st.dataframe(pd.DataFrame(recent_analysis), use_container_width=True)
+    else:
+      st.caption("No recent analysis history found.")
+
+  with st.expander("Internal Logs", expanded=False):
+    log_root = Path(project_root) / "logs"
+    log_files = []
+    if log_root.exists():
+      for p in log_root.rglob("*"):
+        if p.is_file() and p.suffix.lower() in {".log", ".txt", ".json"}:
+          log_files.append(p)
+    log_files.sort(key=lambda p: p.stat().st_mtime, reverse=True)
+
+    if not log_files:
+      st.caption("No internal log files found under logs/.")
+      return
+
+    options = {str(p.relative_to(project_root)): p for p in log_files[:50]}
+    selected_rel = st.selectbox("Log File", list(options.keys()), key="dev_log_file")
+    selected_path = options[selected_rel]
+
+    tail_text = _tail_file_lines(selected_path, max_lines=150)
+    st.code(tail_text, language="text")
+    st.caption(f"Showing tail of {selected_rel}")
 
 def _resolve_risk_scores(risk: dict) -> dict:
   """Normalize composite_scores regardless of whether they come from the
@@ -534,7 +984,22 @@ def get_pulse_data():
   path = os.path.join(project_root, "data", "synthetic_kenya_policy", "tweets.csv")
   if not os.path.exists(path):
     return pd.DataFrame()
-  cols = ["timestamp", "intent", "topic_cluster", "sentiment_score", "threat_score", "policy_event_id"]
+  cols = [
+    "timestamp",
+    "text",
+    "intent",
+    "topic_cluster",
+    "location_county",
+    "sentiment_score",
+    "threat_score",
+    "imperative_rate",
+    "urgency_rate",
+    "coordination_score",
+    "escalation_score",
+    "policy_event_id",
+    "policy_phase",
+    "policy_severity",
+  ]
   try:
     df = pd.read_csv(path, usecols=cols).dropna(subset=['intent'])
     df['timestamp'] = pd.to_datetime(df['timestamp'], errors='coerce')
@@ -543,12 +1008,30 @@ def get_pulse_data():
       'topic_cluster': 'Sector',
       'intent': 'Threat Category',
       'sentiment_score': 'Sentiment',
-      'timestamp': 'Timestamp'
+      'timestamp': 'Timestamp',
+      'location_county': 'County',
+      'text': 'Text',
     }, inplace=True)
     
+    for col in (
+      "Sentiment",
+      "threat_score",
+      "imperative_rate",
+      "urgency_rate",
+      "coordination_score",
+      "escalation_score",
+      "policy_severity",
+    ):
+      if col in df.columns:
+        df[col] = pd.to_numeric(df[col], errors="coerce").fillna(0.0)
+
     df['Sector'] = df['Sector'].fillna("General Systemic")
+    df['Sentiment'] = df['Sentiment'].clip(lower=0.0, upper=1.0)
+    df['threat_score'] = df['threat_score'].clip(lower=0.0, upper=1.0)
     df['Criticality'] = (df['threat_score'] * 8.0) + ((1.0 - df['Sentiment']) * 2.0)
     df['Criticality'] = df['Criticality'].clip(lower=0.0, upper=10.0).round(2)
+    df["Scenario Relevance"] = 0.0
+    df["Scenario Link"] = "generic_stream"
     
     return df
   except Exception as e:
@@ -556,10 +1039,170 @@ def get_pulse_data():
     return pd.DataFrame()
 
 
-def render():
+def _to_tokens(value: str) -> set:
+  text = str(value or "").lower()
+  text = re.sub(r"[^a-z0-9\s]+", " ", text)
+  return {tok for tok in text.split() if len(tok) >= 3}
+
+
+def _extract_simulation_context(global_risks, all_baskets, active_projects) -> list[dict]:
+  context: list[dict] = []
+  for risk in global_risks or []:
+    basket_id = risk.get("basket_id")
+    sector_name = str((all_baskets or {}).get(basket_id, "General Systemic"))
+    title = str(risk.get("title", ""))
+    description = str(risk.get("description", ""))
+    composite = _resolve_risk_scores(risk)
+    severity = float(composite.get("B_Impact", 0.0) or 0.0) / 10.0
+    tokens = _to_tokens(f"{title} {description} {sector_name}")
+    if not tokens:
+      continue
+    context.append(
+      {
+        "sector": sector_name,
+        "threat_label": title[:64] if title else "simulated_risk",
+        "severity": max(0.0, min(1.0, severity)),
+        "tokens": tokens,
+      }
+    )
+
+  for project in active_projects or []:
+    title = str(project.get("title", ""))
+    description = str(project.get("description", ""))
+    phase = str(project.get("current_phase", ""))
+    severity = float(project.get("severity", 0.0) or 0.0) / 10.0
+    tokens = _to_tokens(f"{title} {description} {phase}")
+    if not tokens:
+      continue
+    context.append(
+      {
+        "sector": "Cross-Sector Operations",
+        "threat_label": title[:64] if title else "operational_project",
+        "severity": max(0.0, min(1.0, severity)),
+        "tokens": tokens,
+      }
+    )
+
+  return context
+
+
+def _enrich_pulse_with_simulated_challenges(df: pd.DataFrame, global_risks, all_baskets, active_projects) -> pd.DataFrame:
+  if df.empty:
+    return df
+
+  sim_context = _extract_simulation_context(global_risks, all_baskets, active_projects)
+  if not sim_context:
+    out = df.copy()
+    out["Scenario Relevance"] = out.get("Scenario Relevance", 0.0)
+    out["Scenario Link"] = out.get("Scenario Link", "generic_stream")
+    return out
+
+  negative_terms = {
+    "fear", "panic", "unsafe", "danger", "violence", "attack", "hunger", "shortage", "riot", "crisis",
+    "kill", "dead", "threat", "flee", "urgent", "collapse", "corrupt", "outbreak", "cholera", "flood",
+  }
+  positive_terms = {"safe", "stable", "calm", "recover", "resolved", "normal", "support", "peace", "secure"}
+
+  out = df.copy()
+  sentiments: list[float] = []
+  threats: list[float] = []
+  sectors: list[str] = []
+  categories: list[str] = []
+  criticalities: list[float] = []
+  relevances: list[float] = []
+  links: list[str] = []
+
+  for row in out.to_dict(orient="records"):
+    raw_text = str(row.get("Text") or "")
+    raw_intent = str(row.get("Threat Category") or "")
+    raw_sector = str(row.get("Sector") or "").strip()
+    token_set = _to_tokens(f"{raw_text} {raw_intent} {raw_sector}")
+
+    best_ctx = None
+    best_overlap = 0.0
+    for ctx in sim_context:
+      overlap = len(token_set & ctx["tokens"]) / max(1.0, min(10.0, float(len(ctx["tokens"]))))
+      if overlap > best_overlap:
+        best_overlap = overlap
+        best_ctx = ctx
+
+    sentiment = float(row.get("Sentiment", 0.0) or 0.0)
+    threat = float(row.get("threat_score", 0.0) or 0.0)
+    urgency = float(row.get("urgency_rate", 0.0) or 0.0)
+    escalation = float(row.get("escalation_score", 0.0) or 0.0)
+    imperative = float(row.get("imperative_rate", 0.0) or 0.0)
+    coordination = float(row.get("coordination_score", 0.0) or 0.0)
+    policy_severity = float(row.get("policy_severity", 0.0) or 0.0)
+
+    neg_hits = len(token_set & negative_terms)
+    pos_hits = len(token_set & positive_terms)
+
+    if sentiment <= 0.0:
+      sentiment = 0.55 + (0.06 * pos_hits) - (0.08 * neg_hits)
+
+    structural_threat = 0.38 * urgency + 0.30 * escalation + 0.20 * imperative + 0.12 * coordination
+    lexical_threat = min(0.45, 0.06 * neg_hits)
+    threat = max(threat, structural_threat + lexical_threat + (0.08 * policy_severity))
+
+    relevance = best_overlap
+    if best_ctx is not None:
+      threat = min(1.0, threat + (0.22 * best_overlap) + (0.20 * float(best_ctx.get("severity", 0.0) or 0.0)))
+      if raw_sector.lower() in {"", "general systemic", "nan"}:
+        raw_sector = str(best_ctx.get("sector") or "General Systemic")
+      if raw_intent.lower() in {"", "casual", "opinion", "satire_mockery"} and best_overlap >= 0.12:
+        raw_intent = str(best_ctx.get("threat_label") or raw_intent)
+
+    sentiment = min(1.0, max(0.0, sentiment - (0.22 * threat) + (0.02 * pos_hits)))
+    relevance = min(1.0, max(0.0, 0.55 * relevance + 0.30 * threat + 0.15 * (1.0 - sentiment)))
+    criticality = min(10.0, max(0.0, 10.0 * (0.55 * threat + 0.30 * (1.0 - sentiment) + 0.15 * relevance)))
+
+    sentiments.append(round(float(sentiment), 3))
+    threats.append(round(float(threat), 3))
+    sectors.append(raw_sector or "General Systemic")
+    categories.append(raw_intent or "unclassified")
+    criticalities.append(round(float(criticality), 2))
+    relevances.append(round(float(relevance), 3))
+    links.append("simulated_challenge" if relevance >= 0.2 else "generic_stream")
+
+  out["Sentiment"] = sentiments
+  out["threat_score"] = threats
+  out["Sector"] = sectors
+  out["Threat Category"] = categories
+  out["Criticality"] = criticalities
+  out["Scenario Relevance"] = relevances
+  out["Scenario Link"] = links
+  return out
+
+
+def render(mode: str = "executive"):
   enforce_role(Role.EXECUTIVE.value)
   inject_enterprise_theme()
   _inject_executive_shell_css()
+
+  mode_name = str(mode or "executive").strip().lower()
+  is_developer = mode_name == "developer"
+  nav_state_key = "developer_nav" if is_developer else "executive_nav"
+  nav_button_prefix = "developer_nav" if is_developer else "executive_nav"
+  disconnect_key = "developer_disconnect" if is_developer else "executive_disconnect"
+
+  profile_label = "Developer Command" if is_developer else "National Executive"
+  profile_name = (
+    st.session_state.get("username", "Developer Dashboard")
+    if is_developer
+    else "National Dashboard"
+  )
+  role_badge = "DEVELOPER" if is_developer else "EXECUTIVE"
+  topbar_title = (
+    "Developer Intelligence & Experiment Control"
+    if is_developer
+    else "Presidency Intelligence & Coordinated Response"
+  )
+  dashboard_label = "Dedicated Developer Dashboard" if is_developer else "National Executive Dashboard"
+  command_subtitle = (
+    "Full-fidelity executive stack in dedicated developer mode"
+    if is_developer
+    else "Presidency Intelligence & Coordinated Response"
+  )
   
   # Fetch all baskets
   with get_connection() as conn:
@@ -575,9 +1218,10 @@ def render():
   # Pre-fetch inbox so unread count is available everywhere
   esc_inbox_global = SecureMessaging.get_inbox(Role.EXECUTIVE.value, "ALL")
   unread_escs = sum(1 for m in esc_inbox_global if not m['is_read'])
+  assurance_snapshot = build_quality_assurance_snapshot()
 
   sidebar_state = render_shared_sidebar(
-    state_key="executive_nav",
+    state_key=nav_state_key,
     default_key="national-briefing",
     nav_items=EXEC_NAV_ITEMS,
     group_order=["intelligence", "sectors", "command"],
@@ -586,17 +1230,34 @@ def render():
       "sectors": ("Sectors", EXEC_COLORS["green"]),
       "command": ("Command", EXEC_COLORS["black"]),
     },
-    profile_label="National Executive",
-    profile_name="National Dashboard",
-    role_badge_text="EXECUTIVE",
+    profile_label=profile_label,
+    profile_name=profile_name,
+    role_badge_text=role_badge,
     role_badge_bg=EXEC_COLORS["black"],
     role_badge_fg=EXEC_COLORS["white"],
     role_badge_border=EXEC_COLORS["black"],
     profile_bottom_border=EXEC_COLORS["red"],
-    button_key_prefix="executive_nav",
+    button_key_prefix=nav_button_prefix,
     badge_counts={"sector-reports": len(global_risks)},
-    disconnect_button_key="executive_disconnect",
+    disconnect_button_key=disconnect_key,
     disconnect_label="Disconnect session",
+  )
+
+  overall_assurance = assurance_snapshot.get("overall_assurance", {}) if isinstance(assurance_snapshot, dict) else {}
+  light = str(overall_assurance.get("traffic_light", "amber")).lower()
+  light_color = "#006600" if light == "green" else "#b54708" if light == "amber" else "#BB0000"
+  light_label = "GREEN" if light == "green" else "AMBER" if light == "amber" else "RED"
+  st.sidebar.markdown(
+    (
+      f"<div style='margin-top:8px; border:0.5px solid rgba(26,26,26,0.2); border-left:3px solid {light_color}; "
+      f"border-radius:7px; padding:7px 8px; background:#FFFFFF;'>"
+      f"<div style='font-size:0.68rem; color:#6B6B6B; text-transform:uppercase; letter-spacing:0.4px;'>Assurance</div>"
+      f"<div style='font-size:0.84rem; font-weight:600; color:{light_color};'>"
+      f"{light_label} | {float(overall_assurance.get('score', 0.0) or 0.0) * 100:.0f}%"
+      f"</div>"
+      f"</div>"
+    ),
+    unsafe_allow_html=True,
   )
 
   if sidebar_state["disconnect_clicked"]:
@@ -605,17 +1266,35 @@ def render():
 
   active_key = str(sidebar_state["active_key"])
   if sidebar_state["changed"]:
-    st.session_state["executive_nav"] = active_key
+    st.session_state[nav_state_key] = active_key
     st.rerun()
 
   active_section = EXEC_NAV_KEY_TO_SECTION.get(active_key, "National Briefing")
   strain_score, strain_label, strain_color = _compute_national_strain(global_risks)
-  _render_exec_content_chrome(active_section, strain_score, strain_label, strain_color)
+  _render_exec_content_chrome(
+    active_section,
+    strain_score,
+    strain_label,
+    strain_color,
+    topbar_title=topbar_title,
+    dashboard_label=dashboard_label,
+    command_subtitle=command_subtitle,
+  )
+
+  if is_developer:
+    _render_developer_only_panels(
+      active_projects=active_projects,
+      global_risks=global_risks,
+      unread_escs=unread_escs,
+    )
 
   if active_section == "National Briefing":
     st.markdown("### National Briefing")
-    df_social = get_pulse_data()
+    _render_agency_onboarding_snapshot()
+    _render_executive_assurance_snapshot(assurance_snapshot)
+    df_social = _enrich_pulse_with_simulated_challenges(get_pulse_data(), global_risks, all_baskets, active_projects)
     avg_sent = df_social['Sentiment'].mean() if not df_social.empty else 0.50
+    linked_share = float((df_social.get("Scenario Relevance", pd.Series(dtype=float)) >= 0.2).mean()) if not df_social.empty else 0.0
     
     # 1. THE EXECUTIVE BRIEFING (Hero Section)
     # Dynamic Morning Narrative
@@ -647,7 +1326,7 @@ def render():
     with m1: st.metric("Active Threat Signals", len(global_risks))
     with m2: st.metric("Systemic Strain", f"{strain_score:.1f}/10")
     with m3: st.metric("Active Projects", len(active_projects))
-    with m4: st.metric("National Sentiment", f"{avg_sent:.2f}")
+    with m4: st.metric("National Sentiment", f"{avg_sent:.2f}", f"Scenario-linked {linked_share * 100:.0f}%")
 
     st.markdown("#### National Economic Health")
     _impact_values = [float(_resolve_risk_scores(r).get('B_Impact', 0.0)) for r in global_risks]
@@ -1105,14 +1784,15 @@ def render():
       
   if active_section == "Social Signals":
     st.markdown("### Public Safety & Social Signal Monitor")
-    st.write("Executive-level telemetry of national sentiment and social tension vectors.")
+    st.write("Executive-level telemetry aligned to active simulated challenges and affected sectors.")
     
-    df_social = get_pulse_data()
+    df_social = _enrich_pulse_with_simulated_challenges(get_pulse_data(), global_risks, all_baskets, active_projects)
     
     if df_social.empty:
       st.warning("No real-time social signals available to map.")
     else:
       avg_sent = df_social['Sentiment'].mean()
+      linked_share = float((df_social.get("Scenario Relevance", pd.Series(dtype=float)) >= 0.2).mean())
       most_strained = df_social.groupby('Sector')['Criticality'].mean().idxmax()
       
       # 1. Plain-Language translation
@@ -1124,19 +1804,41 @@ def render():
       <div style="background:{bg_color}; border-left:4px solid {border_color}; padding:15px; border-radius:4px; margin-bottom: 20px;">
         <strong>National Sentiment Verdict: {sentiment_text} (Score: {avg_sent:.2f})</strong><br>
         Based on real-time social streams, the public mood is currently skewed towards the {sentiment_text.lower()} end of the spectrum.
-        The <b>{most_strained}</b> sector is currently bearing the highest level of social frustration and criticality. 
+        Scenario-linked coverage is <b>{linked_share * 100:.0f}%</b> and the <b>{most_strained}</b> sector is currently bearing the highest level of social frustration and criticality.
         Focus executive communication and potential interventions in this sector.
       </div>
       """, unsafe_allow_html=True)
 
       # Filters
-      sc1, sc2 = st.columns(2)
+      sc1, sc2, sc3 = st.columns(3)
       with sc1:
         sel_sector = st.multiselect("Filter Sector", df_social['Sector'].unique(), default=df_social['Sector'].unique()[:3] if len(df_social['Sector'].unique()) > 3 else df_social['Sector'].unique())
       with sc2:
         sel_threat = st.multiselect("Filter Threat", df_social['Threat Category'].unique(), default=df_social['Threat Category'].unique()[:3] if len(df_social['Threat Category'].unique()) > 3 else df_social['Threat Category'].unique())
+      with sc3:
+        strict_scenario_mode = st.toggle(
+          "Command View (Scenario-linked only)",
+          value=True,
+          key="exec_social_strict_scenario_mode",
+          help="Show only signals tightly linked to active simulated challenges.",
+        )
+        relevance_threshold = st.slider(
+          "Scenario relevance threshold",
+          min_value=0.0,
+          max_value=1.0,
+          value=0.4,
+          step=0.05,
+          key="exec_social_scenario_relevance_threshold",
+        )
         
       df_filtered = df_social[(df_social['Sector'].isin(sel_sector)) & (df_social['Threat Category'].isin(sel_threat))]
+      if strict_scenario_mode and "Scenario Relevance" in df_filtered.columns:
+        df_filtered = df_filtered[df_filtered["Scenario Relevance"] >= float(relevance_threshold)]
+
+      command_linked_share = float((df_filtered.get("Scenario Relevance", pd.Series(dtype=float)) >= float(relevance_threshold)).mean()) if not df_filtered.empty else 0.0
+      st.caption(
+        f"Filtered signals: {len(df_filtered)} | Linked at threshold: {command_linked_share * 100:.0f}%"
+      )
       
       if len(df_filtered) > 3000:
         df_filtered = df_filtered.sample(n=3000, random_state=42)
@@ -1145,7 +1847,7 @@ def render():
       if not df_filtered.empty:
         fig = px.scatter(
           df_filtered, x="Timestamp", y="Criticality", 
-          color="Sector", size="Criticality", hover_data=["Threat Category", "Sentiment"],
+          color="Sector", size="Criticality", hover_data=["Threat Category", "Sentiment", "Scenario Relevance", "Scenario Link"],
           template="plotly_white", height=300,
           title="Real-Time Signal Criticality Scatter Plot"
         )
@@ -1155,24 +1857,27 @@ def render():
         
       st.write("---")
       st.markdown("#### Thematic Threat Tension Vectors")
-      
-      tension_series = df_filtered.groupby('Threat Category')['Criticality'].mean().sort_values(ascending=False).head(4)
-      t_cols = st.columns(len(tension_series))
-      
-      for i, (threat_name, threat_crit) in enumerate(tension_series.items()):
-         explanation = get_threat_index_explanation(threat_name.lower().replace(" ", "_"))
-         if not explanation:
-           explanation = f"Tracks real-time public frustration and tension regarding {threat_name.lower()}."
-           
-         t_color = "#BB0000" if threat_crit > 7 else "#E05000" if threat_crit > 5 else "#006600"
-         with t_cols[i]:
-           st.markdown(f"""
-           <div style="border-top:3px solid {t_color}; padding-top:10px;">
-             <strong>{threat_name}</strong><br>
-             <span style="font-size:1.5rem; color:{t_color}; font-weight:bold;">{threat_crit:.1f}</span><span style="font-size:0.8rem;"> /10</span><br>
-             <p style="font-size:0.8rem; color:#475569; margin-top:5px;">{explanation}</p>
-           </div>
-           """, unsafe_allow_html=True)
+
+      if df_filtered.empty:
+        st.info("No social signals match the current filters. Lower the relevance threshold or disable strict mode.")
+      else:
+        tension_series = df_filtered.groupby('Threat Category')['Criticality'].mean().sort_values(ascending=False).head(4)
+        t_cols = st.columns(len(tension_series))
+
+        for i, (threat_name, threat_crit) in enumerate(tension_series.items()):
+          explanation = get_threat_index_explanation(threat_name.lower().replace(" ", "_"))
+          if not explanation:
+            explanation = f"Tracks real-time public frustration and tension regarding {threat_name.lower()}."
+
+          t_color = "#BB0000" if threat_crit > 7 else "#E05000" if threat_crit > 5 else "#006600"
+          with t_cols[i]:
+            st.markdown(f"""
+            <div style="border-top:3px solid {t_color}; padding-top:10px;">
+              <strong>{threat_name}</strong><br>
+              <span style="font-size:1.5rem; color:{t_color}; font-weight:bold;">{threat_crit:.1f}</span><span style="font-size:0.8rem;"> /10</span><br>
+              <p style="font-size:0.8rem; color:#475569; margin-top:5px;">{explanation}</p>
+            </div>
+            """, unsafe_allow_html=True)
         
   if active_section == "Policy Simulator":
     render_executive_simulator()
@@ -1381,7 +2086,7 @@ def render():
     st.write("Per-sector snapshot: validated risks, operational project participation, and public sentiment.")
     st.write("---")
 
-    df_social_sum = get_pulse_data()
+    df_social_sum = _enrich_pulse_with_simulated_challenges(get_pulse_data(), global_risks, all_baskets, active_projects)
 
     if not all_baskets:
       st.info("No sectors registered in the system.")
