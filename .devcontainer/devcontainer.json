@@ -1,0 +1,20 @@
+{
+  "name": "K-Scarcity Dashboard",
+  "image": "mcr.microsoft.com/devcontainers/python:3.11",
+  "postCreateCommand": "pip install streamlit plotly pandas numpy cryptography scikit-learn statsmodels networkx && pip install -e pypi/",
+  "forwardPorts": [8501],
+  "portsAttributes": {
+    "8501": {
+      "label": "K-Scarcity Dashboard",
+      "onAutoForward": "openBrowser"
+    }
+  },
+  "customizations": {
+    "vscode": {
+      "extensions": [
+        "ms-python.python",
+        "ms-python.vscode-pylance"
+      ]
+    }
+  }
+}
