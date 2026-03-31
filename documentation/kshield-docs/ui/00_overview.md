@@ -79,6 +79,16 @@ Assurance now includes a DRG-backed deployment realism term and explicit explain
 - DRG readiness/activity evidence from code presence, runtime logs, and artifact availability
 - export controls from the UI (`JSON` explainability snapshot + `CSV` component/signal breakdown)
 
+Institution dashboards now also expose a shared plain-language export flow via `kshiked/ui/institution/unified_report_export.py`.
+Each dashboard can produce a single report pack (`.zip`) that includes:
+
+- `report_summary.txt` (non-technical narrative)
+- `report_payload.json` (structured appendix)
+- `metrics.csv` (headline dashboard metrics)
+- optional table CSV attachments when available
+
+The executive flow includes a dynamic cost-of-delay block (KES billions, rounded to whole numbers) using a hybrid delay model (linear + staged + exponential) from `compute_cost_of_delay_kes_b(...)` in `backend/analytics_engine.py`.
+
 ---
 
 ## Running the Dashboard

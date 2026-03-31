@@ -23,6 +23,8 @@ from kshiked.ui.institution.style import inject_enterprise_theme
 from kshiked.ui.institution.backend.messaging import SecureMessaging
 from kshiked.ui.institution.backend.data_sharing import DataSharingManager
 from kshiked.ui.institution.collab_room import render_collab_room
+from kshiked.ui.institution.backend.analytics_engine import compute_cost_of_delay_kes_b
+from kshiked.ui.institution.unified_report_export import render_unified_report_export
 from kshiked.ui.kshield.causal.view import (
   _render_granger_section,
   _render_causal_network,
@@ -85,6 +87,29 @@ def _apply_plotly_numeric_font(fig):
       axis.tickfont = dict(family="IBM Plex Mono, monospace")
   return fig
 
+def _guide(method_html: str, interp_html: str, rec_html: str) -> None:
+  """Collapsible 3-section analysis guide (method / interpretation / recommendation)."""
+  _AC = "#0066cc"   # LIGHT_THEME accent_primary
+  _AW = "#ffc107"   # accent_warning
+  _AS = "#28a745"   # accent_success
+  _TM = "#6c757d"   # text_muted
+  with st.expander("Analysis Guide & Interpretation", expanded=False):
+    st.markdown(
+      f"<div style='font-size:0.82rem; line-height:1.65;'>"
+      f"<div style='color:{_AC}; font-weight:700; font-size:0.72rem; "
+      f"letter-spacing:0.08em; margin-bottom:0.35rem;'>WHAT IS THIS ANALYSIS?</div>"
+      f"<div style='color:{_TM}; margin-bottom:0.9rem;'>{method_html}</div>"
+      f"<div style='color:{_AW}; font-weight:700; font-size:0.72rem; "
+      f"letter-spacing:0.08em; margin-bottom:0.35rem;'>INTERPRETATION</div>"
+      f"<div style='color:{_TM}; margin-bottom:0.9rem;'>{interp_html}</div>"
+      f"<div style='color:{_AS}; font-weight:700; font-size:0.72rem; "
+      f"letter-spacing:0.08em; margin-bottom:0.35rem;'>RECOMMENDATION</div>"
+      f"<div style='color:{_TM};'>{rec_html}</div>"
+      f"</div>",
+      unsafe_allow_html=True,
+    )
+
+
 def render(active_section: str = "Data Intake", use_enterprise_theme: bool = True):
   enforce_role(Role.INSTITUTION.value)
   if use_enterprise_theme:
@@ -137,16 +162,61 @@ def render(active_section: str = "Data Intake", use_enterprise_theme: bool = Tru
     unsafe_allow_html=True,
   )
 
-  # Fetch all baskets for cross-sector references
-  with get_connection() as conn:
-    c = conn.cursor()
-    c.execute("SELECT id, name FROM baskets")
-    all_baskets = {r['id']: r['name'] for r in c.fetchall()}
+  pipeline_result = st.session_state.get('pipeline_result')
+  local_df = st.session_state.get('local_df')
+  if pipeline_result is not None and hasattr(pipeline_result, 'composite'):
+    comp = getattr(pipeline_result, 'composite', {}) or {}
+    severity_seed = float(comp.get('B_Impact', 0.0) or 0.0)
+  else:
+    severity_seed = 0.0
+  if severity_seed <= 0.0:
+    severity_seed = 5.0 if active_section == "Signal Analysis" else 3.0
 
-  # Fetch schemas early so they are available across all tabs
-  schema = OntologyEnforcer.get_basket_schema(basket_id)
+  spoke_cost_snapshot = compute_cost_of_delay_kes_b(severity=severity_seed, projection_steps=4)
+  render_unified_report_export(
+    dashboard_name="Spoke Dashboard",
+    section_name=active_section,
+    metrics={
+      "institution": str(inst_name),
+      "sector": str(basket_name),
+      "has_uploaded_data": bool(local_df is not None),
+      "rows_in_local_dataset": int(len(local_df)) if isinstance(local_df, pd.DataFrame) else 0,
+      "pipeline_result_available": bool(pipeline_result is not None),
+      "severity_signal": round(float(severity_seed), 2),
+    },
+    highlights=[
+      "This report is written for non-technical readers and policy decision support.",
+      "Use it to communicate local risk posture and urgency to sector command.",
+      f"Current section focus: {active_section}.",
+    ],
+    cost_delay=spoke_cost_snapshot,
+    evidence={
+      "institution_id": inst_id,
+      "basket_id": basket_id,
+      "threat_level": getattr(pipeline_result, 'threat_level', '') if pipeline_result is not None else '',
+    },
+    key_prefix="spoke_unified_report",
+  )
+
+  # Fetch all baskets for cross-sector references (cached per session – schemas change rarely)
+  _baskets_cache_key = f"_all_baskets_cache"
+  if _baskets_cache_key not in st.session_state:
+    with get_connection() as conn:
+      c = conn.cursor()
+      c.execute("SELECT id, name FROM baskets")
+      st.session_state[_baskets_cache_key] = {r['id']: r['name'] for r in c.fetchall()}
+  all_baskets = st.session_state[_baskets_cache_key]
+
+  # Fetch schemas early so they are available across all tabs (cached per basket per session)
+  _schema_cache_key = f"_basket_schema_{basket_id}"
+  _custom_schema_cache_key = f"_custom_schemas_{basket_id}"
+  if _schema_cache_key not in st.session_state:
+    st.session_state[_schema_cache_key] = OntologyEnforcer.get_basket_schema(basket_id)
   from kshiked.ui.institution.backend.schema_manager import SchemaManager
-  custom_schemas = SchemaManager.get_schemas(basket_id)
+  if _custom_schema_cache_key not in st.session_state:
+    st.session_state[_custom_schema_cache_key] = SchemaManager.get_schemas(basket_id)
+  schema = st.session_state[_schema_cache_key]
+  custom_schemas = st.session_state[_custom_schema_cache_key]
   latest_custom_schema = custom_schemas[0] if custom_schemas else None
 
   if active_section == "Data Intake":
@@ -279,10 +349,66 @@ def render(active_section: str = "Data Intake", use_enterprise_theme: bool = Tru
 
         # ── 1. ANOMALY DETECTION ────────────────────────────────────────
         with st.expander("1. Anomaly Detection — Did something unusual happen?", expanded=True):
-          # Plain-language summary first
-          st.markdown(narrate_anomaly_detection(res.peak_score, res.structural_breaks))
+          # Identify which specific column deviated most at the peak moment
+          _anom_df = st.session_state.get("local_df")
+          _peak_col = ""
+          _col_deviations: dict = {}
+          if isinstance(_anom_df, pd.DataFrame) and res.peak_index >= 0:
+            _num_df_a = _anom_df.select_dtypes(include=[np.number])
+            for _col in _num_df_a.columns:
+              _s = _num_df_a[_col].dropna()
+              if len(_s) < 3:
+                continue
+              _std = float(_s.std())
+              if _std < 1e-9:
+                continue
+              _idx = min(res.peak_index, len(_num_df_a) - 1)
+              _z = abs(float(_num_df_a[_col].iloc[_idx]) - float(_s.mean())) / _std
+              _col_deviations[_col] = round(_z, 3)
+            if _col_deviations:
+              _peak_col = max(_col_deviations, key=_col_deviations.get)
+
+          # Plain-language summary — now referencing actual column names
+          st.markdown(narrate_anomaly_detection(
+            peak_score=res.peak_score,
+            structural_breaks=res.structural_breaks,
+            peak_column=_peak_col,
+            peak_index=res.peak_index,
+            col_deviations=_col_deviations,
+          ))
+
           if res.anomaly_scores:
-            st.line_chart(res.anomaly_scores)
+            # Overall anomaly score timeline
+            _anom_fig = go.Figure()
+            _anom_fig.add_trace(go.Scatter(
+              y=res.anomaly_scores, mode="lines",
+              line=dict(color="#E05000", width=1.8),
+              name="Anomaly Score",
+              hovertemplate="Record %{x}: score %{y:.3f}<extra></extra>",
+            ))
+            # Mark peak
+            if 0 <= res.peak_index < len(res.anomaly_scores):
+              _anom_fig.add_trace(go.Scatter(
+                x=[res.peak_index], y=[res.anomaly_scores[res.peak_index]],
+                mode="markers", marker=dict(color="#BB0000", size=10, symbol="x"),
+                name=f"Peak ({_peak_col})" if _peak_col else "Peak",
+                hovertemplate=f"Peak at record {res.peak_index}: score {res.peak_score:.3f}<extra></extra>",
+              ))
+            # Mark structural breaks
+            for _br in (res.structural_breaks or [])[:20]:
+              _anom_fig.add_vline(x=int(_br), line_width=1, line_dash="dot",
+                                  line_color="#2563EB", opacity=0.5)
+            _anom_fig.update_layout(
+              height=240,
+              margin=dict(l=8, r=8, t=8, b=8),
+              xaxis_title="Record",
+              yaxis_title="RRCF Anomaly Score",
+              paper_bgcolor="rgba(0,0,0,0)",
+              plot_bgcolor="rgba(0,0,0,0)",
+              legend=dict(orientation="h", y=1.08),
+            )
+            _apply_plotly_numeric_font(_anom_fig)
+            st.plotly_chart(_anom_fig, use_container_width=True)
             st.caption(
               narrate_anomaly_chart_stats(
                 anomaly_scores=res.anomaly_scores,
@@ -291,8 +417,69 @@ def render(active_section: str = "Data Intake", use_enterprise_theme: bool = Tru
                 structural_breaks=res.structural_breaks,
               )
             )
+
+            # Per-variable deviation bar at the peak moment
+            if _col_deviations:
+              st.markdown(f"**Variable deviation at record {res.peak_index}** (z-score — how many standard deviations from each variable's mean):")
+              _dev_sorted = sorted(_col_deviations.items(), key=lambda x: x[1], reverse=True)
+              _bar_cols = [d[0] for d in _dev_sorted]
+              _bar_vals = [d[1] for d in _dev_sorted]
+              _bar_colors = ["#BB0000" if v >= 2.0 else "#E05000" if v >= 1.0 else "#F59E0B" if v >= 0.5 else "#6B7280"
+                             for v in _bar_vals]
+              _dev_fig = go.Figure(go.Bar(
+                x=_bar_cols, y=_bar_vals,
+                marker_color=_bar_colors,
+                text=[f"{v:.2f}" for v in _bar_vals],
+                textposition="outside",
+                hovertemplate="%{x}: z=%{y:.2f}<extra></extra>",
+              ))
+              _dev_fig.add_hline(y=2.0, line_dash="dash", line_color="#BB0000",
+                                 annotation_text="Severe threshold (z=2)", annotation_position="top right")
+              _dev_fig.add_hline(y=1.0, line_dash="dot", line_color="#E05000",
+                                 annotation_text="Moderate threshold (z=1)", annotation_position="top right")
+              _dev_fig.update_layout(
+                height=280,
+                margin=dict(l=8, r=8, t=32, b=8),
+                xaxis_title="Variable",
+                yaxis_title="Deviation (z-score)",
+                paper_bgcolor="rgba(0,0,0,0)",
+                plot_bgcolor="rgba(0,0,0,0)",
+                showlegend=False,
+              )
+              _apply_plotly_numeric_font(_dev_fig)
+              st.plotly_chart(_dev_fig, use_container_width=True)
           else:
             st.info("No anomaly scores computed — check that your data has numeric columns.")
+
+          try:
+            _g_peak = res.peak_score
+            _g_breaks = len(res.structural_breaks or [])
+            _g_top_dev = _dev_sorted[0] if _col_deviations else None
+            _g_top_str = f"<b>{_g_top_dev[0]}</b> (z = {_g_top_dev[1]:.2f})" if _g_top_dev else "no specific variable"
+            _g_sev = "critical" if _g_peak >= 4.0 else "elevated" if _g_peak >= 2.0 else "low"
+          except Exception:
+            _g_peak, _g_breaks, _g_top_str, _g_sev = 0, 0, "unknown", "low"
+          _guide(
+            method_html=(
+              "The <b>RRCF Anomaly Score</b> is computed by Robust Random Cut Forest — an unsupervised algorithm that "
+              "measures how isolated a data point is within a random forest of cuts. Higher scores indicate observations "
+              "that are harder to isolate, meaning they are statistical outliers relative to the overall pattern. "
+              "<b>Structural breaks</b> are detected by a CUSUM-style change-point test that identifies when the "
+              "underlying data-generating process shifts. The <b>variable deviation bar</b> shows the z-score of each "
+              "variable at the peak anomaly moment — how many standard deviations it was from its historical mean."
+            ),
+            interp_html=(
+              f"Peak anomaly score: <b>{_g_peak:.2f}</b> — severity level: <b>{_g_sev}</b>. "
+              f"<b>{_g_breaks}</b> structural break(s) detected, indicating regime shift(s) in the data pattern. "
+              f"The most deviant variable at the anomaly peak is {_g_top_str}. "
+              "Red bars (z ≥ 2) are statistically severe; orange (z ≥ 1) are moderate deviations worth tracking."
+            ),
+            rec_html=(
+              f"Focus immediate investigation on {_g_top_str} — it is the primary contributor to the anomaly. "
+              "Cross-reference with external events at the structural break timestamps. "
+              "If peak score exceeds 2.0, escalate to your sector admin using the button below."
+            ),
+          )
 
         # ── 2. TEMPORAL TREND ANALYSIS ──────────────────────────────────
         with st.expander("2. Temporal Trend Analysis — Are things getting better or worse?"):
@@ -382,6 +569,37 @@ def render(active_section: str = "Data Intake", use_enterprise_theme: bool = Tru
                 f"**{len(res.structural_breaks)} structural break(s)** detected at rows: "
                 f"{res.structural_breaks[:15]}. These represent major regime shifts in your data."
               )
+
+            try:
+              _g_accel = [t for t in res.trend_signals if t.get("direction") == "acceleration"]
+              _g_decel = [t for t in res.trend_signals if t.get("direction") == "deceleration"]
+              _g_top_grow = max(res.trend_signals, key=lambda t: abs(float(t.get("growth_rate", 0))), default={})
+              _g_top_grow_name = _g_top_grow.get("column", "unknown")
+              _g_top_grow_rate = float(_g_top_grow.get("growth_rate", 0))
+              _g_breaks_t = len(res.structural_breaks or [])
+            except Exception:
+              _g_accel, _g_decel, _g_top_grow_name, _g_top_grow_rate, _g_breaks_t = [], [], "unknown", 0, 0
+            _guide(
+              method_html=(
+                "This chart shows the <b>temporal trajectory</b> of the top variables ranked by absolute growth rate. "
+                "Each line is the raw observed value over the record sequence. "
+                "<b>Structural breaks</b> (dotted vertical lines) mark rows where a CUSUM test detects a regime shift — "
+                "a point where the statistical properties (mean or variance) of the data changed significantly. "
+                "The trend table below classifies each variable as accelerating, decelerating, or stable, based on "
+                "comparing the mean of the first vs last third of the observation window."
+              ),
+              interp_html=(
+                f"<b>{len(_g_accel)}</b> variable(s) accelerating (growing), "
+                f"<b>{len(_g_decel)}</b> decelerating (shrinking). "
+                f"Fastest-changing: <b>{_g_top_grow_name}</b> at {_g_top_grow_rate:+.2%} growth rate. "
+                + (f"<b>{_g_breaks_t} structural break(s)</b> indicate the data pattern shifted — prior trends may not predict future behaviour." if _g_breaks_t else "No structural breaks detected — pattern is statistically stable.")
+              ),
+              rec_html=(
+                f"Track <b>{_g_top_grow_name}</b> closely — its rate of change is most extreme. "
+                "Variables with structural breaks should be reported to your sector admin as potential leading indicators of a systemic shift. "
+                "Cross-reference accelerating variables with known events (policy changes, external shocks) at those break points."
+              ),
+            )
           else:
             st.info("Not enough data for trend analysis (need ≥ 6 rows per variable).")
 
@@ -422,6 +640,26 @@ def render(active_section: str = "Data Intake", use_enterprise_theme: bool = Tru
               knowledge_graph=res.knowledge_graph,
             )
           )
+
+          # Human-readable relationship labels (matches AutoPipeline._REL_LABELS)
+          _REL_LABELS = {
+            "causal":         "causally drives",
+            "correlational":  "moves together with",
+            "temporal_lag":   "predicts (with a time lag)",
+            "equilibrium":    "stays in balance with",
+            "functional":     "shows a deterministic dependency on",
+            "compositional":  "is composed of",
+            "competitive":    "competes against",
+            "synergistic":    "amplifies",
+            "probabilistic":  "statistically predicts",
+            "structural":     "is structurally linked to",
+            "mediating":      "mediates the effect on",
+            "moderating":     "moderates the relationship between",
+            "graph":          "is graph-connected to",
+            "similarity":     "is similar in behaviour to",
+            "logical":        "logically implies changes in",
+          }
+
           _display_relationships = []
           _seen_pairs = set()
           for rel in sorted(res.relationships or [], key=lambda r: float(r.get("confidence", 0.0)), reverse=True):
@@ -433,51 +671,135 @@ def render(active_section: str = "Data Intake", use_enterprise_theme: bool = Tru
               continue
             _seen_pairs.add(pair_key)
             _confidence = float(rel.get("confidence", 0.0))
-            _rel_type = str(rel.get("rel_type", "related_to")).replace("_", " ")
+            _raw_type = str(rel.get("rel_type", ""))
+            # Use the plain-English label; fall back to cleaned raw type
+            _rel_label = _REL_LABELS.get(_raw_type) or _raw_type.replace("_", " ") or "is related to"
+            _conf_band = "high confidence" if _confidence >= 0.75 else "moderate confidence" if _confidence >= 0.45 else "low confidence"
             _display_relationships.append(
-              f"**{vars_[0]}** { _rel_type } **{vars_[1]}** (confidence: {_confidence:.0%})"
+              (vars_[0], _rel_label, vars_[1], _confidence, _conf_band)
             )
-            if len(_display_relationships) >= 8:
+            if len(_display_relationships) >= 10:
               break
 
           if _display_relationships:
-            for sentence in _display_relationships:
-              st.markdown(f"- {sentence}")
+            st.markdown("**Discovered relationships (ranked by confidence):**")
+            for _v0, _label, _v1, _conf, _band in _display_relationships:
+              st.markdown(
+                f"- **{_v0}** {_label} **{_v1}** — {_conf:.0%} ({_band})"
+              )
           elif res.relationship_summary:
+            st.markdown("**Relationship summary from discovery engine:**")
             for sentence in res.relationship_summary[:8]:
               st.markdown(f"- {sentence}")
-          # Temporarily disabled per request: hide causal network visualization in Signal Analysis.
-          # if res.knowledge_graph:
-          #   st.write("**Causal Network Graph**")
-          #   try:
-          #     import networkx as nx
-          #     G = nx.DiGraph()
-          #     for edge in res.knowledge_graph[:40]:
-          #       src = edge.get('source') or (edge.get('variables', ['?', '?'])[0])
-          #       tgt = edge.get('target') or (edge.get('variables', ['?', '?'])[-1])
-          #       G.add_edge(src, tgt, weight=edge.get('confidence', 0.5))
-          #     pos = nx.spring_layout(G, seed=42)
-          #     edge_x, edge_y = [], []
-          #     for u, v in G.edges():
-          #       x0, y0 = pos[u]; x1, y1 = pos[v]
-          #       edge_x += [x0, x1, None]; edge_y += [y0, y1, None]
-          #     fig_kg = go.Figure()
-          #     fig_kg.add_trace(go.Scatter(x=edge_x, y=edge_y, mode='lines', line=dict(width=1, color='#aaa'), hoverinfo='none'))
-          #     fig_kg.add_trace(go.Scatter(
-          #       x=[pos[n][0] for n in G.nodes()], y=[pos[n][1] for n in G.nodes()],
-          #       mode='markers+text', text=list(G.nodes()), textposition='top center',
-          #       marker=dict(size=10, color='#006600'), hoverinfo='text'
-          #     ))
-          #     fig_kg.update_layout(height=340, margin=dict(l=0,r=0,t=0,b=0), showlegend=False,
-          #                paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(0,0,0,0)",
-          #                xaxis=dict(showgrid=False, zeroline=False, showticklabels=False),
-          #                yaxis=dict(showgrid=False, zeroline=False, showticklabels=False))
-          #     _apply_plotly_numeric_font(fig_kg)
-          #     st.plotly_chart(fig_kg, use_container_width=True)
-          #   except Exception:
-          #     st.caption("Install networkx for causal network graph: pip install networkx")
-          if not res.relationship_summary and not res.knowledge_graph:
+
+          # Causal network graph — shows directed links between variables
+          if res.knowledge_graph:
+            st.markdown("**Causal dependency network** — arrows show which variable influences which:")
+            try:
+              import networkx as nx
+              _G = nx.DiGraph()
+              for _edge in res.knowledge_graph[:40]:
+                _src = _edge.get("source") or (_edge.get("variables", ["?", "?"])[0])
+                _tgt = _edge.get("target") or (_edge.get("variables", ["?", "?"])[-1])
+                _w = float(_edge.get("confidence", 0.5))
+                _G.add_edge(str(_src), str(_tgt), weight=_w)
+
+              _pos = nx.spring_layout(_G, seed=42, k=2.0)
+
+              _edge_x, _edge_y, _edge_hover = [], [], []
+              for _u, _v, _data in _G.edges(data=True):
+                x0, y0 = _pos[_u]; x1, y1 = _pos[_v]
+                _edge_x += [x0, x1, None]
+                _edge_y += [y0, y1, None]
+                _label = _REL_LABELS.get(
+                  next((r.get("rel_type","") for r in (res.relationships or [])
+                        if set([_u, _v]).issubset(set(r.get("variables", [])))), ""),
+                  "related to"
+                )
+                _edge_hover.append(f"{_u} → {_v} ({_label}, {_data.get('weight', 0):.0%})")
+
+              _node_x = [_pos[n][0] for n in _G.nodes()]
+              _node_y = [_pos[n][1] for n in _G.nodes()]
+              _node_labels = list(_G.nodes())
+              _in_degree = dict(_G.in_degree())
+              _node_sizes = [12 + _in_degree.get(n, 0) * 6 for n in _G.nodes()]
+              _node_colors = ["#BB0000" if _in_degree.get(n, 0) >= 2 else "#006600" if _G.out_degree(n) >= 2 else "#2563EB"
+                              for n in _G.nodes()]
+
+              _fig_kg = go.Figure()
+              _fig_kg.add_trace(go.Scatter(
+                x=_edge_x, y=_edge_y, mode="lines",
+                line=dict(width=1, color="#aaa"), hoverinfo="none",
+              ))
+              _fig_kg.add_trace(go.Scatter(
+                x=_node_x, y=_node_y,
+                mode="markers+text",
+                text=_node_labels,
+                textposition="top center",
+                textfont=dict(size=11),
+                marker=dict(size=_node_sizes, color=_node_colors),
+                hovertemplate=[
+                  f"<b>{n}</b><br>drives {_G.out_degree(n)} variable(s)<br>driven by {_in_degree.get(n, 0)} variable(s)<extra></extra>"
+                  for n in _G.nodes()
+                ],
+              ))
+              _fig_kg.update_layout(
+                height=380,
+                margin=dict(l=0, r=0, t=8, b=0),
+                showlegend=False,
+                paper_bgcolor="rgba(0,0,0,0)",
+                plot_bgcolor="rgba(0,0,0,0)",
+                xaxis=dict(showgrid=False, zeroline=False, showticklabels=False),
+                yaxis=dict(showgrid=False, zeroline=False, showticklabels=False),
+              )
+              _apply_plotly_numeric_font(_fig_kg)
+              st.plotly_chart(_fig_kg, use_container_width=True)
+              st.caption(
+                "Node colour: red = highly influenced (many incoming links), "
+                "green = strong driver (many outgoing links), blue = peer node. "
+                "Node size grows with number of incoming influences."
+              )
+            except ImportError:
+              st.caption("Install networkx to display the causal network graph: `pip install networkx`")
+            except Exception as _kg_err:
+              st.caption(f"Network graph could not be rendered: {_kg_err}")
+
+          if not res.relationship_summary and not res.knowledge_graph and not _display_relationships:
             st.info("No relationships discovered yet — the engine needs more data rows to learn patterns.")
+
+          try:
+            _g_n_rels = len(_display_relationships)
+            _g_n_high = sum(1 for _, _, _, c, _ in _display_relationships if c >= 0.75)
+            _g_top_rel = _display_relationships[0] if _display_relationships else None
+            _g_top_str = f"<b>{_g_top_rel[0]}</b> {_g_top_rel[1]} <b>{_g_top_rel[2]}</b> ({_g_top_rel[3]:.0%})" if _g_top_rel else "none yet"
+            _g_conf = float(res.overall_confidence or 0.0)
+          except Exception:
+            _g_n_rels, _g_n_high, _g_top_str, _g_conf = 0, 0, "none yet", 0.0
+          _guide(
+            method_html=(
+              "The <b>causal relationship analysis</b> runs the Scarcity Discovery Engine — an online machine learning "
+              "system that processes each data row as a stream and builds a knowledge graph of statistical relationships "
+              "between variables. It discovers multiple relationship types: <i>causal</i> (one variable drives another), "
+              "<i>correlational</i> (co-movement without direction), <i>temporal_lag</i> (leading indicators), "
+              "<i>equilibrium</i> (self-correcting pairs), and more. "
+              "The <b>network graph</b> shows directed edges: <span style='color:#BB0000;'>red nodes</span> are most "
+              "influenced (many incoming arrows), <span style='color:#006600;'>green nodes</span> are strong drivers "
+              "(many outgoing arrows). Node size scales with incoming influence."
+            ),
+            interp_html=(
+              f"<b>{_g_n_rels}</b> relationship(s) discovered; <b>{_g_n_high}</b> with high confidence (≥75%). "
+              f"Strongest: {_g_top_str}. "
+              f"Overall engine confidence: <b>{_g_conf:.0%}</b>. "
+              "Green (driver) nodes are variables that appear to be upstream causes. "
+              "Red (influenced) nodes are downstream outcomes — they respond to changes in the drivers."
+            ),
+            rec_html=(
+              "Policy actions should target <b>green (driver) nodes</b> — intervening upstream is more effective than "
+              "treating downstream symptoms. "
+              "Relationships with ≥75% confidence are reliable enough to act on. "
+              "Moderate-confidence (45–75%) relationships are hypotheses — corroborate with domain knowledge before escalating."
+            ),
+          )
 
         # ── 5. CROSS-SECTOR CORRELATION ─────────────────────────────────
         with st.expander("5. Cross-Sector Correlation — Which variables move together?"):
@@ -501,188 +823,142 @@ def render(active_section: str = "Data Intake", use_enterprise_theme: bool = Tru
             if _strong:
               st.write("**Strong inter-variable dependencies (|r| > 0.6):**")
               st.dataframe(sorted(_strong, key=lambda x: -abs(x["Correlation"])), use_container_width=True, hide_index=True)
+
+            try:
+              _g_n_strong = len(_strong)
+              _g_top_corr = max(_strong, key=lambda x: abs(x["Correlation"]), default=None)
+              _g_top_corr_str = (f"<b>{_g_top_corr['Variable A']}</b> ↔ <b>{_g_top_corr['Variable B']}</b> "
+                                 f"(r = {_g_top_corr['Correlation']:+.3f})") if _g_top_corr else "none"
+              _g_n_neg = sum(1 for s in _strong if s["Correlation"] < 0)
+              _g_n_pos = _g_n_strong - _g_n_neg
+            except Exception:
+              _g_n_strong, _g_top_corr_str, _g_n_neg, _g_n_pos = 0, "none", 0, 0
+            _guide(
+              method_html=(
+                "The <b>Pearson correlation matrix</b> measures linear co-movement between every pair of numeric "
+                "variables. Values range from −1 (perfect inverse) to +1 (perfect co-movement). "
+                "The heatmap uses a red–blue diverging scale: <b>deep red</b> = strong positive correlation, "
+                "<b>deep blue</b> = strong negative correlation, white = no linear relationship. "
+                "The diagonal is always 1.0 (each variable with itself)."
+              ),
+              interp_html=(
+                f"<b>{_g_n_strong}</b> strong pair(s) (|r| > 0.6) found: "
+                f"{_g_n_pos} positive, {_g_n_neg} negative. "
+                f"Strongest: {_g_top_corr_str}. "
+                "Highly correlated pairs move together and may share a common cause or one may be a lagged version of the other. "
+                "Negative correlations indicate inverse dynamics — when one rises, the other falls."
+              ),
+              rec_html=(
+                "Use strongly correlated pairs as <b>leading indicators</b>: if data on one variable is delayed, "
+                "the other can serve as a proxy. "
+                "Strong correlations do not imply causation — validate causal direction in the Causal Relationship tab. "
+                "Near-perfect correlation (|r| > 0.95) may indicate redundant columns; consider removing one for cleaner analysis."
+              ),
+            )
           else:
             st.info("Need at least 2 numeric variables for correlation analysis.")
 
-        # ── 6. RESOURCE UTILIZATION (SECTOR-SPECIFIC) ───────────────────
+        # ── 6. DATA INTELLIGENCE SUMMARY ────────────────────────────────
         _util_df = st.session_state.get('local_df')
         _util_num_df = _util_df.select_dtypes(include=[np.number]) if isinstance(_util_df, pd.DataFrame) else pd.DataFrame()
-        with st.expander("6. Resource Utilization Analysis"):
+        with st.expander("6. Data Intelligence Summary — How reliable is this analysis?"):
           if not _util_num_df.empty:
-            def _clip01(value):
-              try:
-                return max(0.0, min(1.0, float(value)))
-              except Exception:
-                return 0.0
-
-            def _quantile_normalize(value, reference):
-              _v = _clip01(value)
-              _ref = []
-              for _r in (reference or []):
-                try:
-                  _ref.append(_clip01(_r))
-                except Exception:
-                  continue
-              if len(_ref) < 5:
-                return _v
-              _q10 = float(np.quantile(_ref, 0.10))
-              _q90 = float(np.quantile(_ref, 0.90))
-              if _q90 <= _q10 + 1e-9:
-                return _v
-              return _clip01((_v - _q10) / (_q90 - _q10))
-
             _n_rows = len(_util_num_df)
             _n_cols = len(_util_num_df.columns)
-            _total_cells = max(1, _n_rows * _n_cols)
-            _coverage = float(_util_num_df.notna().sum().sum()) / _total_cells
-            _signal_stability = 1.0 / (1.0 + max(0.0, float(res.peak_score)))
-            _regime_consistency = max(0.0, 1.0 - (len(res.structural_breaks or []) / max(1, _n_rows)))
-            _trend_total = max(1, len(res.trend_signals or []))
-            _trend_accel = sum(1 for t in (res.trend_signals or []) if t.get("direction") == "acceleration")
-            _trend_decel = sum(1 for t in (res.trend_signals or []) if t.get("direction") == "deceleration")
-            _operational_balance = max(0.0, 1.0 - (abs(_trend_accel - _trend_decel) / _trend_total))
-            _model_confidence = max(0.0, min(1.0, float(res.overall_confidence or 0.0)))
 
-            _avg_var = None
-            if res.variance_matrix:
-              _vals = []
-              for _row in res.variance_matrix:
-                for _v in _row:
-                  try:
-                    _vals.append(abs(float(_v)))
-                  except Exception:
-                    continue
-              if _vals:
-                _avg_var = sum(_vals) / len(_vals)
-            _forecast_confidence = (1.0 / (1.0 + _avg_var)) if _avg_var is not None else None
-
-            _coverage_ref = [
-              float(_util_num_df[c].notna().mean())
-              for c in _util_num_df.columns
-            ]
-            _stability_ref = [
-              1.0 / (1.0 + max(0.0, float(s)))
-              for s in (res.anomaly_scores or [])
-            ]
-
-            _valid_breaks = sorted(set(
-              int(b) for b in (res.structural_breaks or [])
-              if isinstance(b, (int, float)) and 0 <= int(b) <= _n_rows
-            ))
-            _regime_ref = []
-            if _valid_breaks:
-              _pts = [0] + _valid_breaks + [_n_rows]
-              for _i in range(len(_pts) - 1):
-                _gap = max(0, _pts[_i + 1] - _pts[_i])
-                _regime_ref.append(_gap / max(1, _n_rows))
-
-            _trend_ref = [
-              1.0 / (1.0 + abs(float(t.get("growth_rate", 0.0))) * 10.0)
-              for t in (res.trend_signals or [])
-            ]
-
-            _confidence_ref = [float(v) for v in (res.confidence_map or {}).values()]
-            if not _confidence_ref:
-              _confidence_ref = [
-                float(r.get("confidence", 0.0))
-                for r in (res.relationships or [])
-              ]
-
-            _forecast_ref = []
-            if res.variance_matrix:
-              for _row in res.variance_matrix:
-                _row_vals = []
-                for _v in _row:
-                  try:
-                    _row_vals.append(abs(float(_v)))
-                  except Exception:
-                    continue
-                if _row_vals:
-                  _forecast_ref.append(1.0 / (1.0 + (sum(_row_vals) / len(_row_vals))))
-
-            _metrics = {
-              "Data Coverage": _quantile_normalize(_coverage, _coverage_ref),
-              "Signal Stability": _quantile_normalize(_signal_stability, _stability_ref),
-              "Regime Consistency": _quantile_normalize(_regime_consistency, _regime_ref),
-              "Operational Balance": _quantile_normalize(_operational_balance, _trend_ref),
-              "Model Confidence": _quantile_normalize(_model_confidence, _confidence_ref),
-            }
-            if _forecast_confidence is not None:
-              _metrics["Forecast Confidence"] = _quantile_normalize(_forecast_confidence, _forecast_ref)
-
-            _base_weights = {
-              "Data Coverage": 0.22,
-              "Signal Stability": 0.20,
-              "Regime Consistency": 0.16,
-              "Operational Balance": 0.16,
-              "Model Confidence": 0.16,
-              "Forecast Confidence": 0.10,
-            }
-
-            _sample_quality = min(1.0, _n_rows / 80.0) * min(1.0, _n_cols / 8.0)
-            _trend_quality = min(1.0, len(res.trend_signals or []) / max(1, _n_cols))
-            _forecast_quality = 1.0 if "Forecast Confidence" in _metrics else 0.0
-            _weights = {}
-            for _name in _metrics:
-              _w = _base_weights.get(_name, 0.0)
-              if _name in {"Signal Stability", "Regime Consistency"}:
-                _w *= max(0.35, _sample_quality)
-              if _name == "Operational Balance":
-                _w *= max(0.35, _trend_quality)
-              if _name == "Forecast Confidence":
-                _w *= _forecast_quality
-              _weights[_name] = _w
-
-            _w_total = sum(_weights.values())
-            if _w_total <= 1e-9:
-              _weights = {k: 1.0 / len(_metrics) for k in _metrics}
-            else:
-              _weights = {k: (v / _w_total) for k, v in _weights.items()}
-
-            _util_score = sum(_metrics[k] * _weights[k] for k in _metrics)
-            _util_status = "Healthy" if _util_score >= 0.66 else "Watch" if _util_score >= 0.4 else "Constrained"
-
-            _weight_rows = []
-            for _name, _val in _metrics.items():
-              _w = float(_weights.get(_name, 0.0))
-              _weight_rows.append({
-                "Metric": _name,
-                "Normalized Score": round(float(_val), 3),
-                "Adaptive Weight": round(_w, 3),
-                "Contribution": round(float(_val) * _w, 3),
+            # ── Per-column data quality ──────────────────────────────────
+            st.markdown("**Column-level data completeness and variability:**")
+            _col_stats = []
+            for _c in _util_num_df.columns:
+              _s = _util_num_df[_c].dropna()
+              _coverage_pct = len(_s) / max(1, _n_rows) * 100
+              _cv = float(_s.std() / (_s.mean() + 1e-9)) if len(_s) > 1 else 0.0
+              _trend_entry = next((t for t in (res.trend_signals or []) if t.get("column") == _c), None)
+              _direction = _trend_entry.get("direction", "stable").title() if _trend_entry else "—"
+              _col_stats.append({
+                "Column": _c,
+                "Coverage": f"{_coverage_pct:.0f}%",
+                "Min": round(float(_s.min()), 3) if len(_s) else "—",
+                "Max": round(float(_s.max()), 3) if len(_s) else "—",
+                "Mean": round(float(_s.mean()), 3) if len(_s) else "—",
+                "Variability (CV)": f"{abs(_cv):.2f}",
+                "Trend": _direction,
               })
-            _weight_rows = sorted(_weight_rows, key=lambda x: x["Contribution"], reverse=True)
+            st.dataframe(_col_stats, use_container_width=True, hide_index=True)
 
-            st.caption(
-              f"Sector resource utilization is derived from this sector's uploaded data ({_n_rows} rows, {_n_cols} numeric variables) "
-              "and model outputs from anomaly, trend, relationship, and forecast modules."
-            )
-            st.markdown(
-              f"**Sector Utilization Score:** {_util_score:.2f} ({_util_status})"
-            )
-            st.caption("Computation rule: Sector Utilization Score = sum(Normalized Score x Adaptive Weight).")
+            # ── Overall readiness indicators ─────────────────────────────
+            st.markdown("**Analysis readiness indicators:**")
 
-            def _util_bar(label, value, fmt=".1%"):
-              color = "#006600" if value > 0.66 else ("#F59E0B" if value > 0.4 else "#BB0000")
-              pct = int(min(100, max(0, value * 100)))
+            _total_cells = max(1, _n_rows * _n_cols)
+            _overall_coverage = float(_util_num_df.notna().sum().sum()) / _total_cells
+            _low_coverage_cols = [row["Column"] for row in _col_stats if float(row["Coverage"].rstrip("%")) < 70]
+
+            _anomaly_rate = (len(res.structural_breaks or []) / max(1, _n_rows)) * 100
+            _accel_count = sum(1 for t in (res.trend_signals or []) if t.get("direction") == "acceleration")
+            _decel_count = sum(1 for t in (res.trend_signals or []) if t.get("direction") == "deceleration")
+            _stable_count = len(res.trend_signals or []) - _accel_count - _decel_count
+
+            def _readiness_bar(label, value_pct, note=""):
+              _color = "#006600" if value_pct >= 80 else ("#F59E0B" if value_pct >= 50 else "#BB0000")
+              _pct = int(min(100, max(0, value_pct)))
+              _note_html = f"  <span style='font-size:0.78rem; color:#6B7280;'>{note}</span>" if note else ""
               st.markdown(
-                f'<div style="margin-bottom:0.5rem;">'
+                f'<div style="margin-bottom:0.55rem;">'
                 f'<span style="font-size:0.85rem; font-weight:600;">{label}</span> '
-                f'<span style="font-size:0.85rem; color:{color};">{value:{fmt}}</span><br>'
+                f'<span style="font-size:0.85rem; color:{_color};">{_pct}%</span>'
+                f'{_note_html}<br>'
                 f'<div style="background:#eee; border-radius:4px; height:8px;">'
-                f'<div style="background:{color}; width:{pct}%; height:8px; border-radius:4px;"></div>'
+                f'<div style="background:{_color}; width:{_pct}%; height:8px; border-radius:4px;"></div>'
                 f'</div></div>', unsafe_allow_html=True
               )
 
-            for _name, _val in _metrics.items():
-              _util_bar(_name, _val)
+            _readiness_bar(
+              "Overall data completeness",
+              _overall_coverage * 100,
+              f"{_n_rows} rows × {_n_cols} numeric columns"
+              + (f" | Low-coverage: {', '.join(_low_coverage_cols[:3])}" if _low_coverage_cols else ""),
+            )
+            _readiness_bar(
+              "Pattern stability (no structural breaks)",
+              max(0.0, 100.0 - _anomaly_rate),
+              f"{len(res.structural_breaks or [])} break point(s) detected — rows where the data pattern shifted significantly",
+            )
+            _readiness_bar(
+              "Causal model confidence",
+              min(100.0, float(res.overall_confidence or 0.0) * 100),
+              f"How certain the relationship discovery engine is about the patterns it found",
+            )
+            if res.forecast_matrix and res.variance_matrix:
+              _avg_var_flat = float(np.mean([abs(float(v)) for row in res.variance_matrix for v in row])) if res.variance_matrix else 0.0
+              _fc_conf = max(0.0, min(100.0, 100.0 / (1.0 + _avg_var_flat)))
+              _readiness_bar(
+                "Forecast certainty",
+                _fc_conf,
+                "Lower forecast variance = more reliable projections",
+              )
 
-            st.write("**Score Composition**")
-            st.dataframe(_weight_rows, use_container_width=True, hide_index=True)
+            # ── Trend summary ─────────────────────────────────────────────
+            st.markdown(
+              f"**Variable trend summary:** "
+              f"{_accel_count} accelerating (growing), "
+              f"{_decel_count} decelerating (shrinking), "
+              f"{_stable_count} stable."
+            )
+            if _accel_count > _decel_count:
+              st.success(f"More variables are growing than declining — overall sector trajectory is expanding.")
+            elif _decel_count > _accel_count:
+              st.warning(f"More variables are declining than growing — monitor closely for deterioration.")
+            else:
+              st.info("Growth and decline are balanced across variables.")
 
-            st.caption("Scores are quantile-normalized from this run and weighted adaptively by available evidence quality.")
+            if _low_coverage_cols:
+              st.warning(
+                f"**Data gaps detected** in: {', '.join(_low_coverage_cols)}. "
+                "Columns with less than 70% coverage may produce unreliable causal and forecast results. "
+                "Consider filling missing values or excluding these columns."
+              )
           else:
-            st.info("Resource utilization requires numeric sector columns in the uploaded dataset.")
+            st.info("Upload a dataset with numeric columns to see the data intelligence summary.")
 
         # ── 7. RISK PROPAGATION ANALYSIS ────────────────────────────────
         with st.expander("7. Risk Propagation — Could this trigger a chain reaction?"):
@@ -743,6 +1019,36 @@ def render(active_section: str = "Data Intake", use_enterprise_theme: bool = Tru
                     variance=list(_yv),
                   )
                 )
+          if res.forecast_matrix and res.columns:
+            try:
+              _g_steps = len(res.forecast_matrix)
+              _g_avg_var = float(np.mean([abs(float(v)) for row in (res.variance_matrix or []) for v in row])) if res.variance_matrix else 0.0
+              _g_fc_conf = max(0.0, min(100.0, 100.0 / (1.0 + _g_avg_var)))
+              _g_conf_label = "high" if _g_fc_conf >= 75 else "moderate" if _g_fc_conf >= 50 else "low"
+              _g_top_fc_col = str(res.columns[0]).replace("_", " ").title() if res.columns else "unknown"
+            except Exception:
+              _g_steps, _g_fc_conf, _g_conf_label, _g_top_fc_col = 0, 0, "low", "unknown"
+            _guide(
+              method_html=(
+                "The <b>VARX (Vector AutoRegression with eXogenous inputs)</b> model forecasts all numeric variables "
+                "jointly, capturing interdependencies between them. It learns from the historical pattern up to the last "
+                "observation and projects forward. The <b>cyan band</b> is the ±1 standard deviation confidence interval "
+                "(derived from the forecast variance matrix). Narrower bands = higher certainty; wider bands = the model "
+                "is less sure, usually when data is scarce, noisy, or has had structural breaks."
+              ),
+              interp_html=(
+                f"Forecast horizon: <b>{_g_steps} step(s)</b> ahead. "
+                f"Average forecast variance: <b>{_g_avg_var:.3f}</b> — confidence level: <b>{_g_conf_label}</b> ({_g_fc_conf:.0f}%). "
+                f"Leading variable in display: <b>{_g_top_fc_col}</b>. "
+                "Wide confidence bands indicate the model is extrapolating into uncertain territory — treat projections as directional, not precise."
+              ),
+              rec_html=(
+                "Use the forecast <b>direction</b> (rising vs falling trend line) to guide near-term decisions. "
+                "Do not act on exact forecast values when confidence is low — instead, plan for the range shown by the band. "
+                "If structural breaks were detected, the forecast is trained on a shifted regime; consider reducing the history window "
+                "to the post-break period for more relevant projections."
+              ),
+            )
           else:
             st.info("Forecasting requires the VARX engine (needs scarcity.engine.forecasting). Run more data rows for best results.")
 
@@ -792,12 +1098,20 @@ def render(active_section: str = "Data Intake", use_enterprise_theme: bool = Tru
 
   _causal_views = {"Granger Causality", "Causal Network", "Cross-Correlations"}
   if active_section in _causal_views:
-    if st.session_state.get('local_df') is not None and schema is not None:
+    if st.session_state.get('local_df') is not None:
       causal_df = st.session_state['local_df']
-      _raw_cols = schema.get("required_columns", list(causal_df.columns))
-      causal_cols = [c for c in _raw_cols if c in causal_df.columns and pd.api.types.is_numeric_dtype(causal_df[c])]
+      # Use ALL numeric columns from the uploaded data.
+      # Schema required_columns are used as a priority ordering only — columns not
+      # in the schema but present in the data are still included at the end.
+      _all_numeric = [c for c in causal_df.columns if pd.api.types.is_numeric_dtype(causal_df[c])]
+      _schema_cols = schema.get("required_columns", []) if schema else []
+      _schema_priority = [c for c in _schema_cols if c in _all_numeric]
+      _extra_cols = [c for c in _all_numeric if c not in _schema_priority]
+      causal_cols = _schema_priority + _extra_cols
 
-      if active_section == "Granger Causality":
+      if not causal_cols:
+        st.warning("No numeric columns found in the uploaded data for causal analysis.")
+      elif active_section == "Granger Causality":
         _render_granger_section(causal_df, causal_cols, LIGHT_THEME)
       elif active_section == "Causal Network":
         _render_causal_network(causal_df, causal_cols, LIGHT_THEME)

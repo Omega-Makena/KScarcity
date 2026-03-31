@@ -12,6 +12,7 @@ from __future__ import annotations
 
 import json
 import logging
+import math
 import time
 from dataclasses import dataclass
 from typing import Any, Dict, List, Optional, Tuple
@@ -26,6 +27,61 @@ logger = logging.getLogger("analytics_engine")
 # ═══════════════════════════════════════════════════════════════════════
 
 _SEVERITY_THRESHOLD = 6.0 # Only run projection when severity exceeds this
+
+
+def compute_cost_of_delay_kes_b(
+  severity: float,
+  projection_steps: int = 4,
+) -> Dict[str, float]:
+  """
+  Estimate cost of delayed intervention in KES billions.
+
+  The model intentionally blends linear, staged, and exponential penalties
+  to reflect compounding delay effects while keeping outputs bounded.
+
+  Parameters
+  ----------
+  severity : float
+    Risk severity on a 0-10 scale.
+  projection_steps : int
+    Forward response window in steps (rendered as weeks in UI copy).
+  """
+  sev = max(0.0, min(10.0, float(severity)))
+  steps = max(1, int(projection_steps))
+  sev_norm = sev / 10.0
+
+  # Baseline loss scaling calibrated to produce meaningful national-level
+  # output in whole KES billions for executive communication.
+  base_loss = sev_norm * float(steps) * 14.0
+  delay_windows = max(0, steps - 1)
+
+  linear_factor = 1.0 + 0.11 * delay_windows
+  staged_factor = 1.0
+  if steps >= 3:
+    staged_factor += 0.10
+  if steps >= 5:
+    staged_factor += 0.12
+  exp_factor = 1.0 + (math.exp(0.09 * delay_windows) - 1.0) * 0.60
+
+  mixed_multiplier = (0.40 * linear_factor) + (0.30 * staged_factor) + (0.30 * exp_factor)
+  do_nothing_loss = max(0.0, base_loss * mixed_multiplier)
+
+  # Early action dampens losses based on severity and delay pressure.
+  early_ratio = 0.25 + 0.08 * (1.0 - sev_norm)
+  early_ratio = max(0.20, min(0.45, early_ratio))
+  act_early_loss = max(0.0, do_nothing_loss * early_ratio)
+  late_penalty = max(0.0, do_nothing_loss - act_early_loss)
+
+  return {
+    "severity": sev,
+    "projection_steps": float(steps),
+    "do_nothing_loss_kes_b": do_nothing_loss,
+    "act_early_loss_kes_b": act_early_loss,
+    "late_penalty_kes_b": late_penalty,
+    "do_nothing_loss_kes_b_rounded": float(round(do_nothing_loss)),
+    "act_early_loss_kes_b_rounded": float(round(act_early_loss)),
+    "late_penalty_kes_b_rounded": float(round(late_penalty)),
+  }
 
 
 def generate_inaction_projection(

@@ -748,9 +748,16 @@ Spokes submit gradient payloads (not raw data)
       criterion formulas + score_breakdown blocks
       transparency_breakdown + recent_override_samples
       dynamic_resource_allocator detail block
+      → Compute delay economics (hybrid penalty model):
+        do_nothing_loss_kes_b
+        act_early_loss_kes_b
+        late_penalty_kes_b
     → UI rendering (executive/developer dashboards):
       KPI row + DRG chip + "Why this score?" panel
       export buttons for JSON and CSV evidence packs
+      → Unified report export (all institution dashboards):
+        single .zip pack with plain-language summary, metrics CSV,
+        structured JSON appendix, and optional table attachments
   ```
 
 ---

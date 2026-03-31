@@ -25,6 +25,7 @@ from kshiked.ui.institution.collab_room import render_collab_room
 from kshiked.ui.institution.executive_simulator import render_executive_simulator
 from kshiked.ui.institution.backend.data_sharing import DataSharingManager
 from kshiked.ui.institution.backend.analytics_engine import (
+  compute_cost_of_delay_kes_b,
   generate_inaction_projection,
   get_historical_context,
   build_county_convergence,
@@ -39,6 +40,7 @@ from kshiked.ui.institution.backend.report_narrator import (
 )
 from kshiked.ui.institution.backend.model_quality import build_quality_assurance_snapshot
 from kshiked.ui.institution.shared_sidebar import render_shared_sidebar
+from kshiked.ui.institution.unified_report_export import render_unified_report_export
 from kshiked.ui.theme import LIGHT_THEME as theme
 
 
@@ -754,6 +756,32 @@ def _compute_national_strain(global_risks):
   return strain_score, "LOW", EXEC_COLORS["green"]
 
 
+def _render_cost_of_delay_story(cost_snapshot: dict) -> None:
+  do_nothing = int(float(cost_snapshot.get("do_nothing_loss_kes_b_rounded", 0.0) or 0.0))
+  act_early = int(float(cost_snapshot.get("act_early_loss_kes_b_rounded", 0.0) or 0.0))
+  late_penalty = int(float(cost_snapshot.get("late_penalty_kes_b_rounded", 0.0) or 0.0))
+  steps = int(float(cost_snapshot.get("projection_steps", 4.0) or 4.0))
+  severity = float(cost_snapshot.get("severity", 0.0) or 0.0)
+
+  st.markdown(
+    f"""
+    <div style="background:#FFFFFF; border:0.5px solid rgba(26,26,26,0.12); border-left:4px solid #BB0000; border-radius:8px; padding:12px 14px; margin-top:8px; margin-bottom:8px;">
+      <div style="font-size:0.8rem; color:#6B6B6B; text-transform:uppercase; letter-spacing:0.6px;">Cost Of Delayed Action</div>
+      <div style="font-size:0.92rem; color:#1f2937; margin-top:6px; line-height:1.5;">
+        The system puts a number on it.<br/>
+        <b>Do nothing...</b> {do_nothing} billion shillings lost.<br/>
+        <b>Act early...</b> {act_early} billion.<br/>
+        <b>The price of being late...</b> {late_penalty} billion.
+      </div>
+      <div style="font-size:0.8rem; color:#6B7280; margin-top:8px;">
+        Based on current severity ({severity:.1f}/10) and a {steps}-week response window.
+      </div>
+    </div>
+    """,
+    unsafe_allow_html=True,
+  )
+
+
 def _apply_plotly_numeric_font(fig):
   fig.update_layout(
     font=dict(family="IBM Plex Sans, sans-serif"),
@@ -1281,6 +1309,31 @@ def render(mode: str = "executive"):
     command_subtitle=command_subtitle,
   )
 
+  top_impact = max((float(_resolve_risk_scores(r).get("B_Impact", 0.0) or 0.0) for r in global_risks), default=0.0)
+  export_cost_snapshot = compute_cost_of_delay_kes_b(
+    severity=max(float(strain_score), float(top_impact)),
+    projection_steps=4,
+  )
+  render_unified_report_export(
+    dashboard_name=("Developer Dashboard" if is_developer else "Executive Dashboard"),
+    section_name=active_section,
+    metrics={
+      "active_promoted_risks": len(global_risks),
+      "active_projects": len(active_projects),
+      "unread_escalations": unread_escs,
+      "national_strain_score": round(float(strain_score), 2),
+      "assurance_score_pct": round(float(overall_assurance.get("score", 0.0) or 0.0) * 100.0, 1),
+    },
+    highlights=[
+      f"Current national strain is {strain_label.lower()} at {strain_score:.1f}/10.",
+      f"There are {len(global_risks)} promoted risk signals requiring oversight.",
+      f"Active coordinated projects: {len(active_projects)}.",
+    ],
+    cost_delay=export_cost_snapshot,
+    evidence={"overall_assurance": overall_assurance},
+    key_prefix=("dev_unified_report" if is_developer else "exec_unified_report"),
+  )
+
   if is_developer:
     _render_developer_only_panels(
       active_projects=active_projects,
@@ -1358,6 +1411,12 @@ def render(mode: str = "executive"):
       st.metric("Operations Pressure", f"{_ops_pressure:.1f}/10")
     with _eh3:
       st.metric("Sentiment Risk", f"{_sentiment_risk:.1f}/10")
+
+    briefing_cost_snapshot = compute_cost_of_delay_kes_b(
+      severity=max(float(_avg_impact), float(strain_score)),
+      projection_steps=4,
+    )
+    _render_cost_of_delay_story(briefing_cost_snapshot)
       
     st.write("---")
     

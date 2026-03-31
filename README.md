@@ -190,6 +190,27 @@ pip install streamlit plotly pandas numpy cryptography
 streamlit run kshiked/ui/app.py
 ```
 
+## Institution Reporting And Cost Of Delay
+
+The institution dashboards now include two decision-support upgrades:
+
+1. Cost of delayed action (KES billions, whole-number display)
+- The system computes three values from live severity and response window:
+- Do nothing loss
+- Act early loss
+- Price of being late
+- The delay model blends linear, staged, and exponential penalties to reflect compounding risk.
+
+2. Unified report export on every institution dashboard
+- Executive, Developer, Admin, and Spoke dashboards all expose a single export flow.
+- Each export produces one report pack (`.zip`) with:
+- `report_summary.txt` (plain-language narrative for non-technical audiences)
+- `report_payload.json` (structured appendix)
+- `metrics.csv` (headline values)
+- optional table CSV attachments when available
+
+This removes fragmented, dashboard-specific export behavior and ensures reports are understandable by non-technical decision makers while still preserving technical evidence in the appendix.
+
 ### Run Tests
 
 ```bash

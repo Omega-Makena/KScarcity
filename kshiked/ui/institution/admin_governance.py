@@ -4,6 +4,7 @@ import os
 import pandas as pd
 import numpy as np
 import json
+import time
 from pathlib import Path
 from html import escape
 
@@ -23,11 +24,14 @@ from kshiked.ui.institution.backend.messaging import SecureMessaging
 from kshiked.ui.institution.backend.data_sharing import DataSharingManager
 from kshiked.ui.institution.collab_room import render_collab_room
 from kshiked.ui.institution.backend.analytics_engine import (
+  compute_cost_of_delay_kes_b,
   generate_inaction_projection,
   get_historical_context,
   generate_recommendation,
   compute_outcome_impact,
 )
+from kshiked.ui.institution.backend.resource_control import ResourceControlManager
+from kshiked.ui.institution.backend.model_quality import get_family_quality_rows, get_recommended_model_name, log_quality_override
 from kshiked.ui.institution.backend.report_narrator import (
   narrate_composite_scores,
   narrate_severity,
@@ -37,6 +41,7 @@ from kshiked.ui.institution.backend.report_narrator import (
 from kshiked.ui.institution.backend.sector_reports import SectorReportGenerator
 from kshiked.ui.institution.report_components import render_sector_report
 from kshiked.ui.institution.shared_sidebar import render_shared_sidebar
+from kshiked.ui.institution.unified_report_export import render_unified_report_export
 
 
 ADMIN_COLORS = {
@@ -62,6 +67,7 @@ ADMIN_NAV_ITEMS = [
   ("spokes", "Data Governance & Schemas", "data-governance", ADMIN_COLORS["green"], None),
   ("operations", "Operational Projects", "operational-projects", ADMIN_COLORS["black"], None),
   ("operations", "Risk Promotion", "risk-promotion", ADMIN_COLORS["black"], None),
+  ("operations", "Dynamic Resource Control", "dynamic-resource-control", ADMIN_COLORS["black"], None),
   ("operations", "Communications", "communications", ADMIN_COLORS["black"], None),
   ("operations", "Collaboration Room", "collaboration-room", ADMIN_COLORS["black"], None),
   ("operations", "Federated Learning (Mode B)", "federated-learning", ADMIN_COLORS["black"], None),
@@ -76,10 +82,125 @@ ADMIN_NAV_KEY_TO_SECTION = {
   "data-governance": "Data Governance & Schemas",
   "operational-projects": "Operational Projects",
   "risk-promotion": "Risk Promotion",
+  "dynamic-resource-control": "Dynamic Resource Control",
   "communications": "Communications",
   "collaboration-room": "Collaboration Room",
   "federated-learning": "Federated Learning (Mode B)",
 }
+
+AGENCY_APPROVALS_FILE = Path(__file__).resolve().parent / "agency_approvals.json"
+AGENCY_APPROVAL_AUDIT_FILE = Path(__file__).resolve().parent / "agency_approval_audit.jsonl"
+
+
+def _load_agency_pending_requests() -> list[dict]:
+  if not AGENCY_APPROVALS_FILE.exists():
+    return []
+  try:
+    with open(AGENCY_APPROVALS_FILE, "r", encoding="utf-8") as f:
+      data = json.load(f)
+    pending = data.get("pending", {}) if isinstance(data, dict) else {}
+    rows = []
+    for node_id, payload in pending.items():
+      rows.append({
+        "node_id": str(node_id),
+        "institution_name": str(payload.get("institution_name", "")),
+        "domain": str(payload.get("domain", "")),
+        "requested_at": float(payload.get("requested_at", 0.0) or 0.0),
+      })
+    return sorted(rows, key=lambda r: r.get("requested_at", 0.0), reverse=True)
+  except Exception:
+    return []
+
+
+def _load_agency_approval_audit(limit: int = 25) -> list[dict]:
+  if not AGENCY_APPROVAL_AUDIT_FILE.exists():
+    return []
+  rows = []
+  try:
+    with open(AGENCY_APPROVAL_AUDIT_FILE, "r", encoding="utf-8") as f:
+      for line in f:
+        line = str(line).strip()
+        if not line:
+          continue
+        try:
+          event = json.loads(line)
+        except json.JSONDecodeError:
+          continue
+        rows.append({
+          "timestamp": float(event.get("timestamp", 0.0) or 0.0),
+          "action": str(event.get("action", "")),
+          "node_id": str(event.get("node_id", "")),
+          "actor": str(event.get("actor", "")),
+          "domain": str((event.get("details") or {}).get("domain", "")),
+        })
+  except Exception:
+    return []
+
+  rows = sorted(rows, key=lambda r: r.get("timestamp", 0.0), reverse=True)
+  return rows[: max(1, int(limit))]
+
+
+def _render_agency_onboarding_snapshot() -> None:
+  pending_rows = _load_agency_pending_requests()
+  audit_rows = _load_agency_approval_audit(limit=20)
+
+  with st.expander("Agency Onboarding Queue", expanded=False):
+    domain_options = sorted({str(r.get("domain", "")) for r in pending_rows if str(r.get("domain", ""))})
+    selected_domain = st.selectbox(
+      "Filter Domain",
+      options=["All"] + domain_options,
+      key="admin_onboarding_domain_filter",
+    )
+
+    if selected_domain != "All":
+      pending_rows = [r for r in pending_rows if str(r.get("domain", "")) == selected_domain]
+      audit_rows = [r for r in audit_rows if str(r.get("domain", "")) == selected_domain]
+
+    c1, c2, c3 = st.columns(3)
+    c1.metric("Pending Requests", len(pending_rows))
+    approved_24h = sum(
+      1
+      for r in audit_rows
+      if r.get("action") == "APPROVED" and (time.time() - float(r.get("timestamp", 0.0))) <= 86400
+    )
+    rejected_24h = sum(
+      1
+      for r in audit_rows
+      if r.get("action") == "REJECTED" and (time.time() - float(r.get("timestamp", 0.0))) <= 86400
+    )
+    c2.metric("Approved (24h)", approved_24h)
+    c3.metric("Rejected (24h)", rejected_24h)
+
+    if pending_rows:
+      df_pending = pd.DataFrame(pending_rows)
+      if "requested_at" in df_pending.columns:
+        df_pending["requested_at"] = pd.to_datetime(df_pending["requested_at"], unit="s", errors="coerce")
+      st.dataframe(df_pending, use_container_width=True, hide_index=True)
+      st.download_button(
+        "Export Pending CSV",
+        data=df_pending.to_csv(index=False).encode("utf-8"),
+        file_name="agency_pending_requests.csv",
+        mime="text/csv",
+        key="admin_export_pending_agencies_csv",
+      )
+    else:
+      st.caption("No pending agency onboarding requests.")
+
+    st.markdown("##### Recent Approval Audit")
+    if audit_rows:
+      df_audit = pd.DataFrame(audit_rows)
+      if "timestamp" in df_audit.columns:
+        df_audit["timestamp"] = pd.to_datetime(df_audit["timestamp"], unit="s", errors="coerce")
+      st.dataframe(df_audit, use_container_width=True, hide_index=True)
+      st.download_button(
+        "Export Audit CSV",
+        data=df_audit.to_csv(index=False).encode("utf-8"),
+        file_name="agency_approval_audit.csv",
+        mime="text/csv",
+        key="admin_export_agency_audit_csv",
+      )
+    else:
+      st.caption("No approval audit actions yet.")
 
 def plot_shock_vector(shock_vector, title):
   import plotly.graph_objects as go
@@ -100,6 +221,25 @@ def plot_shock_vector(shock_vector, title):
   )
   _apply_plotly_numeric_font(fig)
   return fig
+
+
+def _guide(method_html: str, interp_html: str, rec_html: str) -> None:
+  """Collapsible 3-section analysis guide panel (admin color scheme)."""
+  with st.expander("Analysis Guide & Interpretation", expanded=False):
+    st.markdown(
+      "<div style='font-size:0.82rem; line-height:1.65;'>"
+      "<div style='color:#BB0000; font-weight:700; font-size:0.72rem; "
+      "letter-spacing:0.08em; margin-bottom:0.35rem;'>WHAT IS THIS ANALYSIS?</div>"
+      f"<div style='color:#6B7280; margin-bottom:0.9rem;'>{method_html}</div>"
+      "<div style='color:#D97706; font-weight:700; font-size:0.72rem; "
+      "letter-spacing:0.08em; margin-bottom:0.35rem;'>INTERPRETATION</div>"
+      f"<div style='color:#6B7280; margin-bottom:0.9rem;'>{interp_html}</div>"
+      "<div style='color:#006600; font-weight:700; font-size:0.72rem; "
+      "letter-spacing:0.08em; margin-bottom:0.35rem;'>RECOMMENDATION</div>"
+      f"<div style='color:#6B7280;'>{rec_html}</div>"
+      "</div>",
+      unsafe_allow_html=True,
+    )
 
 
 def _apply_plotly_numeric_font(fig):
@@ -537,9 +677,36 @@ def render():
   active_section = _render_admin_sidebar(sector_name, pending_count, fl_mode)
   _render_admin_content_chrome(sector_name)
 
+  admin_risks = DeltaSyncManager.get_pending_syncs(basket_id)
+  severity_seed = min(10.0, (pending_count * 0.9) + (len(admin_risks) * 0.15))
+  admin_cost_snapshot = compute_cost_of_delay_kes_b(severity=severity_seed, projection_steps=4)
+  render_unified_report_export(
+    dashboard_name="Admin Dashboard",
+    section_name=active_section,
+    metrics={
+      "sector_id": basket_id,
+      "registered_spokes": int(inst_count),
+      "pending_reports": int(pending_count),
+      "active_projects": int(active_proj_count),
+      "fl_mode_enabled": bool(fl_mode),
+    },
+    highlights=[
+      f"{pending_count} pending spoke report(s) are awaiting review.",
+      f"{active_proj_count} active operation project(s) in this sector.",
+      f"Federated Mode B is {'enabled' if fl_mode else 'disabled'} for this session.",
+    ],
+    cost_delay=admin_cost_snapshot,
+    evidence={
+      "sector_name": sector_name,
+      "pending_sync_count": len(admin_risks),
+    },
+    key_prefix="admin_unified_report",
+  )
+
   if active_section == "Sector Overview":
     st.markdown(f"### {sector_name} Command Center")
     st.write("Real-time telemetry and overview of your sector's institutions.")
+    _render_agency_onboarding_snapshot()
 
     metrics_cols = st.columns(3)
     
@@ -603,9 +770,44 @@ def render():
         )
         _apply_plotly_numeric_font(fig)
         st.plotly_chart(fig, use_container_width=True)
+
+        try:
+          _g_total = len(df_chart)
+          _g_pending = int((df_chart["Status"] == "PENDING").sum())
+          _g_processed = int((df_chart["Status"] == "PROCESSED").sum())
+          _g_max_sev = float(df_chart["Severity"].max())
+          _g_avg_sev = float(df_chart["Severity"].mean())
+          _g_sev_label = "critical" if _g_max_sev >= 4.0 else "elevated" if _g_max_sev >= 2.0 else "low"
+        except Exception:
+          _g_total, _g_pending, _g_processed, _g_max_sev, _g_avg_sev, _g_sev_label = 0, 0, 0, 0, 0, "low"
+        _guide(
+          method_html=(
+            "The <b>Telemetry Pulse</b> is a severity-time scatter plot of all anomaly and incident reports "
+            "transmitted by spoke institutions to this sector node. Each bubble represents one transmission: "
+            "its vertical position is the RRCF anomaly severity score reported by the spoke's local engine, "
+            "its horizontal position is the timestamp, and its colour indicates processing status "
+            "(<span style='color:#DC2626;'>red = PENDING review</span>, "
+            "<span style='color:#059669;'>green = PROCESSED</span>, "
+            "<span style='color:#6B7280;'>grey = REJECTED</span>). "
+            "Bubble size scales with severity, so the most urgent events are visually largest."
+          ),
+          interp_html=(
+            f"<b>{_g_total}</b> total transmissions: <b>{_g_pending}</b> pending, "
+            f"<b>{_g_processed}</b> processed. "
+            f"Maximum severity: <b>{_g_max_sev:.2f}</b> ({_g_sev_label}); "
+            f"average: <b>{_g_avg_sev:.2f}</b>. "
+            + (f"<b>{_g_pending} reports are waiting for your review.</b> " if _g_pending > 0 else "No backlog — all transmissions have been reviewed. ")
+            + "Clusters of red bubbles in a short time window indicate a surge event."
+          ),
+          rec_html=(
+            f"Open <b>Spoke Reports</b> in the left navigation to review the {_g_pending} pending report(s). "
+            "Prioritise the highest-severity (largest) bubbles first. "
+            "If multiple spokes report high severity around the same time, consider fusing them into a single national risk escalation."
+          ),
+        )
       except Exception as e:
         st.caption("Unable to render telemetry chart.")
-        
+
     st.write("---")
     
     # New Comprehensive Sector Intelligence Report Section
@@ -1072,6 +1274,36 @@ def render():
               fig.update_layout(height=250, margin=dict(l=0, r=0, t=30, b=0), template="plotly_white")
               _apply_plotly_numeric_font(fig)
               st.plotly_chart(fig, use_container_width=True, key=f"dis_{proj['id']}")
+
+              try:
+                _g_min_cert = float(df_dis["Certainty"].min())
+                _g_avg_cert = float(df_dis["Certainty"].mean())
+                _g_lowest = df_dis.loc[df_dis["Certainty"].idxmin(), "Sector Admin"]
+                _g_consensus = "strong" if _g_avg_cert >= 0.75 else "moderate" if _g_avg_cert >= 0.5 else "weak"
+              except Exception:
+                _g_min_cert, _g_avg_cert, _g_lowest, _g_consensus = 0, 0, "unknown", "weak"
+              _guide(
+                method_html=(
+                  "The <b>Disagreement Tensor</b> measures <b>consensus drift</b> — how aligned sector administrators "
+                  "are in their certainty when contributing to a shared operational project. Each bar represents one "
+                  "sector admin's self-reported or engine-computed certainty score (0.0 = complete uncertainty, "
+                  "1.0 = full confidence). The colour scale transitions from red (low certainty / high disagreement) "
+                  "through yellow to green (high certainty / strong consensus). This metric helps identify which "
+                  "participants are uncertain, which could indicate information gaps, conflicting signals, or reluctance "
+                  "to commit to a shared assessment."
+                ),
+                interp_html=(
+                  f"Average certainty across participants: <b>{_g_avg_cert:.2f}</b> — consensus level: <b>{_g_consensus}</b>. "
+                  f"Lowest certainty: <b>{_g_lowest}</b> at <b>{_g_min_cert:.2f}</b>. "
+                  + ("High consensus — the group has a shared understanding of the situation." if _g_consensus == "strong"
+                     else f"<b>{_g_lowest}</b> is a significant outlier; their low certainty may reflect a different data picture or missing information.")
+                ),
+                rec_html=(
+                  f"Reach out to <b>{_g_lowest}</b> directly to understand what is driving their uncertainty. "
+                  "Consider requesting additional data submissions from low-certainty participants before promoting the project outcome. "
+                  "Use the project stream (centre column) to post clarifying observations and request updated certainty scores."
+                ),
+              )
             else:
               st.caption("Awaiting sector updates.")
             
@@ -1275,6 +1507,353 @@ def render():
       st.write("---")
       st.info("**Mode B active.** The aggregated global model is available in **Federated Learning (Mode B)** from the left navigation.")
 
+  if active_section == "Dynamic Resource Control":
+    st.markdown("### Dynamic Resource Control")
+    st.write("Control model governance and compute quotas for each spoke institution in this sector.")
+
+    available_models = ResourceControlManager.list_available_models()
+    quality_rows = get_family_quality_rows("fl")
+    quality_score_by_model = {
+      str(r.get("model")): float(r.get("composite_score") or 0.0)
+      for r in quality_rows
+      if str(r.get("model") or "")
+    }
+    recommended_models = [
+      str(r.get("model"))
+      for r in quality_rows
+      if str(r.get("data_status", "")).lower() == "ok" and str(r.get("model") or "") in available_models
+    ]
+    recommended_top = recommended_models[: max(1, min(3, len(recommended_models)))]
+
+    policy = ResourceControlManager.get_policy(basket_id)
+    effective_allocations = ResourceControlManager.build_effective_allocations(basket_id)
+
+    if recommended_top:
+      st.caption(f"Quality-first recommendations: {', '.join(recommended_top)}")
+    else:
+      st.caption("Quality-first recommendations unavailable because benchmark quality signals are missing.")
+
+    st.write("#### Sector Baseline Policy")
+    with st.container(border=True):
+      p_col1, p_col2, p_col3 = st.columns(3)
+      with p_col1:
+        default_cpu = st.number_input(
+          "Default CPU Cores",
+          min_value=0.1,
+          value=float(policy.get("default_cpu_cores", 1.0)),
+          step=0.1,
+          key="rc_default_cpu",
+        )
+        default_rounds = st.number_input(
+          "Default Daily Training Rounds",
+          min_value=0,
+          value=int(policy.get("default_daily_training_rounds", 3)),
+          step=1,
+          key="rc_default_rounds",
+        )
+      with p_col2:
+        default_memory = st.number_input(
+          "Default Memory (GB)",
+          min_value=0.25,
+          value=float(policy.get("default_memory_gb", 2.0)),
+          step=0.25,
+          key="rc_default_memory",
+        )
+        default_rows = st.number_input(
+          "Default Max Rows per Round",
+          min_value=500,
+          value=int(policy.get("default_max_rows_per_round", 12000)),
+          step=500,
+          key="rc_default_rows",
+        )
+      with p_col3:
+        default_priority = st.selectbox(
+          "Default Priority Tier",
+          options=["critical", "high", "normal", "low"],
+          index=["critical", "high", "normal", "low"].index(str(policy.get("default_priority_tier", "normal"))),
+          key="rc_default_priority",
+        )
+        fair_share_mode = st.selectbox(
+          "Fair-share Mode",
+          options=["balanced", "conservative", "performance"],
+          index=["balanced", "conservative", "performance"].index(str(policy.get("fair_share_mode", "balanced"))),
+          key="rc_fair_share",
+        )
+
+      allowed_defaults = [m for m in policy.get("allowed_models", []) if m in available_models]
+      blocked_defaults = [m for m in policy.get("blocked_models", []) if m in available_models]
+
+      model_col1, model_col2 = st.columns(2)
+      with model_col1:
+        allowed_models = st.multiselect(
+          "Allowed Models",
+          options=available_models,
+          default=allowed_defaults,
+          key="rc_allowed_models",
+          help="Models this sector can schedule for spoke training.",
+        )
+        low_quality_selected = [
+          m for m in allowed_models if m in quality_score_by_model and quality_score_by_model[m] < 0.45
+        ]
+        if low_quality_selected:
+          st.warning(
+            "Lower-quality models selected: " + ", ".join(low_quality_selected) + ". "
+            "Soft enforcement keeps this allowed, but review quality scores before saving."
+          )
+      with model_col2:
+        blocked_models = st.multiselect(
+          "Blocked Models",
+          options=available_models,
+          default=blocked_defaults,
+          key="rc_blocked_models",
+          help="Blocked models override allow-list entries.",
+        )
+
+      flag_col1, flag_col2 = st.columns(2)
+      with flag_col1:
+        enforce_allowlist = st.checkbox(
+          "Enforce model allow-list",
+          value=bool(policy.get("enforce_model_allowlist", True)),
+          key="rc_enforce_allowlist",
+        )
+      with flag_col2:
+        auto_sync_directives = st.checkbox(
+          "Auto-sync directives to spokes",
+          value=bool(policy.get("auto_sync_directives", True)),
+          key="rc_auto_sync",
+        )
+
+      if st.button("Save Baseline Policy", type="primary", key="rc_save_policy"):
+        if recommended_top:
+          missing_recommended = [m for m in recommended_top if m not in allowed_models]
+          if missing_recommended:
+            log_quality_override(
+              family="fl",
+              selected=", ".join(allowed_models),
+              recommended=", ".join(recommended_top),
+              actor=str(st.session_state.get("username") or "unknown"),
+              context="admin_dynamic_resource_control_baseline",
+              reason="recommended_models_not_in_allowlist",
+              details={"missing_recommended": missing_recommended, "blocked_models": blocked_models},
+            )
+
+        if low_quality_selected:
+          log_quality_override(
+            family="fl",
+            selected=", ".join(low_quality_selected),
+            recommended=", ".join(recommended_top),
+            actor=str(st.session_state.get("username") or "unknown"),
+            context="admin_dynamic_resource_control_baseline",
+            reason="low_quality_models_allowed",
+            details={"low_quality_selected": low_quality_selected},
+          )
+
+        updated_policy = {
+          "default_cpu_cores": default_cpu,
+          "default_memory_gb": default_memory,
+          "default_daily_training_rounds": default_rounds,
+          "default_max_rows_per_round": default_rows,
+          "default_priority_tier": default_priority,
+          "fair_share_mode": fair_share_mode,
+          "allowed_models": allowed_models,
+          "blocked_models": blocked_models,
+          "enforce_model_allowlist": enforce_allowlist,
+          "auto_sync_directives": auto_sync_directives,
+        }
+        saved_policy = ResourceControlManager.save_policy(
+          basket_id,
+          updated_policy,
+          updated_by=st.session_state.get("username", "admin"),
+        )
+
+        if bool(saved_policy.get("auto_sync_directives", True)):
+          directive = ResourceControlManager.build_policy_directive_text(saved_policy)
+          DataSharingManager.issue_directive(
+            sender_role=Role.BASKET_ADMIN.value,
+            sender_id=st.session_state.get("username", f"Basket_{basket_id}"),
+            content=directive,
+            priority="HIGH",
+            directive_type="RESOURCE_POLICY_BASELINE",
+            target_basket_id=basket_id,
+            requires_ack=False,
+          )
+
+        st.success("Baseline resource policy saved.")
+        st.rerun()
+
+    st.write("---")
+    st.write("#### Effective Spoke Allocations")
+    if not effective_allocations:
+      st.info("No spoke institutions found for this sector yet.")
+    else:
+      table_rows = []
+      for item in effective_allocations:
+        alloc = item.get("allocation", {})
+        table_rows.append({
+          "Institution": item.get("institution_name"),
+          "Override": "Yes" if item.get("has_override") else "No",
+          "Enabled": "Yes" if alloc.get("enabled", True) else "No",
+          "CPU": alloc.get("cpu_cores"),
+          "Memory_GB": alloc.get("memory_gb"),
+          "Daily_Rounds": alloc.get("daily_training_rounds"),
+          "Max_Rows": alloc.get("max_rows_per_round"),
+          "Priority": alloc.get("priority_tier"),
+          "Allowed_Models": ", ".join(alloc.get("allowed_models", [])),
+          "Pending_Reports": item.get("pending_reports", 0),
+        })
+      st.dataframe(pd.DataFrame(table_rows), use_container_width=True)
+
+      st.write("---")
+      st.write("#### Edit Per-Spoke Override")
+
+      spoke_labels = [
+        f"{item.get('institution_name')} (ID {item.get('institution_id')})"
+        for item in effective_allocations
+      ]
+      selected_label = st.selectbox("Select spoke", spoke_labels, key="rc_selected_spoke")
+      selected_idx = spoke_labels.index(selected_label)
+      selected = effective_allocations[selected_idx]
+      selected_alloc = dict(selected.get("allocation", {}))
+
+      ov_col1, ov_col2, ov_col3 = st.columns(3)
+      with ov_col1:
+        ov_enabled = st.checkbox(
+          "Enabled",
+          value=bool(selected_alloc.get("enabled", True)),
+          key="rc_override_enabled",
+        )
+        ov_cpu = st.number_input(
+          "CPU Cores",
+          min_value=0.1,
+          value=float(selected_alloc.get("cpu_cores", policy.get("default_cpu_cores", 1.0))),
+          step=0.1,
+          key="rc_override_cpu",
+        )
+      with ov_col2:
+        ov_memory = st.number_input(
+          "Memory (GB)",
+          min_value=0.25,
+          value=float(selected_alloc.get("memory_gb", policy.get("default_memory_gb", 2.0))),
+          step=0.25,
+          key="rc_override_memory",
+        )
+        ov_daily = st.number_input(
+          "Daily Training Rounds",
+          min_value=0,
+          value=int(selected_alloc.get("daily_training_rounds", policy.get("default_daily_training_rounds", 3))),
+          step=1,
+          key="rc_override_daily",
+        )
+      with ov_col3:
+        ov_rows = st.number_input(
+          "Max Rows per Round",
+          min_value=500,
+          value=int(selected_alloc.get("max_rows_per_round", policy.get("default_max_rows_per_round", 12000))),
+          step=500,
+          key="rc_override_rows",
+        )
+        _priority_options = ["critical", "high", "normal", "low"]
+        ov_priority = st.selectbox(
+          "Priority Tier",
+          options=_priority_options,
+          index=_priority_options.index(str(selected_alloc.get("priority_tier", policy.get("default_priority_tier", "normal")))),
+          key="rc_override_priority",
+        )
+
+      effective_allowed = [
+        m for m in selected_alloc.get("allowed_models", policy.get("allowed_models", [])) if m in available_models
+      ]
+      ov_allowed_models = st.multiselect(
+        "Allowed Models for this spoke",
+        options=available_models,
+        default=effective_allowed,
+        key="rc_override_allowed_models",
+      )
+      low_quality_override = [
+        m for m in ov_allowed_models if m in quality_score_by_model and quality_score_by_model[m] < 0.45
+      ]
+      if low_quality_override:
+        st.warning(
+          "This spoke override includes lower-quality models: " + ", ".join(low_quality_override) + "."
+        )
+      ov_note = st.text_area(
+        "Operator note",
+        value=str(selected_alloc.get("note", "")),
+        key="rc_override_note",
+        placeholder="Optional explanation for this override.",
+      )
+
+      act_col1, act_col2 = st.columns(2)
+      with act_col1:
+        if st.button("Save Spoke Override", type="primary", use_container_width=True, key="rc_save_override"):
+          if low_quality_override:
+            log_quality_override(
+              family="fl",
+              selected=", ".join(low_quality_override),
+              recommended=", ".join(recommended_top),
+              actor=str(st.session_state.get("username") or "unknown"),
+              context="admin_dynamic_resource_control_spoke_override",
+              reason="low_quality_models_allowed",
+              details={
+                "institution_id": int(selected.get("institution_id")),
+                "institution_name": str(selected.get("institution_name") or ""),
+              },
+            )
+
+          override_payload = {
+            "enabled": ov_enabled,
+            "cpu_cores": ov_cpu,
+            "memory_gb": ov_memory,
+            "daily_training_rounds": ov_daily,
+            "max_rows_per_round": ov_rows,
+            "priority_tier": ov_priority,
+            "allowed_models": ov_allowed_models,
+            "note": ov_note,
+          }
+          saved_override = ResourceControlManager.save_spoke_override(
+            basket_id,
+            int(selected.get("institution_id")),
+            override_payload,
+            updated_by=st.session_state.get("username", "admin"),
+          )
+
+          if bool(policy.get("auto_sync_directives", True)):
+            directive = ResourceControlManager.build_policy_directive_text(policy, saved_override)
+            DataSharingManager.issue_directive(
+              sender_role=Role.BASKET_ADMIN.value,
+              sender_id=st.session_state.get("username", f"Basket_{basket_id}"),
+              content=directive,
+              priority="HIGH" if not saved_override.get("enabled", True) else "MEDIUM",
+              directive_type="RESOURCE_POLICY_OVERRIDE",
+              target_institution_id=int(selected.get("institution_id")),
+              requires_ack=True,
+            )
+
+          st.success("Spoke override saved.")
+          st.rerun()
+
+      with act_col2:
+        if st.button("Clear Spoke Override", use_container_width=True, key="rc_clear_override"):
+          ResourceControlManager.clear_spoke_override(
+            basket_id,
+            int(selected.get("institution_id")),
+          )
+
+          if bool(policy.get("auto_sync_directives", True)):
+            baseline_directive = ResourceControlManager.build_policy_directive_text(policy)
+            DataSharingManager.issue_directive(
+              sender_role=Role.BASKET_ADMIN.value,
+              sender_id=st.session_state.get("username", f"Basket_{basket_id}"),
+              content=baseline_directive,
+              priority="MEDIUM",
+              directive_type="RESOURCE_POLICY_RESET",
+              target_institution_id=int(selected.get("institution_id")),
+              requires_ack=True,
+            )
+
+          st.success("Spoke override cleared; baseline policy restored.")
+          st.rerun()
+
   if active_section == "Collaboration Room":
     st.markdown("### Collaboration Room")
     render_collab_room(
@@ -1312,8 +1891,32 @@ def render():
         "Krum (most reliable node only)": "krum",
         "Bulyan (Byzantine-resilient consensus)": "bulyan"
       }
-      selected_fl_method = st.selectbox("Aggregation strategy", list(fl_methods.keys()))
+      recommended_meta_model, recommended_meta_reason = get_recommended_model_name("meta")
+      method_labels = list(fl_methods.keys())
+      recommended_label = None
+      for label, code in fl_methods.items():
+        if code == recommended_meta_model:
+          recommended_label = label
+          break
+      default_method_index = method_labels.index(recommended_label) if recommended_label in method_labels else 0
+      selected_fl_method = st.selectbox("Aggregation strategy", method_labels, index=default_method_index)
+      if recommended_meta_model:
+        st.caption(f"Quality-first recommended aggregation: {recommended_meta_model}. {recommended_meta_reason}")
+      if recommended_label and selected_fl_method != recommended_label:
+        st.warning("Selected aggregation differs from quality-first recommendation. Override is allowed.")
       if st.button("Run Aggregation", type="primary"):
+        selected_method_code = fl_methods[selected_fl_method]
+        if recommended_meta_model and selected_method_code != recommended_meta_model:
+          log_quality_override(
+            family="meta",
+            selected=selected_method_code,
+            recommended=recommended_meta_model,
+            actor=str(st.session_state.get("username") or "unknown"),
+            context="admin_federated_learning_aggregation",
+            reason="manual_override",
+            details={"recommended_reason": recommended_meta_reason},
+          )
+
         payloads_fl = [s['payload'] for s in pending_fl]
         global_weights, meta = FederationBridge.aggregate_spoke_models(
           payloads_fl, method_name=fl_methods[selected_fl_method]
@@ -1335,6 +1938,40 @@ def render():
       fig_fl.update_layout(template='plotly_white', height=280, margin=dict(l=0, r=0, t=0, b=0))
       _apply_plotly_numeric_font(fig_fl)
       st.plotly_chart(fig_fl, use_container_width=True, key="global_model_chart_fl")
+
+      try:
+        _g_w_mean = float(np.mean(y_data_fl))
+        _g_w_std = float(np.std(y_data_fl))
+        _g_w_min = float(min(y_data_fl))
+        _g_w_max = float(max(y_data_fl))
+        _g_smooth = "smooth" if _g_w_std < 0.1 else "moderate variation" if _g_w_std < 0.3 else "high variation (possible outlier influence)"
+      except Exception:
+        _g_w_mean, _g_w_std, _g_w_min, _g_w_max, _g_smooth = 0, 0, 0, 0, "unknown"
+      _guide(
+        method_html=(
+          "The <b>Global Model Weights</b> chart shows the result of <b>federated aggregation</b> — the sector's "
+          "combined analytical model constructed by merging model weights submitted by each spoke institution. "
+          "Each weight dimension encodes a learned statistical pattern from the spoke's local data, without the "
+          "raw data ever leaving the institution. Aggregation methods (Trimmed Mean, Median, Krum, Bulyan) combine "
+          "these vectors while defending against outlier or adversarial contributions. "
+          "The resulting global weight vector captures the sector's collective knowledge about its data patterns."
+        ),
+        interp_html=(
+          f"Weight vector: <b>{len(y_data_fl)}</b> dimensions. "
+          f"Mean: <b>{_g_w_mean:.4f}</b>, std: <b>{_g_w_std:.4f}</b> ({_g_smooth}). "
+          f"Range: [{_g_w_min:.4f}, {_g_w_max:.4f}]. "
+          + ("A smooth, low-variance weight vector indicates consensus across spokes — the aggregated model is stable. "
+             if _g_w_std < 0.1 else
+             "Higher variance in weights may indicate disagreement between spoke models or one institution is an outlier. "
+             "Consider using Krum or Bulyan aggregation to reduce outlier influence.")
+        ),
+        rec_html=(
+          "Before broadcasting, apply <b>differential privacy noise</b> (Step 2 below) to protect individual "
+          "institution identities. Use a lower epsilon (more privacy) when sharing with peer sectors, and a "
+          "higher epsilon (more precision) when broadcasting back to your own spokes. "
+          "Archive this weight vector as a baseline — significant deviation in future aggregations signals a sector-wide pattern shift."
+        ),
+      )
 
       st.write("---")
       st.write("#### Step 2 \u2014 Apply Privacy Protection before Broadcast")

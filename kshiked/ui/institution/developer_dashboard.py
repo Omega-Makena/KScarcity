@@ -11,12 +11,14 @@ import pandas as pd
 import streamlit as st
 
 from kshiked.ui.institution.backend.auth import enforce_role, logout_user
+from kshiked.ui.institution.backend.analytics_engine import compute_cost_of_delay_kes_b
 from kshiked.ui.institution.backend.model_quality import (
   build_unified_model_metrics,
   get_quality_routing_defaults,
   build_quality_assurance_snapshot,
 )
 from kshiked.ui.institution.backend.models import Role
+from kshiked.ui.institution.unified_report_export import render_unified_report_export
 from scarcity.engine.engine_v2 import OnlineDiscoveryEngine
 
 
@@ -1857,6 +1859,36 @@ def render():
     st.rerun()
 
   _render_header()
+
+  export_snapshot = build_quality_assurance_snapshot()
+  export_overall = export_snapshot.get("overall_assurance", {}) if isinstance(export_snapshot, dict) else {}
+  assurance_score = float(export_overall.get("score", 0.0) or 0.0)
+  derived_severity = max(0.0, min(10.0, (1.0 - assurance_score) * 10.0))
+  export_cost_snapshot = compute_cost_of_delay_kes_b(severity=derived_severity, projection_steps=4)
+  render_unified_report_export(
+    dashboard_name="Developer Dashboard",
+    section_name=active_tab,
+    metrics={
+      "recent_training_runs": len(run_summaries),
+      "recent_logs": len(logs),
+      "high_severity_misuse_alerts": int(misues_high),
+      "quality_overrides_24h": int(quality_overrides_24h),
+      "assurance_score_pct": round(assurance_score * 100.0, 1),
+    },
+    highlights=[
+      f"Current assurance score is {assurance_score * 100.0:.0f}%.",
+      f"High-severity misuse alerts in recent runs: {misues_high}.",
+      f"Quality overrides observed in last 24h: {quality_overrides_24h}.",
+    ],
+    cost_delay=export_cost_snapshot,
+    tables={
+      "assurance_summary": pd.DataFrame(export_snapshot.get("summary_rows", []))
+      if isinstance(export_snapshot, dict)
+      else pd.DataFrame(),
+    },
+    evidence={"overall_assurance": export_overall},
+    key_prefix="dev_unified_report",
+  )
 
   if active_tab == "Developer Overview":
     _render_overview_tab(test_files, run_summaries, logs)
