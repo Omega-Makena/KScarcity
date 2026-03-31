@@ -1,5 +1,7 @@
 # K-Scarcity
 
+[![Open in GitHub Codespaces](https://github.com/codespaces/badge.svg)](https://codespaces.new/Omega-Makena/KScarcity)
+
 **Strategic National Economic & Threat Intelligence Layer**
 
 An AI-powered early warning system that detects emerging threats to national stability by fusing economic indicators, social signals, and critical infrastructure data. 
@@ -158,7 +160,24 @@ Before math leaves the machine, arrays are mathematically crushed. The **Federat
 
 ##  Quick Start
 
-### Installation
+### Option A — Run in the Cloud (No Laptop Required)
+
+You can run the entire K-Scarcity dashboard directly in your browser using **GitHub Codespaces** — no local installation needed.
+
+**One click:** click the badge at the top of this page, or follow these steps:
+
+1. Open the repository on GitHub: [Omega-Makena/KScarcity](https://github.com/Omega-Makena/KScarcity)
+2. Click the green **`<> Code`** button → **Codespaces** tab → **Create codespace on main**
+3. Wait for the environment to build — dependencies install and the dashboard starts **automatically**
+4. Codespaces will show an **"Open in Browser"** popup for port `8501` — click it to open the dashboard
+
+> **Institution Dashboard:** Once the dashboard opens, navigate to the **Institution Portal** by appending `?view=INSTITUTION` to the URL, or click **Institution Portal** in the left sidebar.
+
+---
+
+### Option B — Run Locally
+
+#### Installation
 
 ```bash
 # Clone the repository
@@ -176,21 +195,22 @@ source .venv/bin/activate
 # Install the scarcity library (editable mode)
 pip install -e pypi/
 
-# For backend development, also install backend deps
-pip install -r backend/requirements.txt
-
 # For the Streamlit dashboard
 pip install streamlit plotly pandas numpy cryptography
 ```
 
-### Run the Dashboard
+#### Run the Dashboard
 
 ```bash
 # From the project root
 streamlit run kshiked/ui/app.py
 ```
 
-### Run Tests
+The dashboard opens at `http://localhost:8501`.
+
+**Institution Dashboard deep-link:** `http://localhost:8501/?view=INSTITUTION`
+
+#### Run Tests
 
 ```bash
 pytest tests/ -v
