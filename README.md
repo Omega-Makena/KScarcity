@@ -1,5 +1,7 @@
 # K-Scarcity
 
+[![Open in GitHub Codespaces](https://github.com/codespaces/badge.svg)](https://codespaces.new/Omega-Makena/KScarcity)
+
 **Strategic National Economic & Threat Intelligence Layer**
 
 An AI-powered early warning system that detects emerging threats to national stability by fusing economic indicators, social signals, and critical infrastructure data. 
@@ -162,16 +164,12 @@ Before math leaves the machine, arrays are mathematically crushed. The **Federat
 
 You can run the entire K-Scarcity dashboard directly in your browser using **GitHub Codespaces** — no local installation needed.
 
+**One click:** click the badge at the top of this page, or follow these steps:
+
 1. Open the repository on GitHub: [Omega-Makena/KScarcity](https://github.com/Omega-Makena/KScarcity)
 2. Click the green **`<> Code`** button → **Codespaces** tab → **Create codespace on main**
-3. Wait for the environment to build (dependencies install automatically)
-4. In the Codespaces terminal, run:
-
-```bash
-streamlit run kshiked/ui/app.py
-```
-
-5. Codespaces will show an **"Open in Browser"** popup for port `8501` — click it to open the dashboard
+3. Wait for the environment to build — dependencies install and the dashboard starts **automatically**
+4. Codespaces will show an **"Open in Browser"** popup for port `8501` — click it to open the dashboard
 
 > **Institution Dashboard:** Once the dashboard opens, navigate to the **Institution Portal** by appending `?view=INSTITUTION` to the URL, or click **Institution Portal** in the left sidebar.
 
