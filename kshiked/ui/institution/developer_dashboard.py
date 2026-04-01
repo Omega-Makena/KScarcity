@@ -1880,11 +1880,18 @@ def render():
       f"High-severity misuse alerts in recent runs: {misues_high}.",
       f"Quality overrides observed in last 24h: {quality_overrides_24h}.",
     ],
+    interpretations=[
+      "Lower assurance means model governance and deployment controls need immediate review.",
+      "Misuse alerts indicate potential policy or operational safety violations.",
+      "Frequent overrides can signal process drift and reduced audit reliability.",
+    ],
     cost_delay=export_cost_snapshot,
     tables={
       "assurance_summary": pd.DataFrame(export_snapshot.get("summary_rows", []))
       if isinstance(export_snapshot, dict)
       else pd.DataFrame(),
+      "recent_training_runs": pd.DataFrame(run_summaries) if isinstance(run_summaries, list) else pd.DataFrame(),
+      "recent_log_files": pd.DataFrame([{"path": str(p)} for p in logs]) if isinstance(logs, list) else pd.DataFrame(),
     },
     evidence={"overall_assurance": export_overall},
     key_prefix="dev_unified_report",

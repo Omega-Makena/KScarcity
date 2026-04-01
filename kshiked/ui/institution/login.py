@@ -2,6 +2,7 @@ import streamlit as st
 import sys
 import os
 import qrcode
+import secrets
 from io import BytesIO
 from pathlib import Path
 from html import escape
@@ -13,7 +14,7 @@ if project_root not in sys.path:
 
 from kshiked.ui.institution.backend.auth import (
   login_user, logout_user, generate_totp_secret, 
-  verify_totp_token, enable_user_2fa
+  verify_totp_token, enable_user_2fa, is_developer_session, hash_password
 )
 from kshiked.ui.institution.backend.models import Role
 from kshiked.ui.institution.style import inject_enterprise_theme, get_base64_of_bin_file
@@ -677,9 +678,71 @@ def _render_institution_sidebar(institution_name, parent_authority, sector_name)
 
 
 def _is_2fa_bypass_enabled() -> bool:
-  """Test-only switch to bypass 2FA after phase-1 credential check."""
-  raw = os.getenv("SCACE4_SKIP_2FA", "0")
+  """Temporary switch to bypass 2FA after phase-1 credential check.
+
+  Default is OFF. Set SCACE4_SKIP_2FA=1/true/on only for explicit test sessions.
+  """
+  raw = os.getenv("SCACE4_SKIP_2FA")
+  if raw is None:
+    return False
   return str(raw).strip().lower() in {"1", "true", "yes", "on"}
+
+
+def _load_signup_baskets() -> list[tuple[int, str]]:
+  try:
+    with get_connection() as conn:
+      c = conn.cursor()
+      c.execute("SELECT id, name FROM baskets ORDER BY name ASC")
+      return [(int(r["id"]), str(r["name"])) for r in c.fetchall()]
+  except Exception:
+    return []
+
+
+def _register_institution_signup(username: str, password: str, institution_name: str, basket_id: int) -> tuple[bool, str]:
+  uname = str(username or "").strip()
+  inst_name = str(institution_name or "").strip()
+  if not uname:
+    return False, "Username is required."
+  if len(uname) < 4:
+    return False, "Username must be at least 4 characters."
+  if not password or len(str(password)) < 8:
+    return False, "Password must be at least 8 characters."
+  if not inst_name:
+    return False, "Institution name is required."
+  if not basket_id:
+    return False, "Sector selection is required."
+
+  try:
+    with get_connection() as conn:
+      c = conn.cursor()
+
+      c.execute("SELECT id FROM users WHERE username = ?", (uname,))
+      if c.fetchone() is not None:
+        return False, "That username already exists."
+
+      c.execute("SELECT id, basket_id FROM institutions WHERE name = ?", (inst_name,))
+      existing_inst = c.fetchone()
+      if existing_inst is None:
+        api_key = f"signup_{secrets.token_hex(12)}"
+        c.execute(
+          "INSERT INTO institutions (name, basket_id, api_key) VALUES (?, ?, ?)",
+          (inst_name, int(basket_id), api_key),
+        )
+        institution_id = int(c.lastrowid)
+      else:
+        institution_id = int(existing_inst["id"])
+        existing_basket_id = int(existing_inst["basket_id"])
+        if existing_basket_id != int(basket_id):
+          return False, "Institution already exists under a different sector."
+
+      c.execute(
+        "INSERT INTO users (username, password_hash, role, basket_id, institution_id) VALUES (?, ?, ?, ?, ?)",
+        (uname, hash_password(password), Role.INSTITUTION.value, int(basket_id), institution_id),
+      )
+      conn.commit()
+      return True, "Signup complete. You can now sign in."
+  except Exception as exc:
+    return False, f"Signup failed: {exc}"
 
 def render_landing_page():
   inject_enterprise_theme(include_watermark=True)
@@ -743,97 +806,73 @@ def render_login_page():
       st.rerun()
       
     st.write("")
+
+    if not st.session_state.get('phase1_passed', False):
+      auth_mode = st.radio(
+        "Access",
+        options=["Sign In", "Sign Up"],
+        horizontal=True,
+      )
+    else:
+      auth_mode = "Sign In"
+
+    if auth_mode == "Sign Up" and not st.session_state.get('phase1_passed', False):
+      baskets = _load_signup_baskets()
+      if not baskets:
+        st.error("No sectors available for signup. Please contact an administrator.")
+        return
+
+      basket_names = [name for _, name in baskets]
+      basket_lookup = {name: bid for bid, name in baskets}
+
+      with st.form("signup_form"):
+        st.markdown("### Create Institution Account")
+        institution_name = st.text_input("Institution Name")
+        selected_sector = st.selectbox("Sector", basket_names)
+        signup_username = st.text_input("Create Username")
+        signup_password = st.text_input("Create Password", type="password")
+        signup_password_confirm = st.text_input("Confirm Password", type="password")
+        signup_submit = st.form_submit_button("Create Account", use_container_width=True)
+
+        if signup_submit:
+          if signup_password != signup_password_confirm:
+            st.error("Passwords do not match.")
+          else:
+            ok, msg = _register_institution_signup(
+              username=signup_username,
+              password=signup_password,
+              institution_name=institution_name,
+              basket_id=int(basket_lookup[selected_sector]),
+            )
+            if ok:
+              st.session_state["signup_prefill_username"] = str(signup_username or "").strip()
+              st.success(msg)
+              st.rerun()
+            else:
+              st.error(msg)
+      return
     
     # ─── PHASE 1: Username & Password ──────────────────────
     if not st.session_state.get('phase1_passed', False):
       with st.form("login_form"):
-        username = st.text_input("Username / Spoke ID")
+        username = st.text_input("Username / Spoke ID", value=str(st.session_state.get("signup_prefill_username", "")))
         password = st.text_input("Passkey", type="password") # Re-enabled password
         submitted = st.form_submit_button("Authenticate", use_container_width=True)
         
         if submitted:
           # Actually check if user exists. (For demo still accepts empty password if backend allows)
           if login_user(username, password): 
+            st.session_state.pop("signup_prefill_username", None)
             st.session_state['phase1_passed'] = True
+            st.session_state["authenticated"] = True
             st.rerun()
           else:
             st.error("Invalid Credentials.")
 
-    # ─── PHASE 2: Two-Factor Authentication ────────────────
+    # ─── PHASE 2: Two-Factor Authentication (disabled) ─────
     else:
       st.info(f"Identity Verified: **{st.session_state.get('username')}**")
-
-      if _is_2fa_bypass_enabled():
-        st.warning("TEST MODE: 2FA verification is bypassed for this session.")
-        st.session_state["authenticated"] = True
-        st.success(f"Test Login Successful: Clearance {st.session_state['role']}")
-        st.rerun()
-      
-      # Returning User: 2FA is already enabled
-      if st.session_state.get('is_2fa_enabled'):
-        st.markdown("### Two-Factor Authentication")
-        st.write("Enter the 6-digit code from your Authenticator app.")
-        
-        with st.form("2fa_verify_form"):
-          token = st.text_input("Authenticator Code", max_chars=6)
-          submit_2fa = st.form_submit_button("Verify & Enter", use_container_width=True)
-          
-          if submit_2fa:
-            secret = st.session_state.get("totp_secret")
-            if verify_totp_token(secret, token):
-              st.session_state["authenticated"] = True # Finalize login
-              st.success(f"Authentication Successful: Clearance {st.session_state['role']}")
-              st.rerun()
-            else:
-              st.error("Invalid or expired token.")
-              
-      # First-Time User: 2FA Setup Required
-      else:
-        st.markdown("### Required: Setup 2FA")
-        st.warning("Your account requires Two-Factor Authentication to access the portal.")
-        
-        # We need a stable secret for the session while they set up
-        if "setup_totp_secret" not in st.session_state:
-          # if they already have an un-enabled secret in DB, use it, else generate one
-          if st.session_state.get("totp_secret"):
-            st.session_state["setup_totp_secret"] = st.session_state["totp_secret"]
-          else:
-            st.session_state["setup_totp_secret"] = generate_totp_secret()
-            
-        secret = st.session_state["setup_totp_secret"]
-
-        # Generate Provisioning URI for QR Code
-        import pyotp
-        provisioning_uri = pyotp.totp.TOTP(secret).provisioning_uri(
-          name=st.session_state.get('username'), 
-          issuer_name="K-Scarcity Intelligence"
-        )
-        
-        # Render QR Code
-        qr = qrcode.make(provisioning_uri)
-        buf = BytesIO()
-        qr.save(buf, format="PNG")
-        st.image(buf.getvalue(), width=200, caption="Scan with Google/MS Authenticator")
-        
-        st.code(secret, language="text")
-        st.caption("If you cannot scan the QR code, enter this key manually.")
-        
-        with st.form("2fa_setup_form"):
-          setup_token = st.text_input("Verify 6-digit code to enable:", max_chars=6)
-          setup_submit = st.form_submit_button("Enable 2FA & Enter", use_container_width=True)
-          
-          if setup_submit:
-            if verify_totp_token(secret, setup_token):
-              # Save to DB
-              enable_user_2fa(st.session_state["user_id"], secret)
-              st.session_state["is_2fa_enabled"] = True
-              st.session_state["totp_secret"] = secret
-              
-              st.session_state["authenticated"] = True # Finalize login
-              st.success("2FA Successfully Enabled!")
-              st.rerun()
-            else:
-              st.error("Invalid code. Please try again.")
+      st.caption("Two-factor authentication is currently disabled for this deployment.")
 
 def route_authenticated_user():
   role = st.session_state.get('role')
@@ -868,8 +907,12 @@ def route_authenticated_user():
 
   # Route based on explicit Role Based Access Controls
   if role == Role.EXECUTIVE.value:
-    from kshiked.ui.institution.executive_dashboard import render as render_executive
-    render_executive()
+    if is_developer_session():
+      from kshiked.ui.institution.developer_dashboard import render as render_developer
+      render_developer()
+    else:
+      from kshiked.ui.institution.executive_dashboard import render as render_executive
+      render_executive()
   elif role == Role.BASKET_ADMIN.value:
     from kshiked.ui.institution.admin_governance import render as render_basket_admin
     render_basket_admin()

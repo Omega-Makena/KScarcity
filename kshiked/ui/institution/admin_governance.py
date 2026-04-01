@@ -695,7 +695,16 @@ def render():
       f"{active_proj_count} active operation project(s) in this sector.",
       f"Federated Mode B is {'enabled' if fl_mode else 'disabled'} for this session.",
     ],
+    interpretations=[
+      "Pending reports represent unresolved field intelligence and should be triaged quickly.",
+      "More active projects typically means rising operational load in the sector.",
+      "Federated Mode B indicates model updates can be coordinated across institutions.",
+    ],
     cost_delay=admin_cost_snapshot,
+    tables={
+      "pending_spoke_reports": pd.DataFrame(admin_risks) if isinstance(admin_risks, list) else pd.DataFrame(),
+      "active_projects": pd.DataFrame(ProjectManager.get_active_projects(basket_id)),
+    },
     evidence={
       "sector_name": sector_name,
       "pending_sync_count": len(admin_risks),

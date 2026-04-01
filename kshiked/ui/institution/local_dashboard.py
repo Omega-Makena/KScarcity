@@ -189,7 +189,20 @@ def render(active_section: str = "Data Intake", use_enterprise_theme: bool = Tru
       "Use it to communicate local risk posture and urgency to sector command.",
       f"Current section focus: {active_section}.",
     ],
+    interpretations=[
+      "Higher local severity indicates increased probability of escalation to sector level.",
+      "If threat level rises, prioritize early interventions and update sector command quickly.",
+      "Use causal and trend outputs to explain why the signal is changing, not just that it changed.",
+    ],
     cost_delay=spoke_cost_snapshot,
+    tables={
+      "local_dataset": local_df if isinstance(local_df, pd.DataFrame) else pd.DataFrame(),
+      "relationships": pd.DataFrame(getattr(pipeline_result, 'relationships', []) or []) if pipeline_result is not None else pd.DataFrame(),
+      "trend_signals": pd.DataFrame(getattr(pipeline_result, 'trend_signals', []) or []) if pipeline_result is not None else pd.DataFrame(),
+      "propagation_chains": pd.DataFrame(getattr(pipeline_result, 'propagation_chains', []) or []) if pipeline_result is not None else pd.DataFrame(),
+      "spatial_hotspots": pd.DataFrame(getattr(pipeline_result, 'spatial_hotspots', []) or []) if pipeline_result is not None else pd.DataFrame(),
+      "forecast_matrix": pd.DataFrame(getattr(pipeline_result, 'forecast_matrix', []) or []) if pipeline_result is not None else pd.DataFrame(),
+    },
     evidence={
       "institution_id": inst_id,
       "basket_id": basket_id,

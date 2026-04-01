@@ -1329,7 +1329,17 @@ def render(mode: str = "executive"):
       f"There are {len(global_risks)} promoted risk signals requiring oversight.",
       f"Active coordinated projects: {len(active_projects)}.",
     ],
+    interpretations=[
+      "A higher strain score means less response time and a tighter intervention window.",
+      "Promoted risks are already validated by sector command and require executive coordination.",
+      "Rising active projects usually indicates broader systemic pressure across sectors.",
+    ],
     cost_delay=export_cost_snapshot,
+    tables={
+      "promoted_risks": pd.DataFrame(global_risks) if isinstance(global_risks, list) else pd.DataFrame(),
+      "active_projects": pd.DataFrame(active_projects) if isinstance(active_projects, list) else pd.DataFrame(),
+      "institutional_memory": pd.DataFrame(memories) if isinstance(memories, list) else pd.DataFrame(),
+    },
     evidence={"overall_assurance": overall_assurance},
     key_prefix=("dev_unified_report" if is_developer else "exec_unified_report"),
   )
