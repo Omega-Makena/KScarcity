@@ -1,1058 +1,1176 @@
-# System Architecture — Full Component Interaction Map
-## K-Scarcity / K-SHIELD / Institution Dashboards
+# System Architecture — K-Scarcity / K-SHIELD / Institution Dashboards
 
 ---
 
-## 1. High-Level Layer Map
+## 1. Full System Data Flow
 
-```
- RAW DATA          SCARCITY ENGINE            K-SHIELD LAYER              DASHBOARDS
- ─────────         ───────────────────────    ────────────────────────    ─────────────────────
- CSV Upload    ──> AutoPipeline               ScarcityBridge (backend)    Executive Dashboard
- Pulse / News  ──> Pulse Ingestion Pipeline   AnalyticsEngine             Admin Gov. Console
- World Bank    ──> KenyaCalibration           ExecutiveBridge             Spoke (Local) Dashboard
- Kenya Params  ──> KenyaCalibration           FederationBridge            K-SHIELD Module (all)
+```mermaid
+flowchart LR
+    subgraph RAW["Raw Data Sources"]
+        R1[Twitter / X]
+        R2[Facebook / Telegram]
+        R3[News Feeds]
+        R4[World Bank / KNBS]
+        R5[Institution CSVs]
+    end
+
+    subgraph PULSE["Pulse Engine"]
+        P1[Scrapers]
+        P2[NLP Pipeline]
+        P3[15 Signal Detectors]
+        P4[PulseState\nScarcityVector · ActorStress · BondStrength]
+        P5[8 Threat Indices\nPI · LEI · MRS · ECI · IWI · SFI · ECR · ETM]
+        P6[ShockGenerator\nGDP · Inflation · Trade · FX · Confidence]
+    end
+
+    subgraph SCARCITY["Scarcity Engine"]
+        S1[Online Discovery Engine\n15 Hypotheses]
+        S2[LearnedSFCEconomy]
+        S3[Meta-Learning Agent\nReptile Optimizer]
+        S4[DRG — Dynamic Resource Governor]
+        S5[RRCF Anomaly Detector]
+        S6[Bayes VARX Forecaster]
+    end
+
+    subgraph SIM["Simulation Layer"]
+        M1[SFCEconomy\nBase Macro]
+        M2[ResearchSFCEconomy\nHeterogeneous · Open · Financial · IO]
+        M3[SectorSimulator\n6 Sectors × 20+ Indicators]
+        M4[Shock Templates\n380+]
+        M5[5–10 Year Projections]
+    end
+
+    subgraph FED["Aegis Federation"]
+        F1[Institution Nodes]
+        F2[Gossip Consensus]
+        F3[Global Meta-Aggregation]
+    end
+
+    subgraph UI["Dashboards"]
+        U1[K-SHIELD]
+        U2[Institution Portal]
+        U3[SENTINEL]
+    end
+
+    R1 & R2 & R3 --> P1
+    P1 --> P2 --> P3 --> P4 --> P5 --> P6
+    P6 --> M3
+    P5 --> U3
+
+    R4 & R5 --> S1
+    S1 --> S2
+    S2 --> M1 & M2
+    S3 --> S2
+    S4 --> S2
+    S5 --> S6
+
+    M2 --> M3 --> M4 --> M5
+    M5 --> U1 & U2
+
+    F1 --> F2 --> F3 --> S3
+    R5 --> F1
 ```
 
 ---
 
-## 2. Scarcity Engine — Internal Component Interactions
+## 2. Pulse Engine — Signal Detection Pipeline
+
+```mermaid
+flowchart TD
+    A[Raw Social Text] --> B[NLP Tokenization\n& Entity Recognition]
+    B --> C{15 Signal Detectors}
+    C --> D1[Distress Signals\nFood · Water · Healthcare]
+    C --> D2[Anger Signals\nRage · Dehumanization]
+    C --> D3[Institutional Signals\nLegitimacy Rejection]
+    C --> D4[Identity Signals\nEthno-Regional Framing]
+    C --> D5[Info Warfare Signals\nRumors · Conspiracy]
+
+    D1 & D2 & D3 & D4 & D5 --> E[PulseState Update\nScarcityVector · ActorStress · BondStrength]
+
+    E --> F[8 Threat Indices]
+    F --> F1[PI — Polarization\nLanguage extremity · Bond fracture]
+    F --> F2[LEI — Legitimacy Erosion\nAuthority rejection trajectory]
+    F --> F3[MRS — Mobilization Readiness\nProtest / violence probability]
+    F --> F4[ECI — Elite Cohesion\nLeadership fracture signals]
+    F --> F5[IWI — Information Warfare\nMisinformation intensity]
+    F --> F6[SFI — Security Friction\nStability erosion]
+    F --> F7[ECR — Economic Cascade Risk\nShock propagation]
+    F --> F8[ETM — Ethnic Tension Matrix\n12 Kenya ethnic groups]
+
+    F1 & F2 & F3 & F4 & F5 & F6 & F7 & F8 --> G[SimulationShockGenerator]
+    G --> H1[GDP Shock]
+    G --> H2[Inflation Shock]
+    G --> H3[Trade Shock]
+    G --> H4[FX / Currency Shock]
+    G --> H5[Confidence Shock]
+
+    H1 & H2 & H3 & H4 & H5 --> I[SFC Simulation Engine]
+```
+
+---
+
+## 3. Scarcity Engine — Online Learning Architecture
+
+```mermaid
+flowchart TD
+    subgraph Preprocessing["Pre-Processing"]
+        A1[Raw Stream] --> A2[Online Winsorization\n5th–95th percentile clipping]
+        A2 --> A3[Online MAD\nMedian Absolute Deviation]
+        A3 --> A4[Huber Loss\nGradient Clipping]
+    end
+
+    subgraph Encoding["Sketching & Encoding"]
+        A4 --> B1[CountSketch + FFT\nPolynomial Approximation]
+        B1 --> B2[Tensor Sketch\nKronecker Product Compression]
+        B2 --> B3[Top-K Sparse Attention\nFP16 Transformer-style]
+        B3 --> B4[Lag Positional Encodings]
+    end
+
+    subgraph Hypotheses["15 Competing Hypotheses (Online)"]
+        B4 --> C1[Causal — Granger Augmented Ridge]
+        B4 --> C2[Correlational — Welford Pearson]
+        B4 --> C3[Temporal — Recursive Least Squares VAR-p]
+        B4 --> C4[Functional — Online Polynomial RLS]
+        B4 --> C5[Equilibrium — Kalman Mean Reversion]
+        B4 --> C6[Compositional — Sum Constraints MAE]
+        B4 --> C7[Competitive — CV Zero-Sum Detection]
+        B4 --> C8[Synergistic — Interaction Term Regression]
+        B4 --> C9[Probabilistic — Cohen's d Distribution Shift]
+        B4 --> C10[Structural — ICC Hierarchical]
+        B4 --> C11[Mediating — Baron-Kenny]
+        B4 --> C12[Moderating — Conditional Effects]
+        B4 --> C13[Graph — Network Density]
+        B4 --> C14[Similarity — Online K-Means]
+        B4 --> C15[Logical — Boolean Gate Rules]
+    end
+
+    subgraph Arbitration["Arbitration & Validation"]
+        C1 & C2 & C3 & C4 & C5 & C6 & C7 & C8 & C9 & C10 & C11 & C12 & C13 & C14 & C15 --> D1[HypothesisArbiter\nParsimony + Conflict Resolution]
+        D1 --> D2[Page-Hinkley\nConcept Drift Detection]
+        D2 --> D3[Bootstrap CI\nConfidence Intervals]
+        D3 --> D4[Spearman Concordance\nSign-Agreement Validation]
+    end
+
+    subgraph Output["Knowledge Output"]
+        D4 --> E1[Causal Knowledge Graph\nEdge strengths + confidence]
+        D4 --> E2[RRCF Anomaly Detector]
+        D4 --> E3[Bayes VARX Forecaster]
+        E1 --> E4[LearnedSFCEconomy]
+        E2 & E3 --> E5[DRG — Assurance Levels\nHIGH · MEDIUM · LOW · FALLBACK]
+    end
+```
+
+---
+
+## 4. SFC Economy — Simulation Architecture
+
+```mermaid
+flowchart TD
+    subgraph SFCConfig["SFCConfig (Input)"]
+        I1[shock_vectors\nGDP · Inflation · Trade · FX · Confidence]
+        I2[policy_vectors\nMonetary · Fiscal · Sectoral]
+        I3[parameters\nMPC · CRR · tax_rate · gov_spend_ratio]
+    end
+
+    subgraph Base["SFCEconomy — 5 Sectors"]
+        I1 & I2 & I3 --> B1[Households\nConsumption = MPC × income + wealth_effect]
+        B1 --> B2[Firms\nInvestment = acc × ΔGDP − credit_cost × Δr]
+        B2 --> B3[Banks\nLending = deposits × 1-CRR × multiplier]
+        B3 --> B4[Government\nTax = tax_rate × GDP\nSpend = gov_ratio × GDP]
+        B4 --> B5[Foreign\nNet Exports = CA adjustment]
+        B5 --> B6[GDP Frame\ngdp_growth · inflation · unemployment\nhousehold_welfare · sector_balances]
+    end
+
+    subgraph Research["ResearchSFCEconomy — Extensions"]
+        B6 --> R1[HeterogeneousHouseholds\nQ1-Q5 agents · Gini · Palma ratio]
+        B6 --> R2[OpenEconomyModule\nREER · reserves · trade balance]
+        B6 --> R3[FinancialAcceleratorModule\nCredit cycles · LTV · leverage]
+        B6 --> R4[IOStructureModule\nAgriculture · Manufacturing · Services · Finance]
+        B6 --> R5[BayesianBeliefUpdater\nShock probability distributions]
+        R1 & R2 & R3 & R4 & R5 --> R6[Unified Frame\noutcomes · inequality · sector_balances · flows]
+    end
+
+    subgraph Sectors["SectorSimulator — Post-Processing"]
+        R6 --> S1[Economics/Finance]
+        R6 --> S2[Healthcare]
+        R6 --> S3[Environment/Water]
+        R6 --> S4[Social Cohesion]
+        R6 --> S5[Education/Labor]
+        R6 --> S6[Security]
+        S1 & S2 & S3 & S4 & S5 & S6 --> S7[5–10 Year Projections\nper sector × 20+ indicators]
+    end
+```
+
+---
+
+## 5. Aegis Federation Protocol
+
+```mermaid
+sequenceDiagram
+    participant N1 as Institution Node A
+    participant N2 as Institution Node B
+    participant G as Gossip Layer
+    participant AGG as Global Aggregator
+    participant META as Meta-Learning Agent
+
+    N1->>N1: Local training on sector data
+    N2->>N2: Local training on sector data
+
+    N1->>N1: Apply Local DP (Laplace noise)
+    N2->>N2: Apply Local DP (Laplace noise)
+
+    N1->>N1: Q8 quantize update
+    N2->>N2: Q8 quantize update
+
+    N1->>G: Gossip broadcast (HKDF-SHA256 masked)
+    N2->>G: Gossip broadcast (HKDF-SHA256 masked)
+
+    G->>G: Exponential time-decay merge\nAge-weighted aggregation
+
+    G->>AGG: Basket-level consensus update
+
+    AGG->>AGG: Byzantine defense\nKrum → Multi-Krum → Bulyan
+    AGG->>AGG: Trimmed-Mean OR Element-wise Median
+    AGG->>AGG: Apply Central DP (Gaussian noise)
+    AGG->>AGG: Update trust scores\n(Agreement 60% / Compliance 30% / Impact 10%)
+
+    AGG->>META: Aggregated gradient
+    META->>META: Reptile optimizer step\nGlobal Prior update
+
+    META->>N1: Broadcast new global prior
+    META->>N2: Broadcast new global prior
+```
+
+---
+
+## 6. Institution Dashboard — Navigation Structure
+
+```mermaid
+flowchart TD
+    L[Landing Page\n5 Ws — Who · What · When · Where · Why] --> A
+
+    A[Institution Portal Login\nSector + Invite Code + Password] --> B{Role}
+
+    B --> C[Executive Dashboard]
+    B --> D[Admin Governance Console]
+    B --> E[Developer Dashboard]
+    B --> F[Local / Spoke Dashboard]
+
+    C --> C1[National Briefing\nThreat Intelligence · Social Signals]
+    C --> C2[Sector Reports\n7 Sectors — status grid always visible]
+    C --> C3[Command & Control\nActive Operations]
+    C --> C4[Policy Simulator\nScenario design + projections]
+    C --> C5[Collaboration Room\nCross-institution messaging]
+    C --> C6[Archive\nHistorical reports]
+    C --> C7[Analytics Pillars\nSO WHAT · COMPARED TO WHAT · WHERE EXACTLY\nWHAT SHOULD I DO · DID IT WORK]
+
+    D --> D1[Pending Approvals\nInstitution registration review]
+    D --> D2[Audit Logs\nFull approval audit trail]
+    D --> D3[Topology Injection\nLevel 1/2 agency hierarchy]
+    D --> D4[FL Dashboard\nFederated learning round management]
+    D --> D5[Admin Data Schemas\nStructured project tracking]
+
+    E --> E1[Model Quality\nDRG assurance levels]
+    E --> E2[Causal Adapter\nDiscovery engine inspection]
+    E --> E3[Technical Metrics\nLatency · throughput · hypothesis counts]
+
+    F --> F1[County Analytics\nLocalized indicators]
+    F --> F2[Cost of Delay\nKES billions — Do Nothing · Act Early · Price of Late]
+    F --> F3[Data Upload\nCSV → FL training trigger]
+    F --> F4[Report Export\nPDF · ZIP · CSV]
+```
+
+---
+
+## 7. K-SHIELD — Module Architecture
+
+```mermaid
+flowchart LR
+    HUB[KShieldHub\nSingleton Orchestrator]
+
+    HUB --> K1[Causal Relationships]
+    HUB --> K2[Policy Terrain]
+    HUB --> K3[Simulations]
+    HUB --> K4[Policy Impact]
+
+    K1 --> K1a[OnlineDiscoveryEngine\nForce-directed graph]
+    K1 --> K1b[Granger causality results\nConfidence rankings]
+    K1 --> K1c[Top-K relationship list\nEdge weight visualization]
+
+    K2 --> K2a[3D Stability Landscape\nInflation × Unemployment → Instability]
+    K2 --> K2b[Phase space mapping\nCurrent economy position]
+    K2 --> K2c[Stability heatmap\nPolicy corridor visualization]
+
+    K3 --> K3a[SFC + ResearchSFC\n5–10 year forward projection]
+    K3 --> K3b[Shock Scenario Designer\n380+ templates]
+    K3 --> K3c[Policy Constraint Editor\nMonetary · Fiscal · Sectoral]
+    K3 --> K3d[4D State Cube\nGDP · Inflation · Unemployment · Welfare]
+    K3 --> K3e[Scenario Library\nSave · Load · Reproduce]
+
+    K4 --> K4a[Public Sentiment\nPolicy satisfaction by domain]
+    K4 --> K4b[ScarcityVector\nFinance · Healthcare · Security · Agriculture]
+    K4 --> K4c[ActorStress\nCivil society · Business · Security]
+    K4 --> K4d[Social Cohesion\nTrust bonds · Institutional · Intra-group]
+```
+
+---
+
+## 8. Report Export Pipeline
+
+```mermaid
+flowchart TD
+    A[Any Institution Dashboard\nExecutive · Admin · Developer · Spoke] --> B[UnifiedReportExport]
+
+    B --> C1[ReportNarrator\nPlain-language narrative generation]
+    B --> C2[MetricsExtractor\nHeadline indicator values]
+    B --> C3[StructuredAppendix\nTechnical JSON payload]
+
+    C1 --> D[report_summary.txt\nNon-technical audience]
+    C2 --> E[metrics.csv\nHeadline values]
+    C3 --> F[report_payload.json\nStructured technical appendix]
+    B --> G[Optional table CSVs]
+
+    D & E & F & G --> H[ZIP Archive]
+    H --> I[PDF Export\nPrimary format with instant-analysis interpretation]
+
+    style I fill:#1a6b3c,color:#fff
+```
+
+---
+
+## 9. Cost of Delay Engine
+
+```mermaid
+flowchart LR
+    A[Threat Index\nSeverity Score 0–1] --> B[Response Window\nDays remaining]
+
+    B --> C{Delay Model}
+    C --> C1[Linear Component\nBaseRate × Severity × Days]
+    C --> C2[Staged Component\nStep-change at thresholds]
+    C --> C3[Exponential Component\ne^rate × Days — compounding]
+
+    C1 & C2 & C3 --> D[Blended Loss Function]
+
+    D --> E1[Do Nothing Loss\nKES billions — full inaction trajectory]
+    D --> E2[Act Early Loss\nKES billions — cost at t=0 intervention]
+    D --> E3[Price of Being Late\nE1 − E2 — marginal delay cost]
+
+    E1 & E2 & E3 --> F[Executive Display\nWhole-number KES billions]
+
+    style E3 fill:#b5290e,color:#fff
+```
+
+---
+
+## 10. DRG Assurance Levels
+
+```mermaid
+flowchart TD
+    A[Projection Request] --> B{Discovery Confidence}
+
+    B -->|≥ 0.85 + recent data| C[HIGH\nReliable for policy decisions]
+    B -->|0.65–0.85| D[MEDIUM\nDirectionally correct\nQuantitative uncertainty]
+    B -->|< 0.65 or stale| E[LOW\nIndicative only\nManual review recommended]
+    B -->|Discovery failed| F[FALLBACK\nHardcoded SFC baselines]
+
+    C --> G[LearnedSFCEconomy\nFull discovered relationships]
+    D --> H[Blended: Learned + Hardcoded\nWeighted by confidence]
+    E --> I[LearnedSFCEconomy\nwith wide confidence bands]
+    F --> J[BaselineSFCEconomy\nStatic Kenya 2022 calibration]
+
+    style C fill:#1a6b3c,color:#fff
+    style D fill:#b8860b,color:#fff
+    style E fill:#b5290e,color:#fff
+    style F fill:#555,color:#fff
+```
+
+---
+
+## 11. Component Interaction Map (Low-Level)
 
 ```
-scarcity/simulation/
-┌─────────────────────────────────────────────────────────────────────────────┐
-│                                                                             │
-│  SFCConfig (dataclass)                                                      │
-│   shock_vectors: Dict[str, np.ndarray]   ← injected by scenario templates  │
-│   policy_vectors: Dict[str, np.ndarray]  ← injected by AutoPipeline        │
-│   steps, dt, mpc, crr, tax_rate, gov_spend_ratio, ...                      │
-│                    │                                                        │
-│                    ▼                                                        │
-│  SFCEconomy                                                                 │
-│   Sectors: Households, Firms, Banks, Government, Foreign                    │
-│   .initialize(gdp) → seeds balance sheets for all 5 sectors                │
-│   .step() → one quarter of macro dynamics:                                  │
-│      Consumption = MPC × disposable_income + wealth_effect                 │
-│      Investment  = acc_coeff × ΔGDP − credit_cost × (r − r_neutral)       │
-│      Tax Revenue = tax_rate × GDP                                           │
-│      Government Spending = gov_spend_ratio × GDP                           │
-│      Net Exports = current_account_adjustment                               │
-│      Bank Lending = deposit_base × (1 − crr) × multiplier                 │
-│      → publishes: {gdp_growth, inflation, unemployment,                    │
-│                    household_welfare, sector_balances, flows}               │
-│   .run(steps) → List[frame]   ← used in K-SHIELD sim tabs                 │
-│   .apply_shock(type, magnitude) ← used in stress tests                     │
-│                    │                                                        │
-│                    ▼  (SFCEconomy is EMBEDDED inside ResearchSFCEconomy)   │
-│  ResearchSFCEconomy                                                         │
-│   Owns: SFCEconomy (core macro)                                             │
-│       + HeterogeneousHouseholdEconomy (Q1-Q5 agents)                       │
-│       + OpenEconomyModule (exports, imports, REER, reserves)               │
-│       + FinancialAcceleratorModule (credit cycles, LTV, leverage)           │
-│       + IOStructureModule (agriculture, manufacturing, services, finance)   │
-│       + BayesianBeliefUpdater (shock probability distributions)             │
-│                                                                             │
-│   .initialize(gdp) → calls SFCEconomy.initialize + all sub-modules        │
-│   .step() → call sequence each quarter:                                     │
-│      1. SFCEconomy.step()         → base macro outcomes                    │
-│      2. _step_open_economy()      → trade balance, REER, reserves          │
-│      3. _step_financial()         → credit spreads, leverage ratio          │
-│      4. _step_io()                → inter-sector demand flows               │
-│      5. _step_heterogeneous()     → Q1-Q5 income shares, MPC effects       │
-│      6. _record_unified_frame()   → assembles full frame:                  │
-│            outcomes: {gdp_growth, inflation, unemployment,                  │
-│                       household_welfare, reserves_months}                   │
-│            inequality: {gini, palma,                                        │
-│                         quintile_incomes: {q1..q5}}                        │
-│            sector_balances: {households, firms, banks, govt, foreign}      │
-│            flows: {consumption, investment, gov_spend, net_exports}         │
-│   .run(steps)  → List[frame]                                               │
-│   .stress_test(shocks) → shocked scenario outcomes                         │
-│   .twin_deficit_analysis() → fiscal + current account positions            │
-│   .external_vulnerability_index() → 0-1 reserve adequacy score            │
-│   .financial_stability_index() → 0-1 leverage + credit health score       │
-│                                                                             │
-│  HeterogeneousHouseholdEconomy                                              │
-│   Agents: Q1 (bottom 20%) … Q5 (top 20%)                                  │
-│   Kenya calibration:                                                        │
-│      income_shares = [0.04, 0.08, 0.12, 0.20, 0.56]                       │
-│      MPC           = [0.95, 0.90, 0.85, 0.75, 0.60]                       │
-│      formal_labor  = [0.10, 0.25, 0.45, 0.70, 0.90]                       │
-│   .step() → each agent: income = share × aggregate_income                  │
-│                          consumption = MPC × income + wealth_effect        │
-│                          savings update                                     │
-│   InequalityMetrics (static helpers)                                        │
-│      .gini_from_quintiles(shares) → Lorenz trapezoidal approximation       │
-│      .palma_ratio(shares)         → Q5/2 ÷ (Q1+Q2)                        │
-│      .theil_index(shares)         → GE(1)                                  │
-│   .distributional_impact(policy_var, change)                                │
-│         → per-quintile: {income_change, consumption_change,                 │
-│                          employment_effect, welfare_score}                  │
-└─────────────────────────────────────────────────────────────────────────────┘
-
-scarcity/simulation/whatif.py
-┌─────────────────────────────────────────────────────────────────────────────┐
-│  WhatIfManager                                                              │
-│   Uses SFCEconomy (base engine only) for speed                             │
-│   .run_bootstrap(base_cfg, n=8, jitter_pct=8%)                             │
-│         → jitters all numeric SFCConfig fields by ±8%                      │
-│         → returns (mean−std, mean+std) CI tuple per dimension              │
-└─────────────────────────────────────────────────────────────────────────────┘
-
 scarcity/engine/
-┌─────────────────────────────────────────────────────────────────────────────┐
-│  EventBus (runtime/bus.py)  — async pub/sub backbone                       │
-│   Topics:                                                                   │
-│      "data_window"              ← new data row arrives                     │
-│      "scarcity.anomaly_detected" → OnlineAnomalyDetector result            │
-│      "scarcity.forecasted_trends" → PredictiveForecaster result            │
-│      "scarcity.drg_extension_profile" → DRG risk profile                  │
-│                                                                             │
-│  OnlineAnomalyDetector                                                      │
-│   Algorithm: RRCF (Robust Random Cut Forest) — streaming, no training      │
-│   Subscribes to: "data_window"                                              │
-│   Publishes to:  "scarcity.anomaly_detected"                                │
-│   Output per row: {anomaly_score: float, is_anomaly: bool, context: dict}  │
-│                                                                             │
-│  PredictiveForecaster                                                       │
-│   Algorithm: GARCH-VARX — multi-variate with exogenous variables           │
-│   Subscribes to: "data_window", "scarcity.anomaly_detected"                │
-│   Publishes to:  "scarcity.forecasted_trends"                               │
-│   Output: {forecasts: List[float], variances: List[float], horizon: int}   │
-│                                                                             │
-│  OnlineDiscoveryEngine (engine_v2.py)                                       │
-│   Maintains: HypothesisPool, AdaptiveGrouper, HypothesisArbiter,           │
-│              MetaController                                                  │
-│   Hypothesis types: Functional, Correlational, TemporalLag, Equilibrium    │
-│   .initialize(schema) → seeds all variable-pair hypotheses                 │
-│   .process_row(row)   → updates all active hypotheses, arbitrates,         │
-│                          promotes/prunes via MetaController                 │
-│   .get_knowledge_graph() → top-K confirmed relationships as JSON            │
-└─────────────────────────────────────────────────────────────────────────────┘
+┌──────────────────────────────────────────────────────────────────────┐
+│  EventBus (runtime/bus.py)  — async pub/sub backbone                 │
+│   "data_window"                ← new data row arrives                │
+│   "scarcity.anomaly_detected"  → RRCF result                         │
+│   "scarcity.forecasted_trends" → Bayes VARX result                   │
+│   "scarcity.drg_extension_profile" → DRG risk profile                │
+│                                                                      │
+│  OnlineAnomalyDetector  (RRCF — streaming, no training phase)        │
+│   Output: {anomaly_score: float, is_anomaly: bool, context: dict}    │
+│                                                                      │
+│  PredictiveForecaster  (GARCH-VARX — multi-variate + exogenous)      │
+│   Output: {forecasts: List[float], variances, horizon}               │
+│                                                                      │
+│  OnlineDiscoveryEngine (engine_v2.py)                                 │
+│   HypothesisPool → AdaptiveGrouper → HypothesisArbiter → MetaCtrl   │
+│   .process_row(row) → update all hypotheses → arbitrate → promote    │
+│   .get_knowledge_graph() → top-K confirmed relationships (JSON)      │
+└──────────────────────────────────────────────────────────────────────┘
 
-scarcity/causal/
-┌─────────────────────────────────────────────────────────────────────────────┐
-│  run_causal(specs, runtime)                                                 │
-│   FeatureBuilder     → feature engineering + time series validation        │
-│   Identifier         → do-calculus identification (backdoor, frontdoor)    │
-│   EstimatorFactory   → DoWhy / statsmodels OLS / IV / DML estimators       │
-│   Validator          → refutation tests (placebo, subset bootstrap)        │
-│   ArtifactWriter     → saves DAG + effect estimates to artifacts/runs/     │
-│   Output: CausalRunResult {effect_size, ci_lower, ci_upper, p_value,       │
-│                             dag: dot string}                                │
-└─────────────────────────────────────────────────────────────────────────────┘
+scarcity/simulation/
+┌──────────────────────────────────────────────────────────────────────┐
+│  SFCEconomy                                                          │
+│   .step() → Consumption · Investment · Tax · Gov Spend · Net Exports │
+│   .run(steps) → List[frame]                                          │
+│   .apply_shock(type, magnitude)                                       │
+│                                                                      │
+│  ResearchSFCEconomy (wraps SFCEconomy)                               │
+│   + HeterogeneousHouseholdEconomy (Q1–Q5 income quintiles)           │
+│   + OpenEconomyModule (REER, reserves, trade balance)                │
+│   + FinancialAcceleratorModule (credit cycles, LTV, leverage)        │
+│   + IOStructureModule (agriculture, manufacturing, services, finance)│
+│   + BayesianBeliefUpdater (shock probability distributions)          │
+│   .stress_test(shocks) → shocked scenario outcomes                   │
+│   .twin_deficit_analysis() → fiscal + current account positions      │
+│   .external_vulnerability_index() → 0–1 reserve adequacy            │
+│   .financial_stability_index() → 0–1 leverage + credit health       │
+│                                                                      │
+│  WhatIfManager                                                        │
+│   .run_bootstrap(base_cfg, n=8, jitter_pct=8%)                       │
+│   → (mean−std, mean+std) confidence interval tuple per dimension     │
+└──────────────────────────────────────────────────────────────────────┘
 
-scarcity/federation/
-┌─────────────────────────────────────────────────────────────────────────────┐
-│  FederatedAggregator                                                        │
-│   Methods: FedAvg, TrimmedMean, Krum, Bulyan (Byzantine-robust)            │
-│   .aggregate(spoke_weight_vectors) → global_weights + metadata             │
-│   .detect_outliers(vectors, reference) → poisoning detection               │
-│                                                                             │
-│  PrivacyGuard                                                               │
-│   .add_dp_noise(weights, epsilon) → Gaussian DP noise on gradients         │
-│   Called by FederationBridge before aggregation in Mode B                  │
-└─────────────────────────────────────────────────────────────────────────────┘
+kshiked/core/
+┌──────────────────────────────────────────────────────────────────────┐
+│  ScarcityBridge                                                       │
+│   .train(data_path) → 306+ causal hypotheses from World Bank data    │
+│   .create_learned_economy() → SFC with discovered relationships       │
+│   .get_top_relationships(k) → ranked causal chains                   │
+│   .get_confidence_map() → per-variable confidence scores (0–1)       │
+│   .validate() → historical accuracy score + replay validation        │
+│                                                                      │
+│  EconomicGovernor                                                     │
+│   Enforces resource stability constraints                            │
+│   Transmits monetary/fiscal policy to SFC engine                     │
+│                                                                      │
+│  Shocks (Phase 4–5 Stochastic)                                        │
+│   ImpulseShock      → exponential decay impulse                      │
+│   OUProcessShock    → Ornstein-Uhlenbeck mean reversion              │
+│   BrownianShock     → Geometric Brownian Motion                      │
+│   MarkovSwitchingShock → Hamilton regime-switching                   │
+│   JumpDiffusionShock → Poisson jump process                          │
+│   StudentTShock     → fat-tailed shocks                              │
+└──────────────────────────────────────────────────────────────────────┘
+
+kshiked/federation/  (Aegis Protocol)
+┌──────────────────────────────────────────────────────────────────────┐
+│  AegisNode (extends FederationClientAgent)                           │
+│   Security lattice: UNCLASSIFIED / RESTRICTED / SECRET / TOP_SECRET  │
+│   Trust scoring per incoming packet                                   │
+│   Graph merging from external nodes                                   │
+│   CryptoSigner (Ed25519 signatures)                                   │
+│                                                                      │
+│  Cryptographic Secure Aggregation                                     │
+│   Ed25519 long-term identity + X25519 ephemeral keys                 │
+│   HKDF-SHA256 pairwise masking → summation cancellation              │
+│   Q8 quantization before broadcast                                    │
+│                                                                      │
+│  Byzantine Defense Stack                                              │
+│   1. Krum — reject outlier models by pairwise Euclidean distance      │
+│   2. Multi-Krum — select k safest models                              │
+│   3. Bulyan — Krum survivors → Trimmed-Mean (most hardened)          │
+│   4. Coordinate-wise Trimmed Mean (top 10% + bottom 10% discarded)   │
+└──────────────────────────────────────────────────────────────────────┘
 ```
 
 ---
 
-## 3. K-SHIELD Layer — Bridge and Adapter Interactions
+## 12. Security Architecture
 
-```
-kshiked/ui/institution/backend/
-┌─────────────────────────────────────────────────────────────────────────────┐
-│                                                                             │
-│  AutoPipeline.run(df)  ← triggered when spoke uploads CSV                  │
-│   Step 1  Normalize  → numeric_df, fill NaN with column median             │
-│   Step 2  Anomaly    → ScarcityBridge (legacy) → EventBus.publish          │
-│                          "data_window" → OnlineAnomalyDetector             │
-│                          → "scarcity.anomaly_detected" → result captured   │
-│                          → anomaly_scores[], peak_score, peak_index        │
-│   Step 3  Discovery  → kshiked.core.ScarcityBridge                        │
-│                          → OnlineDiscoveryEngine.process_row() per row     │
-│                          → get_knowledge_graph() → relationships[]         │
-│   Step 4  Granger    → statsmodels.grangercausalitytests() on column pairs │
-│                          → p-values → confirmed temporal lead-lag pairs     │
-│   Step 5  Causal DAG → run_causal(specs) → effect_size, DAG dot string    │
-│   Step 6  SFC Sim    → SFCEconomy(SFCConfig).run(steps)                   │
-│                          → trajectory[gdp_growth, inflation, welfare]      │
-│   Step 7  Forecast   → PredictiveForecaster GARCH-VARX                    │
-│                          → forecast_matrix, variance_matrix                 │
-│   Step 8  Risk Prop  → 2-hop cascade from knowledge graph                  │
-│   Step 9  Threat Idx → ThreatIndexReport.compute_all() from Pulse indices  │
-│   Step 10 Narrative  → _build_narrative() → plain-text report              │
-│   Returns: PipelineResult {anomaly_scores, relationships, sfc_trajectory,  │
-│                             forecast_matrix, threat_level, narrative}       │
-│                                                                             │
-│  ScarcityBridge (backend/scarcity_bridge.py)                               │
-│   Owns: EventBus, HypergraphStore, OnlineAnomalyDetector,                  │
-│          PredictiveForecaster                                               │
-│   .process_dataframe(df) → async pipeline:                                 │
-│      bus.subscribe("scarcity.anomaly_detected",  anomaly_handler)          │
-│      bus.subscribe("scarcity.forecasted_trends", forecast_handler)         │
-│      bus.subscribe("scarcity.drg_extension_profile", drg_handler)          │
-│      bus.publish("data_window", {schema, data, timestamp})                 │
-│      → triggers OnlineAnomalyDetector._handle_data_window()               │
-│      → triggers PredictiveForecaster._handle_data_window()                 │
-│      Returns: {anomalies, forecasts, drg_profiles}                         │
-│                                                                             │
-│  AnalyticsEngine (backend/analytics_engine.py)                             │
-│   generate_inaction_projection(severity, shock_vector, projection_steps)   │
-│      → converts severity (0-10) → supply_shock magnitude (max 8%)         │
-│      → builds ResearchSFCConfig, injects shock_vector at step 1           │
-│      → ResearchSFCEconomy.run(steps) → summary()                          │
-│      → extracts: gdp_growth, unemployment, gini, reserves_months           │
-│      → narrates in plain English for executive briefing                    │
-│                                                                             │
-│  ExecutiveBridge (backend/executive_bridge.py)                             │
-│   _compute_garch_varx_forecast (from scarcity.engine.forecasting)          │
-│   get_historical_context(risk_ids)                                          │
-│      → DeltaSyncManager + ProjectManager → DB queries                      │
-│      → compiles risk event timeline                                         │
-│   build_county_convergence(signals) → geo heat-map data                    │
-│   generate_recommendation(risk, history) → CoordinationRecommendation      │
-│   compute_outcome_impact(project_id) → before/after severity comparison    │
-│                                                                             │
-│  FederationBridge (backend/federation_bridge.py)                           │
-│   .aggregate_spoke_models(payloads, method)                                │
-│      → FederatedAggregator(AggregationConfig)                              │
-│      → method choices: FedAvg / TrimmedMean / Krum / Bulyan               │
-│      → returns (global_weights: np.ndarray, metadata: dict)               │
-│   .apply_differential_privacy(weights, epsilon)                            │
-│      → PrivacyGuard(PrivacyConfig).add_dp_noise(weights, epsilon)         │
-│   Full Mode B flow:                                                         │
-│      spoke uploads local model gradients (not raw data)                    │
-│      → apply DP noise per spoke                                             │
-│      → aggregate via chosen method                                          │
-│      → global weights distributed back (not visible in dashboard UI)       │
-│                                                                             │
-│  ReportNarrator (backend/report_narrator.py)                               │
-│   narrate_risk_for_executive(anomaly_result, forecast_result, context)     │
-│      → templates + LLM call → plain English risk narrative                 │
-│      → used in Executive "National Briefing" and "Sector Reports"          │
-│                                                                             │
-│  LearningEngine (backend/learning_engine.py)                               │
-│   .online_update(new_data_row) → incremental model update                 │
-│   .get_model_weights() → current local gradient vector                     │
-│      (this is what is extracted and federated in Mode B)                   │
-└─────────────────────────────────────────────────────────────────────────────┘
+```mermaid
+flowchart TD
+    subgraph Clearance["Security Lattice"]
+        L4[TOP_SECRET]
+        L3[SECRET]
+        L2[RESTRICTED]
+        L1[UNCLASSIFIED]
+        L4 --> L3 --> L2 --> L1
+    end
 
-kshiked/pulse/
-┌─────────────────────────────────────────────────────────────────────────────┐
-│                                                                             │
-│  Scrapers (async, platform-specific)                                        │
-│   XScraper, TelegramScraper, RedditScraper, FacebookScraper                │
-│   JijiScraper, JumiaScraper (e-commerce price monitoring)                  │
-│   → yield ScraperResult {platform, text, timestamp, geo}                  │
-│            │                                                                │
-│            ▼                                                                │
-│  IngestionOrchestrator (ingestion/orchestrator.py)                          │
-│   Schedules scraper runs, de-duplicates, stores raw posts in DB            │
-│            │                                                                │
-│            ▼                                                                │
-│  PipelineIntegration.process_posts(posts)                                  │
-│   For each post:                                                            │
-│      LLMProvider (Gemini / Ollama) .analyze(text)                          │
-│         → ThreatClassification {tier, confidence, topic, entities}        │
-│      → DBSocialPost.save()  + LLMAnalysis.save()                          │
-│      → extract KShield signals from classification                          │
-│            │                                                                │
-│            ▼                                                                │
-│  PulseSensor / AsyncPulseSensor                                             │
-│   .observe(posts) → PulseState                                              │
-│      threat_score: float                                                    │
-│      sentiment_index: float                                                 │
-│      topic_distribution: Dict[str, float]                                  │
-│      geo_hotspots: List[{county, intensity}]                               │
-│            │                                                                │
-│            ▼                                                                │
-│  ThreatIndexReport.compute_all()                                            │
-│      volatility_index, food_security_index, political_tension_index        │
-│      economic_stress_index, overall_threat_level                           │
-│            │                                                                │
-│            ▼                                                                │
-│  PulseConnector (ui/connector/pulse.py)                                    │
-│   .get_threat_signals() → structured signal tiles for dashboard            │
-│   .get_geo_data()       → county-level heat-map payloads                   │
-└─────────────────────────────────────────────────────────────────────────────┘
+    subgraph Auth["Authentication Layers"]
+        A1[Institution: PBKDF2-SHA256\n200,000 iterations]
+        A2[Module Access: SHA256 gate codes]
+        A3[Federation: Ed25519 signatures]
+        A4[Pairwise: HKDF-SHA256 masking]
+    end
 
-kshiked/simulation/
-┌─────────────────────────────────────────────────────────────────────────────┐
-│  KenyaCalibration                                                           │
-│   calibrate_from_data(df) → SFCConfig with Kenya-realistic parameters      │
-│   Defaults: mpc=0.82, tax_rate=0.17, gov_spend_ratio=0.21, crr=0.0525     │
-│                                                                             │
-│  ScenarioTemplates                                                          │
-│   get_shock_vectors("expansionary_fiscal")  → policy_vector arrays         │
-│   get_shock_vectors("supply_shock_severe")  → shock_vector arrays          │
-│   Available: no_intervention, expansionary_fiscal, monetary_tightening,    │
-│              supply_shock_mild/severe, debt_restructuring                   │
-└─────────────────────────────────────────────────────────────────────────────┘
+    subgraph Privacy["Privacy Guarantees"]
+        P1[Local DP: Laplace noise on weights]
+        P2[Central DP: Gaussian noise on aggregate\nσ = sensitivity × √2ln(1.25/δ) / ε]
+        P3[Q8 quantization: economic precision preserved]
+        P4[L2 materiality check: suppress trivial updates]
+    end
+
+    subgraph Trust["Trust Scoring"]
+        T1[Agreement score: 60% weight]
+        T2[Compliance score: 30% weight]
+        T3[Impact score: 10% weight]
+        T1 & T2 & T3 --> T4{Trust < 0.2?}
+        T4 -->|Yes| T5[Sandboxed: packets accepted\nbut silently discarded]
+        T4 -->|No| T6[Normal aggregation]
+    end
 ```
 
 ---
 
-## 4. Executive Dashboard — Full Data Flow
+## 13. Kenya Economic Baselines (KNBS / World Bank 2022)
 
-```
-executive_dashboard.py  (Role: EXECUTIVE enforced by enforce_role())
-│
-├── Shared Sidebar (shared_sidebar.py)
-│      render_shared_sidebar(nav_items, state_key="executive_nav")
-│      → returns {active_key, changed, disconnect_clicked}
-│
-├── NATIONAL BRIEFING  ─────────────────────────────────────────────
-│   Data sources:
-│     DeltaSyncManager.get_recent_signals()     → anomaly signals
-│     ProjectManager.get_active_projects()      → project count
-│     SectorReportGenerator.aggregate()         → composite_scores
-│   Computed:
-│     strain_score = weighted(avg_impact, ops_pressure, sentiment_risk)
-│     stability_score = 10 − (0.5×impact + 0.3×ops_pressure + 0.2×sentiment)
-│     econ_status: "Stable" / "Watch" / "Stressed"
-│   Renders:
-│     KPI cards (strain, stability, econ status)
-│     ReportNarrator.narrate_risk_for_executive() → narrative text
-│     AnalyticsEngine.generate_inaction_projection() → SFC-backed forecast
-│
-├── SECTOR REPORTS  ─────────────────────────────────────────────────
-│   SectorReportGenerator → per-basket summary
-│     → composite scores (severity, trend, confidence)
-│     → historical timeline
-│     → county convergence from ExecutiveBridge.build_county_convergence()
-│   render_sector_report() component
-│
-├── NATIONAL MAP  ───────────────────────────────────────────────────
-│   PulseConnector.get_geo_data() → county heat-map
-│   ExecutiveBridge.build_county_convergence() → risk density per county
-│   Plotly choropleth over Kenya county boundaries
-│
-├── THREAT INTELLIGENCE  ────────────────────────────────────────────
-│   DeltaSyncManager.get_recent_signals() → sorted by severity
-│   ThreatIndexReport indices (food, political, economic, overall)
-│   ExecutiveBridge.generate_recommendation() → coordination cards
-│
-├── SOCIAL SIGNALS  ─────────────────────────────────────────────────
-│   PulseConnector.get_threat_signals() → live X/news tiles
-│   PulseState: sentiment_index, topic_distribution, geo_hotspots
-│
-├── POLICY SIMULATOR  ───────────────────────────────────────────────
-│   executive_simulator.py → render_executive_simulator()
-│   │
-│   ├── Mode A: Strategic Crisis Analysis
-│   │     Inputs: scenario (expansionary / austerity / baseline)
-│   │             shock intensity, policy mix, projection steps
-│   │     Simulations (3 parallel):
-│   │       no_intervention, selected_scenario, alternative_scenario
-│   │       Each: ResearchSFCEconomy(ResearchSFCConfig)
-│   │             .initialize() → .run(steps) → trajectory[]
-│   │       Bootstrap (per scenario):
-│   │         _run_bootstrap_bundle(cfg.sfc, shock_vecs, steps, n=12)
-│   │           → 12× SFCEconomy with ±8% parameter jitter
-│   │           → _extract_bands(bundles, dim) → p25, p75 per timepoint
-│   │     Charts:
-│   │       2×2 subplot: GDP Growth / Inflation / Unemployment / Welfare
-│   │         1st pass: shaded p25-p75 band per scenario (behind lines)
-│   │         2nd pass: deterministic trajectory lines on top
-│   │         Legend note: "Shaded bands = 25th-75th percentile, 12 runs"
-│   │     Comparison Table:
-│   │       Final-period outcomes per scenario vs baseline delta
-│   │     Distributional Panel (_render_distributional_panel):
-│   │       Source data: trajectory[t]["inequality"]["quintile_incomes"]
-│   │       Panel 1: Q1 vs Q5 income trajectories (all 3 scenarios)
-│   │       Panel 2: Pro-poor growth bar chart
-│   │                Q1 growth % vs Q5 growth % per scenario
-│   │                green = pro-poor (Q1 > Q5), red = regressive
-│   │       Panel 3: Gini trajectory (all 3 scenarios)
-│   │                Kenya benchmark line at 0.408
-│   │       Panel 4: Verdict cards (3 columns)
-│   │                PRO-POOR / REGRESSIVE / NEUTRAL verdict
-│   │                Q1 growth %, Q5 growth %, Gini direction (up/down/flat)
-│   │     Stress Test:
-│   │       ResearchSFCEconomy.stress_test(shock_scenarios)
-│   │       → post-shock: trade_balance, reserve_adequacy, gdp_impact
-│   │
-│   └── Mode B: Econometric Research Workbench
-│         ResearchSFCEconomy full research tabs
-│         (inequality, IO structure, financial accelerator, open economy)
-│
-├── ACTIVE OPERATIONS  ──────────────────────────────────────────────
-│   ProjectManager.get_projects(status="active")
-│   SecureMessaging.get_unread_count()
-│   render_collab_room() → real-time coordination
-│
-├── ARCHIVE  ────────────────────────────────────────────────────────
-│   DeltaSyncManager.get_historical_signals(date_range)
-│   ExecutiveBridge.get_historical_context(risk_ids)
-│
-└── COMMAND & CONTROL / SECTOR SUMMARIES / COLLABORATION ROOM
-      ProjectManager, SecureMessaging, render_collab_room()
-```
+| Sector | Indicator | Baseline |
+|--------|-----------|---------|
+| **Economics** | GDP Growth | 5.3% |
+| **Economics** | Inflation | 7.6% |
+| **Economics** | Unemployment | 5.5% |
+| **Healthcare** | Capacity Utilization | 72% |
+| **Healthcare** | Vaccination Coverage | 68% |
+| **Healthcare** | Mortality Risk | 22% |
+| **Environment** | Water Access | 62% |
+| **Environment** | Drought Severity | 22% |
+| **Environment** | Food Security | 68% |
+| **Social** | Poverty Headcount | 36.5% |
+| **Social** | Inequality (Gini-equivalent) | 38.6% |
+| **Social** | Cohesion Index | 54% |
+| **Education** | School Attendance | 83% |
+| **Education** | Labor Productivity | 1.0 (index) |
+| **Security** | Stability Index | 61% |
+| **Security** | Conflict Risk | 28% |
+| **Security** | Institutional Trust | 42% |
+
+**Heterogeneous Household Calibration (Q1–Q5):**
+
+| Quintile | Income Share | MPC | Formal Employment |
+|----------|-------------|-----|------------------|
+| Q1 (bottom 20%) | 4% | 0.95 | 10% |
+| Q2 | 8% | 0.90 | 25% |
+| Q3 | 12% | 0.85 | 45% |
+| Q4 | 20% | 0.75 | 70% |
+| Q5 (top 20%) | 56% | 0.60 | 90% |
 
 ---
 
-## 5. Admin (Sector Governance Console) — Full Data Flow
+## 14. Pulse Architecture Deep Dive — How It Calculates Everything
 
+This section describes the Pulse system as an operational analytics pipeline: what it ingests, how it transforms raw signals, how each score is calculated, how uncertainty is handled, and how the final outputs are consumed by K-SHIELD and executive dashboards.
+
+### 14.1 Design Goals
+
+1. Convert noisy social and open-source signals into stable, decision-grade risk metrics.
+2. Separate short-lived noise from persistent structural tension.
+3. Produce interpretable indices that map to policy decisions and simulation shocks.
+4. Keep the system robust to source outages, spam bursts, and coordinated manipulation.
+
+### 14.2 End-to-End Pulse Computation Graph
+
+```mermaid
+flowchart TD
+    A[Platform Scrapers\nX · Telegram · Reddit · Facebook · News] --> B[Ingestion Orchestrator\nDeduplicate · Timestamp normalization · Geo hints]
+    B --> C[Content Canonicalizer\nLanguage normalize · Entity extraction · Topic tagging]
+    C --> D[LLM + Rule Hybrid Classifier\nThreat tier · Intent · Confidence]
+    D --> E[Signal Scoring Layer\n15 detector families]
+    E --> F[PulseState Builder\nScarcityVector · ActorStress · BondStrength]
+    F --> G[Index Engine\n8 composite indices]
+    G --> H[ThreatIndexReport\nOverall level + rationale]
+    H --> I[Shock Mapping\nGDP · Inflation · Trade · FX · Confidence]
+    I --> J[SFC / Research SFC Simulations]
+    H --> K[Executive Dashboard tiles]
+    H --> L[Admin escalation queues]
+    H --> M[Archive + trend storage]
 ```
-admin_governance.py  (Role: ADMIN enforced by enforce_role())
-│
-├── Shared Sidebar: 3 groups
-│     OVERVIEW (red)    | SPOKES (green) | OPERATIONS (black)
-│
-├── SECTOR OVERVIEW  ────────────────────────────────────────────────
-│   DB queries (get_connection()):
-│     SELECT COUNT(*) FROM institutions WHERE basket_id = ?  → spoke count
-│     SELECT * FROM signals WHERE basket_id = ? ORDER BY severity
-│   DeltaSyncManager.get_recent_signals() → telemetry timeline
-│   Plotly scatter: severity over time, colored by status
-│
-├── HISTORICAL ARCHIVE  ─────────────────────────────────────────────
-│   DeltaSyncManager.get_historical_signals() → paginated signal history
-│
-├── SPOKE REPORTS  ──────────────────────────────────────────────────
-│   DeltaSyncManager.get_pending_signals() → signals awaiting review
-│   Admin actions: approve / escalate / archive per signal
-│   SectorReportGenerator.generate(basket_id) → sector PDF/JSON report
-│   render_sector_report(report) component
-│
-├── DATA SHARING  ───────────────────────────────────────────────────
-│   DataSharingManager.get_sharing_agreements()
-│   → which spokes have consented to what level of data sharing
-│   Modes: Mode A (aggregate stats only) / Mode B (FL gradients only)
-│
-├── DATA GOVERNANCE & SCHEMAS  ──────────────────────────────────────
-│   SchemaManager.get_schemas(basket_id) → sector expected format
-│   Admin can define/update required column structure
-│   Schema enforced when spokes upload in local_dashboard.py
-│
-├── OPERATIONAL PROJECTS  ───────────────────────────────────────────
-│   ProjectManager.get_projects(basket_id)
-│   → war room cards (active / pending / closed)
-│   ProjectManager.create_project() / update_milestone()
-│   compute_outcome_impact(project_id)
-│     → DeltaSyncManager before/after comparison via ExecutiveBridge
-│
-├── RISK PROMOTION  ─────────────────────────────────────────────────
-│   Admin reviews spoke anomaly signals
-│   → decides to escalate to executive level
-│   → DeltaSyncManager.promote_signal(signal_id, level="executive")
-│
-├── COMMUNICATIONS / COLLABORATION ROOM  ───────────────────────────
-│   SecureMessaging (backend/messaging.py)
-│   → send/receive between admin and spokes
-│   render_collab_room() → shared workspace
-│
-└── FEDERATED LEARNING (MODE B)  ────────────────────────────────────
-      fl_dashboard.py view
-      FederationBridge.aggregate_spoke_models(payloads, method)
-        ← payloads: list of spoke gradient submissions
-        → FederatedAggregator.aggregate() → global_weights
-        → FederationBridge.apply_differential_privacy(weights, epsilon)
-              → PrivacyGuard.add_dp_noise()
-      Shows: submission history, convergence metrics, privacy budget
+
+### 14.3 Runtime Component Interactions
+
+```mermaid
+sequenceDiagram
+    participant SCR as Scrapers
+    participant ORCH as IngestionOrchestrator
+    participant NLP as PipelineIntegration
+    participant SENSOR as AsyncPulseSensor
+    participant IDX as ThreatIndexReport
+    participant UI as PulseConnector
+
+    SCR->>ORCH: ScraperResult{platform,text,timestamp,geo_hint}
+    ORCH->>ORCH: De-dup + source reliability tagging
+    ORCH->>NLP: Batch of normalized posts
+    NLP->>NLP: LLM + rules classification
+    NLP->>SENSOR: Structured signals per post
+    SENSOR->>SENSOR: Update rolling windows and EWMA states
+    SENSOR->>IDX: PulseState snapshot
+    IDX->>IDX: Compute 8 indices + overall threat level
+    IDX->>UI: Threat tiles + county intensities + rationale
 ```
+
+### 14.4 Data Contracts in Pulse
+
+Incoming normalized signal unit:
+
+1. Source metadata: platform, timestamp_utc, language, reliability weight.
+2. Content fields: text, entities, topics, sentiment proxy, urgency markers.
+3. Classification fields: threat category, confidence, intent label, geo scope.
+
+PulseState snapshot:
+
+1. ScarcityVector: stress by economic and social scarcity dimensions.
+2. ActorStress: pressure estimates for state, market, civil, and local actors.
+3. BondStrength: institutional trust and social cohesion proxies.
+4. Velocity terms: first derivative of key tensions over recent windows.
+5. Stability terms: rolling variance and agreement consistency across sources.
+
+### 14.5 Core Calculation Stages
+
+#### Stage A — Ingestion Quality Control
+
+Each raw event is assigned a quality weight $w_q$ based on:
+
+1. Source reliability history.
+2. Duplicate density in the current time bucket.
+3. Parsing completeness.
+4. Geo confidence.
+
+Effective signal contribution is weighted by $w_q \in [0,1]$ before any detector scoring.
+
+#### Stage B — Detector Scoring (15 Families)
+
+The detector layer transforms each normalized post into detector intensities $d_i$.
+
+1. Distress family: food/water/health stress markers.
+2. Anger and escalation family: aggression, mobilization language, urgency verbs.
+3. Institutional legitimacy family: governance rejection and trust erosion signals.
+4. Identity polarization family: group-framing and exclusion language.
+5. Information warfare family: rumor, contradiction, synthetic amplification patterns.
+
+Per detector family, Pulse uses a hybrid score:
+
+$$
+d_i = \alpha_i \cdot s_{rule} + \beta_i \cdot s_{ml} + \gamma_i \cdot s_{context}
+$$
+
+where:
+
+1. $s_{rule}$ is deterministic keyword/pattern evidence.
+2. $s_{ml}$ is model-derived class probability.
+3. $s_{context}$ captures historical alignment with known risk trajectories.
+4. Coefficients are calibrated to sum to 1 for interpretability.
+
+#### Stage C — Temporal Smoothing and Burst Control
+
+To avoid overreaction to one-off spikes, each detector stream is smoothed with exponentially weighted moving averages and burst clamps:
+
+$$
+	ilde{d}_{i,t} = \lambda \cdot d_{i,t} + (1-\lambda)\tilde{d}_{i,t-1}
+$$
+
+Burst clamp limits extreme short-window jumps when cross-source corroboration is weak.
+
+#### Stage D — PulseState Assembly
+
+PulseState is assembled from grouped detector vectors:
+
+1. ScarcityVector from distress, access, service-breakdown indicators.
+2. ActorStress from institutional conflict, mobilization, and pressure cues.
+3. BondStrength from trust and cohesion evidence (inverted for risk).
+
+This converts post-level events into state-level situational vectors.
+
+### 14.6 How the 8 Threat Indices Are Computed
+
+All indices are normalized to $[0,1]$, then scaled for dashboard display.
+
+```mermaid
+flowchart LR
+    A[Smoothed Detector Streams] --> B[Domain Aggregators]
+    B --> PI[PI Polarization]
+    B --> LEI[LEI Legitimacy Erosion]
+    B --> MRS[MRS Mobilization Readiness]
+    B --> ECI[ECI Elite Cohesion]
+    B --> IWI[IWI Information Warfare]
+    B --> SFI[SFI Security Friction]
+    B --> ECR[ECR Economic Cascade Risk]
+    B --> ETM[ETM Ethnic Tension Matrix]
+    PI & LEI & MRS & ECI & IWI & SFI & ECR & ETM --> C[Overall Threat Synthesizer]
+```
+
+Index construction principles:
+
+1. PI: weights identity-framing intensity, antagonistic sentiment, and cross-group hostility transitions.
+2. LEI: weights anti-institution narratives, compliance refusal, and trust-drop velocity.
+3. MRS: weights coordination language, action imperatives, and temporal urgency concentration.
+4. ECI: measures fragmentation among leadership and elite communication clusters.
+5. IWI: combines contradiction density, rumor propagation velocity, and source anomaly patterns.
+6. SFI: combines incident pressure, protective response strain, and security narrative volatility.
+7. ECR: maps scarcity and instability cues into economic stress propagation potential.
+8. ETM: matrix score across protected identity dimensions and regional overlap stress.
+
+### 14.7 Overall Threat Level Synthesis
+
+The final threat score is a weighted composition plus guardrails:
+
+$$
+T = \sum_{k=1}^{8} \omega_k I_k + \phi \cdot V - \psi \cdot C
+$$
+
+where:
+
+1. $I_k$ are the eight index values.
+2. $V$ is volatility pressure from recent variance and acceleration.
+3. $C$ is cross-source consensus confidence (higher confidence reduces false alarms).
+4. $\omega_k$ are domain weights tuned for policy relevance.
+
+Threat level mapping:
+
+```mermaid
+stateDiagram-v2
+    [*] --> LOW
+    LOW --> GUARDED: T >= t1
+    GUARDED --> ELEVATED: T >= t2
+    ELEVATED --> HIGH: T >= t3
+    HIGH --> CRITICAL: T >= t4
+
+    CRITICAL --> HIGH: T < t4 - hysteresis
+    HIGH --> ELEVATED: T < t3 - hysteresis
+    ELEVATED --> GUARDED: T < t2 - hysteresis
+    GUARDED --> LOW: T < t1 - hysteresis
+```
+
+Hysteresis prevents rapid level-flipping when scores hover near thresholds.
+
+### 14.8 Geo Computation for County Heatmaps
+
+County intensity is computed as a blended geo score:
+
+1. Explicit geo mentions in post text.
+2. Source metadata geo hints.
+3. Topic-to-county priors from historical event distributions.
+
+Each county score is then time-decayed and normalized across the active window.
+
+### 14.9 Calibration, Drift, and Reliability Controls
+
+Pulse includes ongoing calibration loops:
+
+1. Baseline calibration to prevent level inflation during normal high-volume periods.
+2. Seasonal adjustment for recurring event cycles.
+3. Drift detection on detector distributions.
+4. Reliability down-weighting for sources that diverge from corroborated outcomes.
+5. Confidence floors before promoting signals to executive critical tiers.
+
+### 14.10 How Pulse Feeds the Simulation Layer
+
+Pulse outputs are transformed into scenario-ready shock vectors:
+
+```mermaid
+flowchart TD
+    A[ThreatIndexReport] --> B[Shock Mapper]
+    B --> C1[Demand confidence shock]
+    B --> C2[Supply disruption shock]
+    B --> C3[Inflation pressure shock]
+    B --> C4[Trade/external balance shock]
+    B --> C5[Institutional friction shock]
+    C1 & C2 & C3 & C4 & C5 --> D[SFCConfig shock_vectors]
+    D --> E[SFCEconomy / ResearchSFCEconomy projections]
+    E --> F[Policy recommendation views]
+```
+
+This is the key bridge from social signal intelligence to macroeconomic and sectoral simulation outcomes.
+
+### 14.11 Output Products Produced by Pulse
+
+1. Threat tiles for Executive and Admin dashboards.
+2. Geo hotspot payloads for county maps.
+3. Trend vectors for archive and historical comparison.
+4. Structured rationale payload for explainability and reporting.
+5. Shock vectors consumed by simulation engines.
+
+### 14.12 Operational Interpretation Guide
+
+1. Rising PI + LEI with stable MRS: growing social fracture, but low immediate mobilization risk.
+2. Rising MRS + SFI together: prioritize near-term coordination and operational readiness.
+3. High IWI with low consensus confidence: monitor closely; avoid overreaction to likely manipulation.
+4. Rising ECR with moderate social indices: economic interventions may reduce escalation before security hardening is needed.
+
+This Pulse design ensures that high-volume signal streams are converted into interpretable, calibrated, and policy-actionable intelligence rather than raw sentiment noise.
 
 ---
 
-## 6. Spoke (Local Institution) Dashboard — Full Data Flow
+## 15. Collaboration, Data Sharing, Privacy, and Encryption Architecture
 
+This section documents how institutions collaborate through the dashboard while preserving privacy, enforcing consent boundaries, and protecting data in transit and at rest.
+
+### 15.1 Collaboration Design Goals
+
+1. Enable cross-institution coordination without forcing raw data exposure.
+2. Support role-specific visibility across Executive, Admin, and Local views.
+3. Provide verifiable audit trails for every promotion, share, and action.
+4. Preserve analytical utility while minimizing privacy leakage risk.
+5. Enforce secure transport and cryptographic integrity end to end.
+
+### 15.2 Collaboration Architecture (Dashboard + Backend)
+
+```mermaid
+flowchart LR
+    subgraph Local[Local Institution Dashboard]
+        L1[Signal Analysis]
+        L2[Inbox]
+        L3[Collaboration Room]
+        L4[Data Sharing Preferences]
+    end
+
+    subgraph Admin[Admin Governance Dashboard]
+        A1[Spoke Reports]
+        A2[Data Sharing Manager]
+        A3[Escalation Controls]
+        A4[Operational Projects]
+    end
+
+    subgraph Exec[Executive Dashboard]
+        E1[Threat Intelligence]
+        E2[National Briefing]
+        E3[Coordination Recommendations]
+    end
+
+    subgraph Services[Collaboration Services]
+        S1[SecureMessaging]
+        S2[DeltaSyncManager]
+        S3[ProjectManager]
+        S4[Audit Logger]
+    end
+
+    subgraph Privacy[Privacy + Federation]
+        P1[Policy/Consent Gate]
+        P2[Differential Privacy Layer]
+        P3[Federated Aggregator]
+    end
+
+    L1 --> S2
+    L2 --> S1
+    L3 --> S1
+    L4 --> P1
+    P1 --> A2
+    A1 --> A3
+    A3 --> S2
+    S2 --> E1
+    S2 --> E2
+    E3 --> S1
+
+    L1 --> P2 --> P3
+    P3 --> A4
+
+    S1 --> S4
+    S2 --> S4
+    P1 --> S4
 ```
-local_dashboard.py  (Role: INSTITUTION enforced by enforce_role())
-│
-├── DATA INTAKE  ────────────────────────────────────────────────────
-│   st.file_uploader → CSV
-│   OntologyEnforcer.validate(df, base_ontology)
-│   SchemaManager.validate(df, basket_id) → sector custom schema
-│   If valid: df stored in st.session_state["spoke_df"]
-│
-├── SIGNAL ANALYSIS  ────────────────────────────────────────────────
-│   AutoPipeline.run(df)  →  full 10-step pipeline:
-│   Step 1  Normalize columns
-│   Step 2  ScarcityBridge → EventBus →
-│             OnlineAnomalyDetector (RRCF)
-│             → anomaly_scores[], peak_score, peak_index
-│   Step 3  OnlineDiscoveryEngine.process_row() × N rows
-│             → knowledge_graph (top-15 relationships)
-│   Step 4  Granger causality → p-value matrix
-│   Step 5  run_causal(specs) → DAG + effect estimates
-│   Step 6  SFCEconomy.run() → macro projection
-│   Step 7  PredictiveForecaster GARCH-VARX → forecasts
-│   Step 8  Risk propagation → 2-hop cascade
-│   Step 9  ThreatIndexReport → threat_level
-│   Step 10 ReportNarrator → narrative text
-│
-│   Sensitivity level (UI dropdown):
-│     Public:       aggregated stats transmitted to admin
-│     Restricted:   composite scores only transmitted
-│     Confidential: FL Mode B — no raw data transmitted
-│
-├── GRANGER CAUSALITY  ──────────────────────────────────────────────
-│   From AutoPipeline.result.granger_pairs
-│   _render_granger_section() → heatmap of p-values
-│   Shows which indicators Granger-cause which others (lag 1-4 periods)
-│
-├── CAUSAL NETWORK  ─────────────────────────────────────────────────
-│   causal_adapter runner → run_causal() → DAG dot string
-│   kshiked.ui.kshield.causal.view → DoWhy/statsmodels OLS
-│   Rendered: force-directed DAG, node = indicator, edge = causal effect
-│   Edge weight = effect_size, colour = positive/negative
-│
-├── CROSS-CORRELATIONS  ─────────────────────────────────────────────
-│   numpy/pandas pairwise Pearson on uploaded df
-│   Plotly heatmap of correlation matrix
-│
-├── EFFECT ESTIMATION  ──────────────────────────────────────────────
-│   User selects cause + effect variable
-│   run_causal (single spec) → effect_size ± CI
-│   Shows: point estimate, 95% CI, refutation test results
-│
-├── ACTIVE PROJECTS  ────────────────────────────────────────────────
-│   ProjectManager.get_projects(institution_id=spoke_id)
-│   → task cards, milestone status, shared with which peers
-│
-├── INBOX  ──────────────────────────────────────────────────────────
-│   SecureMessaging.get_messages(institution_id)
-│   → directives from admin, peer communications
-│
-├── COLLABORATION ROOM  ─────────────────────────────────────────────
-│   render_collab_room() → shared document/planning workspace
-│
-├── MODEL CONFIGURATION  ────────────────────────────────────────────
-│   Privacy level selector (Public / Restricted / Confidential)
-│   FL mode toggle → switches AutoPipeline to Mode B path
-│   LearningEngine config: learning_rate, regularization
-│
-└── FL TRAINING LOG  ────────────────────────────────────────────────
-      DeltaSyncManager.get_fl_submissions(institution_id)
-      → timestamp, gradient_norm, accepted/rejected by admin
-      LearningEngine.get_model_weights() → current local state
+
+### 15.3 Data Sharing Contract by Mode
+
+The platform supports explicit sharing modes tied to governance policy and institution consent.
+
+1. Mode A (Aggregated Analytics): shares aggregate signals and summary indicators only.
+2. Mode B (Federated Learning): shares model updates or gradient-like artifacts, not raw source records.
+3. Restricted/Confidential paths: tighten fields and resolution based on policy and role.
+
+```mermaid
+flowchart TD
+    D0[Local Dataset / Events] --> G{Sharing Mode}
+    G -->|Mode A| M1[Aggregate Stats\ncounts, trends, summary risk]
+    G -->|Mode B| M2[Model Update Artifacts\nweights/gradients/metadata]
+
+    M1 --> V1[Schema + Consent Validation]
+    M2 --> V2[Schema + Consent Validation]
+
+    V1 --> R1[Admin Review / Sector Views]
+    V2 --> R2[Federated Aggregation Pipeline]
+
+    R1 --> X[Executive Summaries]
+    R2 --> X
 ```
+
+### 15.4 Differential Privacy Pipeline
+
+The privacy pipeline reduces re-identification risk before collaborative learning or cross-node aggregation.
+
+```mermaid
+flowchart LR
+    I[Local Model Update] --> LDP[Local DP Noise]
+    LDP --> Q[Quantization / Normalization]
+    Q --> SEC[Secure Aggregation Exchange]
+    SEC --> AGG[Robust Aggregation]
+    AGG --> CDP[Central DP Noise]
+    CDP --> OUT[Global Update + Metadata]
+```
+
+DP control principles:
+
+1. Local perturbation is applied before leaving the institution boundary.
+2. Robust aggregation mitigates poisoning and outlier updates.
+3. Central perturbation protects aggregate release surfaces.
+4. Privacy budget and contribution policy are tracked for governance visibility.
+
+### 15.5 Encryption and Integrity Model
+
+```mermaid
+sequenceDiagram
+    participant Node as Institution Node
+    participant Mesh as Collaboration/Federation Mesh
+    participant Agg as Aggregator Service
+    participant Dash as Dashboard Services
+
+    Node->>Node: Sign payload (Ed25519 identity)
+    Node->>Mesh: Encrypt exchange channel (ephemeral key agreement)
+    Mesh->>Agg: Forward masked contribution
+    Agg->>Agg: Verify signature + trust policy
+    Agg->>Dash: Publish accepted aggregate metadata
+    Dash->>Dash: Persist audit record with immutable event id
+```
+
+Security guarantees in collaborative paths:
+
+1. Authenticity: signed contributions and actor identity checks.
+2. Confidentiality: encrypted transport for inter-node exchange.
+3. Integrity: signature verification and tamper-evident logs.
+4. Non-repudiation: auditable event trail for governance actions.
+
+### 15.6 Dashboard-Level Collaboration Controls
+
+Control surfaces by role:
+
+1. Local dashboard:
+   selects sharing mode, reviews outgoing scope, monitors inbox and directives.
+2. Admin dashboard:
+   approves/escalates signals, manages sharing agreements, governs schemas, monitors federated rounds.
+3. Executive dashboard:
+   consumes promoted intelligence, issues coordination directives, tracks operation status.
+
+### 15.7 Collaboration Room and Messaging Flow
+
+```mermaid
+flowchart TD
+    C1[Institution User Action] --> M1[SecureMessaging]
+    M1 --> M2[Role + Scope Authorization]
+    M2 --> M3[Delivery Queue]
+    M3 --> M4[Recipient Inbox]
+    M4 --> M5[Acknowledgement / Follow-up]
+    M5 --> AUD[Audit Trail]
+```
+
+Messaging design properties:
+
+1. Role-scoped delivery prevents unauthorized cross-sector visibility.
+2. Message lifecycle events are auditable.
+3. Collaboration threads can be linked to projects and escalation events.
+
+### 15.8 Governance, Audit, and Explainability
+
+Every collaboration-critical operation produces an auditable event:
+
+1. sharing mode changes,
+2. schema/consent validation outcomes,
+3. promotion/escalation decisions,
+4. federated submission acceptance/rejection,
+5. directive issuance and acknowledgement.
+
+This ensures policy compliance, post-incident traceability, and explainable collaboration outcomes across institutions.
+
+### 15.9 Public vs Internal Disclosure Guidance
+
+Safe to publish externally:
+
+1. collaboration architecture concepts,
+2. sharing-mode semantics,
+3. high-level DP and encryption posture,
+4. governance and audit principles.
+
+Keep internal only:
+
+1. exact privacy budget values and per-round thresholds,
+2. key rotation schedules and key management internals,
+3. trust cutoffs, rejection heuristics, and abuse-defense tuning,
+4. infrastructure topology and operational endpoint details.
+
+This design allows secure multi-institution collaboration while minimizing sensitive-data exposure and preserving accountability.
 
 ---
 
-## 7. K-SHIELD Module — Full Data Flow
+## 16. Scarcity Core Folder Architecture
 
-```
-kshiked/ui/kshield/page.py  (accessible to all roles)
-│
-├── TERRAIN ANALYSIS  ───────────────────────────────────────────────
-│   terrain/view.py
-│   Data: World Bank CSV (auto-discovered) or user upload
-│   load_world_bank_data() → pd.DataFrame (year × indicator)
-│   compute_policy_terrain_analytics(df, cause, effect, policy_var):
-│     OLS regression → effect slope
-│     Rolling correlation windows → stability map
-│     Basin of stability (speed in state space) → safe/fragile zones
-│     Pareto frontier → optimal policy combinations
-│     Momentum field → direction of drift
-│   Charts: terrain heatmap, Pareto curve, stability basin, momentum field
-│
-├── CAUSAL DISCOVERY  ───────────────────────────────────────────────
-│   causal/view.py
-│   Lazy imports: statsmodels (Granger, ADF), DoWhy, sklearn
-│   _lazy_statsmodels() / _lazy_dowhy() / _lazy_sklearn()
-│   World Bank data → _to_timeseries_dataframe() → cleaned panel
-│   Tabs:
-│     Granger: grangercausalitytests() on all column pairs
-│     DoWhy:   CausalModel → .identify_effect() → .estimate_effect()
-│     ADF:     adfuller() → stationarity, integration order
-│     Network: force-directed graph of confirmed causal links
-│
-├── IMPACT ASSESSMENT  ──────────────────────────────────────────────
-│   impact/view.py + components/
-│     context.py   → macro context cards (GDP, inflation, reserves)
-│     metrics.py   → impact KPI computation
-│     live_policy.py → policy dial / slider → immediate SFC re-run
-│     llm.py        → LLM narrative on policy impact (Gemini/Ollama)
-│     layout.py     → assembles all components into page
-│
-└── SCENARIO RUNNER  ────────────────────────────────────────────────
-    simulation/view.py  (router to sub-tabs)
-    │
-    ├── RUN TAB (run.py)
-    │     KenyaCalibration.calibrate_from_data(df) → SFCConfig
-    │     ScenarioTemplates.get_shock_vectors(scenario)
-    │     SFCEconomy.run(steps)  OR  ResearchSFCEconomy.run(steps)
-    │     → single trajectory chart (GDP, inflation, unemployment, welfare)
-    │     → stores result in st.session_state["sim_trajectory"]
-    │     → stores SFCConfig in st.session_state["sim_calibration"]
-    │
-    ├── COMPARE TAB (core_analysis.py)
-    │     Reads: st.session_state["all_scenario_results"]
-    │             (multiple named runs from Run tab)
-    │     Dimension selector + Uncertainty bands checkbox
-    │     If bands ON:
-    │       band_cache_key = f"_compare_bands_{focus_dim}"
-    │       if not cached:
-    │         SFCConfig ← st.session_state["sim_calibration"].config
-    │         12 × SFCEconomy(jittered_cfg).run(steps)
-    │         np.percentile(arr, [25, 75], axis=0) → bands
-    │         cached in st.session_state[band_cache_key]
-    │       Render: band trace (fill=toself, rgba 0.13 opacity) then lines
-    │
-    ├── MONTE CARLO TAB (advanced.py)
-    │     n_runs slider (default 20) × SFCEconomy jittered runs
-    │     Percentile bands: (10, 90, opacity=0.15), (25, 75, opacity=0.25)
-    │     Fan chart with fill='toself' concatenated upper+lower arrays
-    │     Dimension selector → repeats for GDP / inflation / unemployment
-    │
-    ├── PARAMETER SURFACE TAB (param_surface.py)
-    │     2 parameter dropdowns (e.g. mpc × tax_rate)
-    │     Grid sweep: 8×8 = 64 SFCEconomy runs
-    │     Result: 2D heatmap of selected outcome at final step
-    │     Hover: exact parameter values and outcome
-    │
-    ├── RESEARCH ENGINE TAB (research.py)
-    │     ResearchSFCEconomy.run(steps) → full frame[]
-    │     Tabs within tab:
-    │       Summary:     twin_deficit_analysis(), external_vulnerability_index()
-    │       IO Structure: inter-sector demand flow Sankey
-    │       Inequality:  Gini trajectory, Palma ratio, Theil index
-    │                    Lorenz curve at selected step
-    │       Open Economy: REER, trade balance, reserves_months timeline
-    │       Financial:    leverage ratio, credit spread, NFC timeline
-    │
-    ├── INEQUALITY TAB (research.py)
-    │     InequalityMetrics.gini_from_quintiles()
-    │     Gauge chart: Gini (0-1) with Kenya benchmark 0.408
-    │     Stacked area: Q1-Q5 income shares over time
-    │     Pro-poor bar: Q1 vs Q5 growth per scenario
-    │     Lorenz curve at selected step vs perfect equality line
-    │
-    └── WHAT-IF WORKBENCH (workbench/view.py)
-          WhatIfManager.run_bootstrap(base_cfg, n=8, jitter_pct=8%)
-          Returns: (lower_bound, upper_bound) per dimension
-          Policy dial: adjusts one parameter → reruns → shows delta
-          Scenario comparison: side-by-side outcome tables
+This section maps the `scarcity/` package into execution layers, shows how modules connect at runtime, and explains how discovery, simulation, federation, and governance compose into one operating core.
+
+### 16.1 Package Layer Map
+
+```mermaid
+flowchart TD
+    subgraph IO[Ingestion and Streams]
+        S1[stream/]
+        S2[synthetic/]
+        S3[runtime/]
+    end
+
+    subgraph Intelligence[Intelligence and Discovery]
+        I1[engine/]
+        I2[causal/]
+        I3[analytics/]
+    end
+
+    subgraph Decision[Simulation and Decisioning]
+        D1[simulation/]
+        D2[governor/]
+        D3[economic_config.py]
+    end
+
+    subgraph Distributed[Federated and Meta]
+        F1[federation/]
+        F2[meta/]
+        F3[fmi/]
+    end
+
+    subgraph Products[Delivery Surfaces]
+        P1[dashboard/]
+        P2[tests/]
+    end
+
+    S1 --> I1
+    S2 --> I1
+    S3 --> I1
+    I1 --> I2
+    I1 --> I3
+    I2 --> D1
+    I3 --> D1
+    D1 --> D2
+    D2 --> P1
+    I1 --> F1
+    F1 --> F2
+    F2 --> D1
+    F3 --> D1
+    D1 --> P2
 ```
 
----
+### 16.2 Runtime Backbone and Event Flow
 
-## 8. Session State — Shared Data Contract
+The `runtime/` layer is the orchestration plane that keeps stream processing, model updates, and simulation triggers synchronized.
 
-```
-All components communicate through Streamlit session state:
+```mermaid
+sequenceDiagram
+    participant SRC as stream/ source
+    participant RT as runtime/ orchestrator
+    participant ENG as engine/ discovery
+    participant ANA as analytics/causal
+    participant SIM as simulation/
+    participant GOV as governor/
+    participant UI as dashboard/
 
-st.session_state key              Set by              Read by
-─────────────────────────────────────────────────────────────────────────
-"sim_trajectory"                  Run tab             Compare, research tabs
-"sim_calibration"                 Run tab             Compare (for band jitter)
-"all_scenario_results"            Run tab (multi)     Compare tab
-"spoke_df"                        Data Intake         AutoPipeline, all analysis tabs
-"institution_node_id"             Login/signup        All spoke tabs
-"basket_id"                       Login               Admin bridge, schema lookups
-"executive_nav"                   Sidebar             Executive content router
-"_compare_bands_{dim}"            Compare tab         Compare tab (cache)
-"_compare_bands_dim"              Compare tab         Compare tab (stale check)
-"force_causal_retrain"            Sidebar checkbox    Causal connector
-"causal_data_source"              Sidebar             ScarcityConnector
-```
-
----
-
-## 9. End-to-End Request Flow Examples
-
-### Example A: Spoke uploads CSV, runs Signal Analysis
-
-```
-Spoke uploads CSV
-  → local_dashboard.py: OntologyEnforcer.validate()
-  → SchemaManager.validate(basket_id)
-  → AutoPipeline.run(df)
-      → EventBus.publish("data_window")
-          → OnlineAnomalyDetector._handle_data_window()
-          ← bus: "scarcity.anomaly_detected" → anomaly_scores[]
-          → PredictiveForecaster._handle_data_window()
-          ← bus: "scarcity.forecasted_trends" → forecast_matrix[]
-      → OnlineDiscoveryEngine.process_row() × N
-          → HypothesisPool updates, AdaptiveGrouper clusters
-          ← knowledge_graph top-15 relationships
-      → SFCEconomy.run(20) → macro trajectory
-      → ThreatIndexReport.compute_all() → threat_level
-      → ReportNarrator → narrative
-  → Display: anomaly chart, forecast chart, relationship graph, narrative
+    SRC->>RT: normalized event window
+    RT->>ENG: process_row / process_batch
+    ENG->>ANA: candidate relationships + confidence
+    ANA->>SIM: calibrated constraints and shock hints
+    SIM->>GOV: projected trajectories and risk envelopes
+    GOV->>UI: policy-safe outputs + assurance level
 ```
 
-### Example B: Executive opens Policy Simulator, runs Strategic mode
+Design properties:
 
-```
-Executive selects scenario "Expansionary Fiscal", steps=20
-  → executive_simulator.py
-  → KenyaCalibration.calibrate_from_data()  OR  defaults
-  → ScenarioTemplates.get_shock_vectors("expansionary_fiscal")
-  → 3 × ResearchSFCEconomy.run(20):
-       no_intervention, selected, alternative
-       Each: SFCEconomy.step() × 20
-           + OpenEconomy.step() + Financial.step()
-           + IO.step() + Heterogeneous.step()
-           → trajectory[t] with full inequality frame
-  → 3 × _run_bootstrap_bundle(cfg.sfc, shock_vecs, 20, n=12):
-       12 × SFCEconomy(jittered SFCConfig).run(20) per scenario
-       → _extract_bands() → p25[], p75[] per dimension
-  → 2×2 Plotly subplot:
-       band traces (p25-p75 filled) rendered first
-       deterministic lines rendered on top
-  → _render_distributional_panel():
-       Q1/Q5 income trajectories from trajectory[t]["inequality"]
-       Pro-poor growth bar
-       Gini trajectory + Kenya 0.408 benchmark
-       Verdict cards: PRO-POOR / REGRESSIVE / NEUTRAL
-  → ResearchSFCEconomy.stress_test(shock_scenarios)
-       → post-shock trade_balance, reserve_adequacy
+1. Runtime sequencing is deterministic for replayability.
+2. Discovery updates and simulation runs are loosely coupled by typed handoff payloads.
+3. Governor checks are final-stage gates before dashboard publication.
+
+### 16.3 Discovery Core (`engine/` + `causal/`)
+
+The discovery core runs continuous hypothesis competition and promotion under uncertainty.
+
+```mermaid
+flowchart LR
+    A[Incoming features] --> B[Hypothesis pool update]
+    B --> C[Scoring and arbitration]
+    C --> D{promotion threshold met?}
+    D -->|yes| E[relationship accepted]
+    D -->|no| F[relationship retained as tentative]
+    E --> G[causal/ validation]
+    F --> B
+    G --> H[confidence-weighted graph]
+    H --> I[simulation-ready linkage map]
 ```
 
-### Example C: Admin runs Federated Learning Mode B aggregation
+Operational intent:
 
-```
-Spokes submit gradient payloads (not raw data)
-  → admin_governance.py FL tab
-  → FederationBridge.apply_differential_privacy(weights, epsilon=1.0)
-      → PrivacyGuard.add_dp_noise(weights) per spoke
-  → FederationBridge.aggregate_spoke_models(noisy_payloads, "trimmed_mean")
-      → FederatedAggregator.aggregate(updates)
-          → _trimmed_mean(array, alpha=0.1)  [removes top+bottom 10%]
-          → FederatedAggregator.detect_outliers() → poisoning check
-      → global_weights: np.ndarray
-  → global weights stored → distributed back to spokes (backend only)
-  → Admin UI shows: convergence curve, privacy budget spent, outlier flags
-```
+1. Keep multiple structural explanations active instead of committing too early.
+2. Promote only relationships that remain stable under rolling updates.
+3. Preserve confidence metadata so downstream modules can adapt aggressiveness.
 
-  ### Example D: Institution assurance snapshot with DRG explainability
+### 16.4 Simulation Core (`simulation/`)
 
-  ```
-  Executive or Developer opens "Model Assurance Snapshot"
-    → build_quality_assurance_snapshot() in model_quality.py
-    → Collect benchmark evidence:
-      fl_model_accuracy_*.json
-      meta_model_accuracy_*.json
-      statistical_model_accuracy_*.json
-      online_model_accuracy_*.json
-    → Collect robustness/traceability/deployment evidence:
-      benchmark freshness, drift sensitivity, fallback coverage,
-      docs + artifact traceability, deployment and config indicators
-    → Collect DRG evidence for deployment realism:
-      scarcity/governor/drg_core.py presence
-      scarcity bridge hooks for DRG events
-      logs/drg/ runtime activity
-      DRG documentation candidates
-    → Compute criterion scores + formulas:
-      metric_credibility_score
-      robustness_score
-      traceability_score
-      deployment_realism_score (includes DRG contribution)
-    → Compute overall assurance:
-      weighted sum + traffic light band + rationale note
-    → Return explainability payload:
-      overall formula + weighted components
-      criterion formulas + score_breakdown blocks
-      transparency_breakdown + recent_override_samples
-      dynamic_resource_allocator detail block
-      → Compute delay economics (hybrid penalty model):
-        do_nothing_loss_kes_b
-        act_early_loss_kes_b
-        late_penalty_kes_b
-    → UI rendering (executive/developer dashboards):
-      KPI row + DRG chip + "Why this score?" panel
-      export buttons for JSON and CSV evidence packs
-      → Unified report export (all institution dashboards):
-        single .zip pack with plain-language summary, metrics CSV,
-        structured JSON appendix, and optional table attachments
-  ```
+The simulation layer is the state-transition engine for policy exploration and stress testing.
 
----
-
-## 10. Meta-Learning System — Full Component Interaction Map
-
-The meta-learning system sits above the discovery engine and federation layer.
-It observes runtime telemetry, adapts hyperparameters across domains, and feeds
-updated priors back into the engine's controller and evaluator — closing the
-self-improving feedback loop.
-
-### 10.1 Two-Layer Architecture
-
-```
-┌─────────────────────────────────────────────────────────────────────────────┐
-│  Tier 4: MetaLearningAgent  (scarcity/meta/meta_learning.py)               │
-│   Orchestrates per-domain observation, cross-domain aggregation,            │
-│   Reptile optimization, validation, storage, and telemetry.                 │
-│                                                                             │
-│   Subscribes (via EventBus):                                                │
-│     "federation.policy_pack"   ← federated domain performance reports      │
-│     "processing_metrics"       ← runtime throughput / latency / VRAM       │
-│                                                                             │
-│   Publishes (via EventBus):                                                 │
-│     "meta_prior_update"        → engine controller + evaluator pick up     │
-│     "meta_update"              → general listeners                         │
-│     "meta_metrics"             → telemetry dashboard                       │
-└─────────────────────────────────────────────────────────────────────────────┘
-                              │
-                              │  feeds updated global_prior
-                              ▼
-┌─────────────────────────────────────────────────────────────────────────────┐
-│  Tier 5: MetaSupervisor / MetaIntegrativeLayer                             │
-│          (scarcity/meta/integrative_meta.py)                                │
-│                                                                             │
-│   Subscribes (via EventBus):                                                │
-│     "processing_metrics"       ← same stream as Tier 4                     │
-│     "meta_telemetry"           ← snapshot from MetaLearningAgent           │
-│     "fmi.meta_prior_update"    ← from Federation-Meta Interface            │
-│     "fmi.meta_policy_hint"     ← resource hints from FMI                  │
-│     "fmi.warm_start_profile"   ← cross-node warm-start weights             │
-│     "fmi.telemetry"            ← FMI operational telemetry                 │
-│                                                                             │
-│   Publishes (via EventBus):                                                 │
-│     "meta_policy_update"       → engine controller + evaluator             │
-│     "resource_profile_hint"    → DynamicResourceGovernor                  │
-└─────────────────────────────────────────────────────────────────────────────┘
+```mermaid
+flowchart TD
+    C0[Config and priors] --> C1[Baseline state initialization]
+    C1 --> C2[Apply shocks and policy vectors]
+    C2 --> C3[Advance sector transitions]
+    C3 --> C4[Compute macro and welfare outputs]
+    C4 --> C5[Uncertainty envelopes / scenario set]
+    C5 --> C6[Decision payloads]
 ```
 
-### 10.2 Internal Component Interactions
+Core guarantees:
 
-```
-DOMAIN OBSERVATION
-──────────────────
-Each federated domain publishes a "federation.policy_pack" event containing:
-  { domain_id, metrics: {meta_score, gain_p50, stability_avg},
-    controller: {tau, gamma_diversity},
-    evaluator:  {g_min, lambda_ci} }
+1. Same config and seed produce reproducible trajectories.
+2. Discovery confidence can scale scenario width and caution flags.
+3. Outputs are shaped for both analyst depth and executive summaries.
 
-MetaLearningAgent._handle_policy_pack(payload)
-  └─► DomainMetaLearner.observe(domain_id, metrics, params)
-            │
-            │  Per domain, maintains DomainMetaState:
-            │    ema_score        ← exponential moving average of meta_score
-            │    confidence       ← decayed + boosted by sign agreement
-            │    history[]        ← rolling window of score deltas (max 20)
-            │
-            │  Computes adaptive meta learning rate:
-            │    meta_lr = lr_min + (lr_max - lr_min) × confidence
-            │    (range: 0.05 to 0.20, driven by domain confidence)
-            │
-            └─► DomainMetaUpdate {
-                  domain_id, vector (delta_params), keys,
-                  confidence, timestamp, score_delta
-                }
-            → buffered in _pending_updates[domain_id]
+### 16.5 Governance Core (`governor/`)
 
-CROSS-DOMAIN AGGREGATION (triggered by "processing_metrics" event)
-──────────────────────────────────────────────────────────────────
-MetaScheduler.should_update(metrics) → True if update_interval elapsed
+The governor is the policy-safety and quality-control layer between model output and operational use.
 
-CrossDomainMetaAggregator.aggregate(pending_updates.values())
-  1. Filter: drop updates where confidence < min_confidence (0.05)
-  2. Union all parameter keys across domains
-  3. Stack update vectors into matrix [n_domains × n_params]
-     (zero-fill for missing keys per domain)
-  4. Apply trimmed_mean (alpha=0.1):
-     sort each parameter column, drop top+bottom 10%, mean the rest
-     OR median if configured
-  Returns: (aggregated_vector: np.ndarray, keys: List[str],
-            meta: {participants, confidence_mean, method})
-
-REPTILE OPTIMIZATION
-────────────────────
-OnlineReptileOptimizer.apply(aggregated_vector, keys, reward, drg_profile)
-  1. _update_beta(drg_profile):
-       if VRAM high OR latency high:  beta *= 0.8  (slow down learning)
-       if bandwidth free:             beta *= 1.1  (speed up)
-       clamp to [beta_init×0.5, beta_max] = [0.05, 0.30]
-  2. _record_history():  save current prior (up to 10 backup versions)
-  3. Update:  prior[key] += beta × aggregated_vector[key]
-              (Reptile: move global prior toward task-average parameters)
-  4. _update_reward(reward): reward_ema ← EMA of meta_score
-
-  should_rollback(reward):
-       if reward_ema - reward > rollback_delta (0.1):
-           rollback() → restore prior from most recent history backup
-
-VALIDATION GATE
-───────────────
-MetaPacketValidator.validate_update(DomainMetaUpdate) → bool
-  Checks: vector not empty, confidence in range, keys present
-  Invalid updates are silently dropped — never reach aggregation
-
-PERSISTENCE
-───────────
-MetaStorageManager
-  .save_prior(global_prior)   → JSON file on disk
-  .load_prior()               → restored on agent restart (warm start)
-  .save_domain_vectors()      → per-domain parameter history
-  Storage root: configurable (default: ./meta_storage/)
-
-TELEMETRY BROADCAST
-───────────────────
-build_meta_metrics_snapshot(reward, update_rate, gain, confidence,
-                             drift_score, latency_ms, storage_mb)
-  → snapshot dict with all meta health metrics
-
-publish_meta_metrics(bus, snapshot) → "meta_metrics" topic
-  → consumed by admin FL dashboard for convergence display
-
-global_prior published to:
-  "meta_prior_update"  → engine.py subscribes → _handle_meta_policy_update()
-  "meta_update"        → general listeners
+```mermaid
+flowchart LR
+    A[Simulation outputs] --> B[Constraint checks]
+    B --> C[Stability and feasibility tests]
+    C --> D{pass?}
+    D -->|yes| E[release with assurance label]
+    D -->|no| F[fallback / conservative profile]
+    E --> G[dashboard + export]
+    F --> G
 ```
 
-### 10.3 How Meta Prior Updates Feed Back Into the Engine
+Governor responsibilities:
 
-```
-EventBus topic: "meta_prior_update"
-    { prior: {tau, gamma_diversity, g_min, lambda_ci, ...}, meta: {...} }
-             │
-             ▼
-scarcity/engine/engine.py  _handle_meta_policy_update(topic, payload)
-    │
-    ├─► controller.apply_meta_update(tau, gamma_diversity)
-    │      BanditRouter.apply_meta_update():
-    │        self.config.tau           = new tau
-    │        self.config.gamma_diversity = new gamma_diversity
-    │        Effect: changes exploration-exploitation balance in
-    │                hypothesis candidate selection (Thompson / UCB / ε-greedy)
-    │
-    └─► evaluator.apply_meta_update(g_min, lambda_ci)
-           Evaluator.apply_meta_update():
-             self.drg["g_min"]     = new g_min
-             self.drg["lambda_ci"] = new lambda_ci
-             Effect: changes minimum gain threshold and confidence interval
-                     weight used when scoring hypothesis candidates
+1. Enforce hard constraints and risk boundaries.
+2. Convert technical uncertainty into explicit assurance levels.
+3. Trigger safer fallback profiles when data quality or model stability drops.
 
-What each meta parameter controls:
-  tau            — temperature of BanditRouter exploration
-                   (higher = more random exploration of hypotheses)
-  gamma_diversity — diversity bonus weight in candidate selection
-                   (higher = prefers hypotheses from underexplored groups)
-  g_min          — minimum gain for an evaluator to accept a hypothesis
-                   (higher = stricter quality gate)
-  lambda_ci      — weight on confidence interval width in eval scoring
-                   (higher = penalises uncertain candidates more)
+### 16.6 Federated and Meta Layer (`federation/` + `meta/` + `fmi/`)
+
+The distributed layer improves generalization across institutions while preserving local data boundaries.
+
+```mermaid
+flowchart TD
+    N1[Institution node A] --> F[federation/ secure exchange]
+    N2[Institution node B] --> F
+    N3[Institution node C] --> F
+    F --> M[meta/ aggregation and prior update]
+    M --> X[fmi/ and simulation adapters]
+    X --> ENG[engine/]
+    X --> SIM[simulation/]
 ```
 
-### 10.4 MetaIntegrativeLayer (Tier 5) — Rule-Based Governance
+Composition rules:
 
-```
-MetaIntegrativeLayer.update(telemetry)  called by MetaSupervisor on each
-                                         "processing_metrics" event
-  │
-  ├── _compute_reward(telemetry):
-  │     reward = w_accept × accept_rate
-  │            + w_stability × stability_avg
-  │            + w_contrast × rcl_contrast
-  │            - p_latency × (latency_ms / 120)
-  │            - p_vram × vram_util
-  │            - p_oom × oom_flag
-  │     clipped to [-1.0, 1.0]
-  │
-  ├── _update_ema(reward):
-  │     ema_reward = 0.7 × ema_reward + 0.3 × reward
-  │
-  ├── _apply_policies(telemetry, reward, ema_reward):
-  │     Adjusts knobs (with cooldown guard per knob):
-  │       if accept_rate < 0.06 and EMA flat:
-  │           tau ↑ 0.1, gamma_diversity ↑ 0.05  (explore more)
-  │       if stability_avg > threshold and reward improving:
-  │           tau ↓ 0.05                          (exploit more)
-  │       if gain_p50 < g_min_floor:
-  │           g_min ↓ slightly                    (relax quality gate)
-  │       if latency_ms > target:
-  │           tier3_topk ↓                        (fewer candidates)
-  │     Returns: policy_update dict, list of changed knobs
-  │
-  ├── _resource_policy(telemetry):
-  │     if vram_util > 0.85:  suggest reducing batch / topk
-  │     if latency_ms > 200:  suggest disabling tier2
-  │     Returns: resource_profile_hint
-  │
-  └── _safety_checks(reward, ema_reward, prev_snapshot, changed_knobs):
-        if reward drops more than safety_delta from EMA:
-            _rollback_previous(prev_snapshot)  → restore all knobs
-            rollback_count++
-        Returns: rollback_triggered bool
+1. Local nodes contribute update artifacts, not raw operational records.
+2. Meta updates feed both discovery priors and simulation parameter adaptation.
+3. FMI adapters keep cross-model coupling explicit and controlled.
 
-  Output dict published to "meta_policy_update":
-    { meta_policy_update: {tau, gamma, g_min, lambda_ci, tier3_topk, ...},
-      resource_profile_hint: {...},
-      meta_score, meta_score_avg,
-      meta_telemetry: {decision_count, rollback_count, success_rate, ...} }
-```
+### 16.7 Stream, Synthetic, and Testing Scaffolds
 
-### 10.5 Where Meta-Learning Is Wired Into K-SHIELD
+Supporting packages ensure safe iteration and reliable deployment behavior:
 
-```
-kshiked/core/scarcity_bridge.py  ScarcityBridge._init_subsystems()
-  │
-  ├── Tier 0-1: EconomicDiscoveryEngine   (discovery + hypothesis learning)
-  ├── Tier 4:   MetaLearningAgent         (cross-domain Reptile optimizer)
-  │               bus.subscribe("federation.policy_pack", ...)
-  │               bus.subscribe("processing_metrics", ...)
-  ├── Tier 5:   MetaSupervisor            (integrative governance layer)
-  │               bus.subscribe("processing_metrics", ...)
-  │               bus.subscribe("meta_telemetry", ...)
-  └── Governor: DynamicResourceGovernor  (hardware resource control loop)
-                  bus.subscribe("resource_profile", ...)
-                  bus.publish("resource_profile", metrics) each tick
+1. `stream/` provides live ingestion connectors and event normalization interfaces.
+2. `synthetic/` provides controlled stress and scenario generation for calibration and demos.
+3. `tests/` anchors regression checks across discovery, simulation, federation, and governance boundaries.
 
-  All four are wired to the same shared EventBus instance.
-  ScarcityBridge.meta_agent property → direct access for inspection.
-  ScarcityBridge.governor property   → direct access for inspection.
+### 16.8 Why This Folder Design Scales
 
-  The meta_agent is started when AutoPipeline.run() calls
-  kshiked.core.ScarcityBridge in step 3 (Discovery Engine).
-  It listens passively and updates the global prior whenever enough
-  domain policy packs accumulate and processing_metrics fires.
+The `scarcity/` layout is intentionally layered so the platform can evolve without tight coupling:
 
-  Updated priors flow back to the OnlineDiscoveryEngine's BanditRouter
-  (hypothesis selection) and Evaluator (hypothesis scoring) — making
-  the system self-calibrate across institutions over time without
-  any explicit retraining step.
-```
+1. Ingestion and runtime concerns are separated from model logic.
+2. Discovery and simulation can iterate independently but exchange typed contracts.
+3. Federation and meta-learning remain optional accelerators, not hard runtime dependencies.
+4. Governance remains a mandatory release gate for operational safety.
 
-### 10.6 Full Meta-Learning Event Flow
-
-```
-[Spoke institution uploads CSV]
-       │
-       ▼
-AutoPipeline.run(df)
-  → OnlineDiscoveryEngine.process_row() × N
-  → engine publishes "processing_metrics" every K rows
-       │
-       ▼
-MetaScheduler.record_window()
-  if should_update():
-       │
-       ▼
-  DomainMetaLearner.observe(domain_id, metrics, params)
-  → DomainMetaUpdate{vector, confidence, score_delta}
-  → MetaPacketValidator.validate_update() → True
-  → buffered in _pending_updates
-       │
-       ▼
-  CrossDomainMetaAggregator.aggregate()
-  → trimmed_mean across all pending domain vectors
-  → (aggregated_vector, keys, meta)
-       │
-       ▼
-  OnlineReptileOptimizer.apply(aggregated_vector, reward, drg_profile)
-  → beta adjusted for resource pressure
-  → prior[key] += beta × aggregated_vector[key]
-  → should_rollback()? → restore backup prior if reward degraded
-       │
-       ├──► MetaStorageManager.save_prior()  [persists to disk]
-       │
-       ├──► build_meta_metrics_snapshot() → publish_meta_metrics()
-       │       → "meta_metrics" topic → admin FL dashboard display
-       │
-       └──► bus.publish("meta_prior_update", {prior, meta})
-                 │
-                 ├──► engine._handle_meta_policy_update()
-                 │         → BanditRouter.apply_meta_update(tau, gamma)
-                 │         → Evaluator.apply_meta_update(g_min, lambda_ci)
-                 │
-                 └──► MetaSupervisor._handle_meta_policy_update()
-                           → MetaIntegrativeLayer.update(telemetry)
-                           → _apply_policies() → adjusted knobs
-                           → _safety_checks() → rollback if needed
-                           → publish "meta_policy_update" (refined)
-                                     → engine picks up final adjusted values
-```
+This is the core Scarcity design: continuous discovery, guarded simulation, and secure distributed learning assembled as a modular architecture rather than a monolithic pipeline.
