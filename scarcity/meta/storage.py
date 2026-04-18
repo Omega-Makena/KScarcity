@@ -10,6 +10,7 @@ from __future__ import annotations
 
 import json
 import os
+import time
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Dict, Optional
@@ -100,8 +101,8 @@ class MetaStorageManager:
     def _backup(self, path: Path) -> None:
         """Create a timestamped backup of the given file."""
         backup_dir = self.config.root / "backups"
-        timestamp = path.stat().st_mtime
-        backup_path = backup_dir / f"{path.stem}_{int(timestamp)}{path.suffix}"
+        timestamp = time.time_ns()
+        backup_path = backup_dir / f"{path.stem}_{timestamp}{path.suffix}"
         backup_path.write_bytes(path.read_bytes())
         backups = sorted(backup_dir.glob(f"{path.stem}_*{path.suffix}"), key=lambda p: p.stat().st_mtime, reverse=True)
         for old in backups[self.config.retention :]:

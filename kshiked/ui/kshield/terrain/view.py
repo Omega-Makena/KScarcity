@@ -1632,6 +1632,11 @@ def _plot_effect_surface(analytics: Dict[str, Any], theme) -> None:
     colorscale="RdBu_r",
     zmid=0.0,
   )
+  st.caption(
+    f"Reading: each cell shows how changing {analytics['primary_policy']} (X-axis) "
+    "affects each outcome (Y-axis). Blue = positive effect; red = negative; white = neutral. "
+    "Bright colours far from the diagonal indicate the policy has its strongest impact at extreme intensities."
+  )
 
 
 
@@ -1652,6 +1657,11 @@ def _plot_confidence_map(analytics: Dict[str, Any], theme) -> None:
     zmin=0.0,
     zmax=1.0,
   )
+  st.caption(
+    "Confidence map: bright yellow/green cells = high confidence in the effect estimate (more data, consistent signals). "
+    "Dark purple cells = uncertain estimates — those effect values should be treated with caution. "
+    "Use this map alongside the effect surface to identify where the analysis is reliable."
+  )
 
 
 
@@ -1670,6 +1680,12 @@ def _plot_lag_surface(analytics: Dict[str, Any], theme) -> None:
     height=420,
     colorscale="RdBu_r",
     zmid=0.0,
+  )
+  st.caption(
+    "Lag surface: each column shows how the policy effect on each outcome shifts over time. "
+    "A peak at lag 2 means the effect takes 2 periods to fully materialise. "
+    "Blue = positive delayed effect; red = policy eventually reverses. "
+    "Lag 0 is the immediate (contemporaneous) effect."
   )
 
 
@@ -1729,6 +1745,12 @@ def _plot_sensitivity_surface(analytics: Dict[str, Any], theme) -> None:
     height=430,
     colorscale="YlOrRd",
   )
+  st.caption(
+    "Sensitivity surface: bright (red/orange) cells indicate outcomes that are very responsive to "
+    f"small changes in {analytics['primary_policy']} at that intensity level. "
+    "High sensitivity is a double-edged sword: fine-tuning the policy here can have a large positive impact, "
+    "but policy errors also cause large harm. Dark cells = outcomes barely respond."
+  )
 
 
 
@@ -1761,6 +1783,16 @@ def _plot_persistence_curve(analytics: Dict[str, Any], theme) -> None:
     _plotly_chart(fig)
   else:
     st.line_chart(pd.DataFrame({"Lag": p["lags"], "Effect": p["values"]}).set_index("Lag"))
+  if p.get("values"):
+    _peak_lag_idx = max(range(len(p["values"])), key=lambda i: abs(p["values"][i]))
+    _peak_v = p["values"][_peak_lag_idx]
+    _peak_l = p["lags"][_peak_lag_idx]
+    st.caption(
+      f"Policy persistence on '{p['target_outcome']}': peak effect of {_peak_v:+.3f} "
+      f"occurs at lag {_peak_l}. "
+      "Rapid decay to zero = short-lived impact; slow decay = lasting structural change. "
+      "Values crossing below zero indicate the policy eventually reverses its own effect."
+    )
 
 
 
@@ -1781,7 +1813,13 @@ def _plot_shock_slice(analytics: Dict[str, Any], theme) -> None:
     colorscale="RdBu_r",
     zmid=0.0,
   )
-
+  st.caption(
+    f"Shock resilience: this chart shows the difference in outcomes between high-shock and low-shock periods "
+    f"at each level of {analytics['primary_policy']}. "
+    "Blue cells = the policy buffers the shock (protected outcome). "
+    "Red cells = the shock hurts this outcome more when the policy is at this intensity. "
+    f"Shock variable: {analytics['shock_name']}."
+  )
 
 
 def _plot_structural_break(analytics: Dict[str, Any], theme) -> None:
@@ -1860,7 +1898,12 @@ def _plot_failure_surface(analytics: Dict[str, Any], theme) -> None:
     _plotly_chart(fig)
   else:
     st.dataframe(pd.DataFrame(f["z"]), use_container_width=True)
-
+  st.caption(
+    f"Failure surface: Z-axis (height) shows the probability of a systemic crisis at each "
+    f"combination of {analytics['primary_policy']} level and secondary shock intensity. "
+    "Red peaks = high danger zones. Blue/flat areas = safe operating ranges. "
+    "How to read 3D: drag to rotate; scroll to zoom. Look for steep red cliffs that signal tipping points."
+  )
 
 
 def _plot_basin_map(analytics: Dict[str, Any], theme) -> None:
@@ -1878,6 +1921,11 @@ def _plot_basin_map(analytics: Dict[str, Any], theme) -> None:
     zmin=0.0,
     zmax=1.0,
   )
+  st.caption(
+    "Stability basin map: bright blue areas are stable attractor regions where the economy "
+    "naturally returns after shocks. Dark zones are unstable — policies that push the system "
+    "into dark areas may trigger a non-recoverable crisis. Target policies that keep the economy in bright zones."
+  )
 
 
 
@@ -1893,6 +1941,11 @@ def _plot_warning_map(analytics: Dict[str, Any], theme) -> None:
     z_title="Early warning index",
     height=410,
     colorscale="Magma",
+  )
+  st.caption(
+    "Early warning map: bright cells at recent time steps signal rising systemic fragility — "
+    "the economy is approaching a tipping point. The Y-axis shows which policy intensity levels "
+    "trigger the warning. Sustained bright bands in recent quarters are a red-flag for policymakers."
   )
 
 
@@ -1925,6 +1978,11 @@ def _plot_counterfactual_surface(analytics: Dict[str, Any], theme) -> None:
     height=420,
     colorscale="RdBu_r",
     zmid=0.0,
+  )
+  st.caption(
+    f"Counterfactual: 'What if we shifted the policy by {delta_abs:.3f} units from each baseline level?' "
+    "Blue cells = outcomes improve; red cells = outcomes worsen compared to the observed path. "
+    "Use the slider above to explore different counterfactual shift magnitudes."
   )
 
 
@@ -1992,7 +2050,12 @@ def _plot_efficiency_frontier(analytics: Dict[str, Any], theme) -> None:
     _plotly_chart(fig)
   else:
     st.dataframe(pd.DataFrame(xy, columns=[o1, o2]), use_container_width=True)
-
+  st.caption(
+    f"Efficiency frontier: each dot is a historical policy-state combination plotting "
+    f"'{o1}' vs '{o2}'. The green line is the Pareto-efficient frontier — points on this line "
+    "cannot improve one objective without hurting the other. "
+    "Policy choices above/right of the frontier are unattainable; below/left means room for improvement."
+  )
 
 
 def _plot_momentum_field(analytics: Dict[str, Any], theme) -> None:
@@ -2042,7 +2105,12 @@ def _plot_momentum_field(analytics: Dict[str, Any], theme) -> None:
     _plotly_chart(fig)
   else:
     st.line_chart(pd.DataFrame({"x": xs, "y": ys}).set_index("x"))
-
+  st.caption(
+    f"Momentum field: each arrow shows the direction and speed of economic change from that state. "
+    "Arrows pointing up-right = economy expanding in both policy and outcome dimensions. "
+    "Arrows converging toward a point = stable attractor (the system is self-correcting). "
+    "Diverging arrows = unstable — small shocks amplify."
+  )
 
 
 def _plot_saturation_surface(analytics: Dict[str, Any], theme) -> None:
@@ -2060,6 +2128,12 @@ def _plot_saturation_surface(analytics: Dict[str, Any], theme) -> None:
     height=420,
     colorscale="RdBu_r",
     zmid=0.0,
+  )
+  st.caption(
+    "Saturation surface: shows diminishing (or increasing) returns to policy intensity. "
+    "Blue cells = positive marginal returns (more policy → better outcome). "
+    "Red cells = the policy is over-saturated — beyond this intensity, additional effort hurts or has no effect. "
+    "The transition from blue to red marks the optimal policy level for each outcome."
   )
 
 
@@ -2079,6 +2153,12 @@ def _plot_inequality_surface(analytics: Dict[str, Any], theme) -> None:
     height=390,
     colorscale="RdBu_r",
     zmid=0.0,
+  )
+  st.caption(
+    "Inequality surface: each column is an income/outcome quantile group (left = lowest, right = highest). "
+    "Blue cells = the policy benefits that group; red = the policy harms that group. "
+    "A blue left column + red right column means the policy is pro-poor. "
+    "All blue = universal benefit; all red = universal harm."
   )
 
 

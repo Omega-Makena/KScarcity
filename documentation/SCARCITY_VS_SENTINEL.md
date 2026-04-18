@@ -11,22 +11,26 @@
 │                          SENTINEL                                        │
 │              (The Product — what the end-user sees)                       │
 │                                                                          │
-│   Streamlit Command Center · 13 routed views · 4 K-modules              │
-│   Analyst-facing dashboards with threat maps, simulation UI,             │
-│   federation status, and decision support.                               │
+│   K-SHIELD (8505)  ·  Institution Portal (8506)  ·  SENTINEL (8507)    │
+│   Analyst workstation: threat maps, simulation, federation control,      │
+│   executive briefings, collaboration, cost-of-delay, PDF export.        │
 ├─────────────────────────────────────────────────────────────────────────┤
 │                          KSHIELD                                         │
 │        (The Intelligence Layer — domain-specific adapters)               │
 │                                                                          │
 │   Kenya calibration · 9 scenario templates · 8 policy presets            │
-│   15 social signal detectors · Pulse threat indices · County mapping     │
-│   Causal adapter · Federation bridge (Aegis Protocol)                    │
+│   15 social signal detectors · 8 threat indices · County mapping         │
+│   LLM pipeline (Gemini / Ollama) · Causal adapter                       │
+│   Aegis Federation Protocol · Cost of Delay engine                      │
+│   Unified PDF export · DRG assurance bridge                             │
 ├─────────────────────────────────────────────────────────────────────────┤
 │                          SCARCITY                                        │
 │          (The Foundation — domain-agnostic engine library)               │
 │                                                                          │
-│   OnlineDiscoveryEngine · SFCEconomy · FederationClientAgent             │
-│   DoWhy causal inference · Meta-learning · EventBus runtime              │
+│   OnlineDiscoveryEngine · MultiSectorSFCEngine · SFCEconomy              │
+│   9-sector KNBS IO structure · KNBS↔SFC aggregation bridge              │
+│   FederationClientAgent · DoWhy causal inference                        │
+│   Meta-learning (Reptile) · DRG resource governor · EventBus runtime    │
 │   No country-specific code — works on any economic dataset               │
 └─────────────────────────────────────────────────────────────────────────┘
 ```
@@ -41,17 +45,17 @@ It knows nothing about Kenya, K-SHIELD, dashboards, or threat intelligence. It p
 
 | Package | Responsibility |
 |---------|---------------|
-| `scarcity.engine` | Online hypothesis discovery — 15 relationship types, Thompson sampling, confidence-weighted hypergraph |
-| `scarcity.simulation` | Stock-Flow Consistent (SFC) macroeconomic model with 4 sectors, Phillips Curve, Taylor Rule, Okun's Law |
-| `scarcity.federation` | Federated learning — secure aggregation (Shamir), differential privacy, gossip protocol |
-| `scarcity.causal` | Rigorous causal inference via DoWhy — identification, estimation, refutation |
+| `scarcity.engine` | Online hypothesis discovery — 15 relationship types, Thompson sampling, vectorized Batch RLS, confidence-weighted hypergraph |
+| `scarcity.simulation` | Two SFC engine paths (legacy SFCEconomy + typed MultiSectorSFCEngine); 9-sector KNBS IO model; KNBS↔SFC aggregation bridge; AllParams (KNBS-calibrated) |
+| `scarcity.federation` | Federated learning — secure aggregation (Shamir), differential privacy, gossip protocol, Byzantine defense |
+| `scarcity.causal` | Rigorous causal inference via DoWhy — identification (backdoor/IV), estimation (linear/forest), refutation |
 | `scarcity.meta` | Meta-learning (Reptile/MAML) for hypothesis tuning across data regimes |
-| `scarcity.governor` | Dynamic resource governance — CPU/memory throttling for engine workloads |
+| `scarcity.governor` | Dynamic Resource Governor (DRG) — CPU/memory throttling, assurance levels (HIGH/MEDIUM/LOW/FALLBACK) |
 | `scarcity.fmi` | Federated Metadata Interchange — schema exchange between deployment nodes |
 | `scarcity.stream` | Data ingestion — windowing, time-alignment, format adapters |
 | `scarcity.runtime` | EventBus architecture, telemetry, diagnostics |
 | `scarcity.analytics` | Policy terrain analysis utilities |
-| `scarcity.synthetic` | Synthetic data generators for testing (accounts, behaviors, content) |
+| `scarcity.synthetic` | Synthetic data generators for testing (accounts, behaviors, content, policy events) |
 
 ### Design Principle
 > Scarcity should be **installable via pip** and usable by any developer in any country on any dataset. No hardcoded indicator names, no country-specific assumptions, no UI dependencies.
@@ -66,14 +70,14 @@ KShield is where **domain knowledge** lives:
 
 | Package | What It Adds Over Scarcity |
 |---------|---------------------------|
-| `kshiked.core` | `EconomicGovernor` — orchestrates multi-policy execution with PID control, crisis modes, and Kenya-specific sector definitions |
-| `kshiked.pulse` | `PulseSensor` — 15 social signal detectors trained on Kenya-relevant patterns (ethnic tension, diaspora flows, M-Pesa velocity, BBI-era language) |
-| `kshiked.simulation` | `kenya_calibration.py` — derives SFC parameters from World Bank Kenya data. `scenario_templates.py` — 9 Kenya-specific shock scenarios (KES depreciation, Rift Valley drought, SGR debt corridor) |
-| `kshiked.causal_adapter` | Bridges Scarcity's `OnlineDiscoveryEngine` → KShield UI. Translates discovered hypotheses into analyst-readable causal chains |
-| `kshiked.federation` | Aegis Protocol — defense-sector federation bridge. Maps to Kenya's institutional structure (NIS, DCI, CBK, KDF, CA) |
-| `kshiked.hub` | `KShieldHub` — central orchestrator that wires Pulse + Causal + Simulation + Federation into a single real-time event loop |
-| `kshiked.ui` | SENTINEL Command Center — routed Streamlit UI with K-SHIELD sub-module (Causal, Terrain, Simulation, Impact) |
-| `kshiked.analysis` | Offline diagnostics — data quality checks and historical crash identification |
+| `kshiked.core` | `EconomicGovernor` — multi-policy execution with PID control, crisis modes, Kenya sector definitions. `ScarcityBridge` — trains on CSV data, exposes discovered economy. |
+| `kshiked.pulse` | `PulseSensor` — 15 social signal detectors trained on Kenya-relevant patterns (ethnic tension, diaspora flows, M-Pesa velocity, BBI-era language). 8 threat indices. LLM analysis pipeline (Gemini/Ollama). |
+| `kshiked.simulation` | `kenya_calibration.py` — World Bank CSV → SFC parameters. `scenario_templates.py` — 9 Kenya shock scenarios. `ShockCompiler` — stochastic → SFC shock vectors. |
+| `kshiked.causal_adapter` | Bridges Scarcity's `OnlineDiscoveryEngine` → KShield UI. Translates discovered hypotheses into analyst-readable causal chains. |
+| `kshiked.federation` | Aegis Protocol — defense-sector federation bridge. Maps to Kenya's institutional structure (NIS, DCI, CBK, KDF, CA). Clearance lattice. |
+| `kshiked.hub` | `KShieldHub` — central orchestrator wiring Pulse + Causal + Simulation + Federation into a single real-time event loop. |
+| `kshiked.ui` | Three Streamlit dashboards: K-SHIELD (8505), Institution Portal (8506), SENTINEL (8507). Cost of Delay engine. Unified PDF/ZIP export. DRG assurance bridge. |
+| `kshiked.analysis` | Offline diagnostics — data quality checks and historical crash identification. |
 
 ### Design Principle
 > KShield should **never modify Scarcity source code**. It extends via composition — importing Scarcity classes, wrapping them with calibration/configuration, and exposing them through Kenya-tuned APIs.
@@ -88,12 +92,15 @@ SENTINEL comprises:
 
 | Component | Files | Purpose |
 |-----------|-------|---------|
-| Command Center | `kshiked/ui/sentinel_dashboard.py`, `kshiked/ui/sentinel/router.py` | Streamlit entrypoint + routed navigation with deep links (`?view=...`) |
-| K-SHIELD Module | `kshiked/ui/kshield/page.py` | Auth gate → landing page → 4 sub-cards (Causal, Terrain, Simulation, Impact) |
-| K-PULSE Module | via `sentinel_dashboard.py` Signal Intelligence tab | Real-time social signal monitoring |
-| K-COLLAB Module | `kshiked/ui/sentinel/federation.py` + `federated_databases/` | Federated DB node control, sync rounds, metrics, audit trail |
-| K-EDUCATION Module | via `sentinel_dashboard.py` Document Intelligence tab | Explainable analytics and public knowledge |
-| Policy Intelligence | `kshiked/ui/sentinel/policy_chat.py` | Bill analysis chat with URL-linked evidence traces |
+| SENTINEL Command Center | `kshiked/ui/sentinel_dashboard.py`, `kshiked/ui/sentinel/router.py` | Streamlit entrypoint + routed navigation with deep links (`?view=...`) |
+| K-SHIELD Module | `kshiked/ui/kshield/page.py` | Auth gate → 4 sub-cards (Causal, Terrain, Simulation, Impact) |
+| K-PULSE Module | `kshiked/ui/sentinel/signals.py` | Real-time social signal monitoring, 8 threat indices |
+| K-COLLAB Module | `kshiked/ui/sentinel/federation.py` + `federated_databases/` | Federated DB node control, sync rounds, audit trail |
+| K-EDUCATION Module | `kshiked/ui/sentinel/document_intel.py` | Explainable analytics and public knowledge |
+| Policy Intelligence | `kshiked/ui/sentinel/policy_chat.py` | LLM policy chat with URL-linked evidence traces |
+| Institution Portal | `kshiked/ui/institution/page.py` | Multi-role portal: Executive, Admin, Developer, Spoke, Collab, FL |
+| Cost of Delay Engine | `kshiked/ui/institution/backend/analytics_engine.py` | KES billions delay cost (Do Nothing / Act Early / Price of Being Late) |
+| Report Export | `kshiked/ui/institution/unified_report_export.py` | PDF + ZIP cross-dashboard export with instant-analysis interpretation |
 | Backend API | `backend/app/` | FastAPI REST API (v2) for programmatic access |
 | Frontend | `scarcity-deep-dive/` | Vite + React interactive visualisation (secondary UI) |
 
@@ -169,7 +176,7 @@ SENTINEL comprises:
 | Where do I add a new country? | Create a new calibration module (like `kenya_calibration.py`) and scenario templates. Scarcity's SFC engine works unchanged. |
 | Where do I add a new hypothesis type? | In `scarcity/engine/`. KShield and SENTINEL pick it up automatically. |
 | Where do I add a new dashboard view? | In `kshiked/ui/sentinel/router.py` (`NAV_OPTIONS`) and corresponding `kshiked/ui/sentinel/*.py` renderer. |
-| Where is the SFC model? | `scarcity/simulation/sfc.py` — the core engine. `kshiked/simulation/kenya_calibration.py` — the Kenya parameter wrapper. |
+| Where is the SFC model? | `scarcity/simulation/sfc.py` (legacy aggregate engine) and `scarcity/simulation/sfc_engine.py` (typed multi-sector engine). `scarcity/simulation/io_structure.py` — 9-sector KNBS IO model with aggregation bridge. `kshiked/simulation/kenya_calibration.py` — Kenya parameter wrapper. |
 
 ---
 

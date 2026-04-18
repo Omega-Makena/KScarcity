@@ -40,6 +40,9 @@ class PulseConnector:
     self._sensor = None
     self._connected = False
     self._streaming = False
+    self._threat_report_cache = None
+    self._threat_report_ts = 0.0
+    self._THREAT_REPORT_TTL = 5.0  # seconds
   
   def connect(self) -> bool:
     try:
@@ -264,17 +267,27 @@ class PulseConnector:
       "Nakuru": CountyRisk("Nakuru", 0.35, "low", [], trend="down", is_demo=True),
     }
   
+  def _get_threat_report(self):
+    """Compute (or return cached) threat report. TTL = _THREAT_REPORT_TTL seconds."""
+    import time as _time
+    now = _time.time()
+    if self._threat_report_cache is not None and (now - self._threat_report_ts) < self._THREAT_REPORT_TTL:
+      return self._threat_report_cache
+    from kshiked.pulse.threat_index import compute_threat_report
+    state = self._sensor.state
+    history = getattr(self._sensor, '_signal_history', [])
+    report = compute_threat_report(state, history)
+    self._threat_report_cache = report
+    self._threat_report_ts = now
+    return report
+
   def get_threat_indices(self) -> List[Dict[str, Any]]:
     """Get all 8 threat indices for the gauge grid."""
     if not self._connected or not self._sensor:
       return self._get_demo_threat_indices()
-    
+
     try:
-      from kshiked.pulse.threat_index import compute_threat_report
-      
-      state = self._sensor.state
-      history = getattr(self._sensor, '_signal_history', [])
-      report = compute_threat_report(state, history)
+      report = self._get_threat_report()
       
       return [
         {"name": "Polarization", "value": report.polarization.value, "severity": report.polarization.severity},
@@ -294,14 +307,9 @@ class PulseConnector:
     """Get ethnic tension matrix data."""
     if not self._connected or not self._sensor:
       return self._get_demo_ethnic_tensions()
-    
+
     try:
-      from kshiked.pulse.threat_index import compute_threat_report
-      
-      state = self._sensor.state
-      history = getattr(self._sensor, '_signal_history', [])
-      report = compute_threat_report(state, history)
-      
+      report = self._get_threat_report()
       et = report.ethnic_tension
       return {
         "tensions": et.tensions,

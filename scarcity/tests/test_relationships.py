@@ -76,6 +76,20 @@ class TestCorrelationalHypothesis:
         result = hyp.evaluate({})
         assert abs(result.get('correlation', 0)) > 0.5, "Should detect correlation"
 
+    def test_avoids_spurious_correlation_on_independent_noise(self):
+        """Independent noise should not produce a strong correlation signal."""
+        rng = np.random.default_rng(42)
+        x = rng.normal(0, 1, 600)
+        y = rng.normal(0, 1, 600)
+        hyp = CorrelationalHypothesis('X', 'Y')
+
+        for i in range(len(x)):
+            hyp.fit_step({'X': float(x[i]), 'Y': float(y[i])})
+
+        result = hyp.evaluate({})
+        assert abs(result.get('correlation', 0.0)) < 0.2, f"Unexpected correlation: {result}"
+        assert result.get('fit_score', 0.0) < 0.3, f"Unexpected fit score: {result}"
+
 
 class TestTemporalHypothesis:
     def test_detects_autocorrelation(self):
@@ -105,6 +119,52 @@ class TestFunctionalHypothesis:
         result = hyp.evaluate({})
         assert result['fit_score'] > 0.9, "Should fit deterministic function well"
         assert result.get('deterministic', False), "Should detect deterministic relationship"
+
+    def test_predict_value_beats_holdout_mean_baseline(self):
+        """Functional predictor should beat a naive mean baseline on holdout."""
+        dataset = generate_functional(n=260)
+        hyp = FunctionalHypothesis('X', 'Y', degree=2)
+
+        train_n = 200
+        x_train = dataset.data['X'][:train_n]
+        y_train = dataset.data['Y'][:train_n]
+        x_holdout = dataset.data['X'][train_n:]
+        y_holdout = dataset.data['Y'][train_n:]
+
+        for i in range(len(x_train)):
+            hyp.fit_step({'X': x_train[i], 'Y': y_train[i]})
+
+        mean_baseline = float(np.mean(y_train))
+        model_abs_err = []
+        baseline_abs_err = []
+        for i in range(len(x_holdout)):
+            pred = hyp.predict_value({'X': x_holdout[i]})
+            assert pred is not None, "Predictor should be available after training"
+            _, y_hat = pred
+            model_abs_err.append(abs(y_hat - y_holdout[i]))
+            baseline_abs_err.append(abs(mean_baseline - y_holdout[i]))
+
+        model_mae = float(np.mean(model_abs_err))
+        baseline_mae = float(np.mean(baseline_abs_err))
+        assert model_mae < baseline_mae * 0.75, (
+            f"Model MAE {model_mae:.4f} should clearly beat baseline MAE {baseline_mae:.4f}"
+        )
+
+
+class TestCausalFalsePositiveResistance:
+    def test_independent_noise_does_not_create_directional_causality(self):
+        """Directional causality should stay weak on independent random noise."""
+        rng = np.random.default_rng(7)
+        x = rng.normal(0, 1, 500)
+        y = rng.normal(0, 1, 500)
+        hyp = CausalHypothesis('X', 'Y', lag=2)
+
+        for i in range(len(x)):
+            hyp.fit_step({'X': float(x[i]), 'Y': float(y[i])})
+
+        result = hyp.evaluate({})
+        assert abs(result.get('gain_forward', 0.0)) < 0.1, f"Unexpected directional gain: {result}"
+        assert result.get('confidence', 0.0) < 0.35, f"Unexpected confidence: {result}"
 
 
 class TestEquilibriumHypothesis:

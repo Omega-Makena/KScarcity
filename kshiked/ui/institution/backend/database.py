@@ -3,10 +3,25 @@ import json
 import time
 from typing import List, Optional
 import os
+import hashlib
+import secrets
 
 from .models import Role, User, Basket, Institution, OntologySchema, DeltaQueueMessage
 
 DB_PATH = os.path.join(os.path.dirname(__file__), "federated_registry.sqlite")
+PASSWORD_SCHEME = "pbkdf2_sha256"
+PASSWORD_ITERATIONS = 200_000
+
+
+def _seed_hash_password(password: str) -> str:
+  salt = secrets.token_hex(16)
+  digest = hashlib.pbkdf2_hmac(
+    "sha256",
+    str(password).encode("utf-8"),
+    salt.encode("utf-8"),
+    PASSWORD_ITERATIONS,
+  ).hex()
+  return f"{PASSWORD_SCHEME}${PASSWORD_ITERATIONS}${salt}${digest}"
 
 def get_connection():
   conn = sqlite3.connect(DB_PATH)
@@ -345,9 +360,23 @@ def seed_database():
   """Seeds the database with test data if it is empty."""
   with get_connection() as conn:
     cursor = conn.cursor()
+
+    def _ensure_developer_account():
+      exec_hash = _seed_hash_password("exec123")
+      dev_hash = _seed_hash_password("dev123")
+      cursor.execute(
+        "INSERT OR IGNORE INTO users (username, password_hash, role) VALUES (?, ?, ?)",
+        ("executive", exec_hash, Role.EXECUTIVE.value),
+      )
+      cursor.execute(
+        "INSERT OR IGNORE INTO users (username, password_hash, role) VALUES (?, ?, ?)",
+        ("developer", dev_hash, Role.EXECUTIVE.value),
+      )
     
     cursor.execute("SELECT COUNT(*) FROM users")
     if cursor.fetchone()[0] > 0:
+      _ensure_developer_account()
+      conn.commit()
       return # Already seeded
       
     print("Seeding robust Federated Database Registry...")
@@ -377,16 +406,17 @@ def seed_database():
 
     # 4. Users (Passwords are obviously mocked for the system demo, hashing is needed in prod)
     # 4a. The God Tier
-    cursor.execute("INSERT INTO users (username, password_hash, role) VALUES (?, ?, ?)", ("executive", "exec123", Role.EXECUTIVE.value))
+    cursor.execute("INSERT INTO users (username, password_hash, role) VALUES (?, ?, ?)", ("executive", _seed_hash_password("exec123"), Role.EXECUTIVE.value))
+    _ensure_developer_account()
     
     # 4b. The Basket Admins
-    cursor.execute("INSERT INTO users (username, password_hash, role, basket_id) VALUES (?, ?, ?, ?)", ("econ_admin", "admin123", Role.BASKET_ADMIN.value, econ_basket_id))
-    cursor.execute("INSERT INTO users (username, password_hash, role, basket_id) VALUES (?, ?, ?, ?)", ("health_admin", "admin123", Role.BASKET_ADMIN.value, health_basket_id))
+    cursor.execute("INSERT INTO users (username, password_hash, role, basket_id) VALUES (?, ?, ?, ?)", ("econ_admin", _seed_hash_password("admin123"), Role.BASKET_ADMIN.value, econ_basket_id))
+    cursor.execute("INSERT INTO users (username, password_hash, role, basket_id) VALUES (?, ?, ?, ?)", ("health_admin", _seed_hash_password("admin123"), Role.BASKET_ADMIN.value, health_basket_id))
 
     # 4c. The Spokes
-    cursor.execute("INSERT INTO users (username, password_hash, role, basket_id, institution_id) VALUES (?, ?, ?, ?, ?)", ("spoke_cb", "spoke123", Role.INSTITUTION.value, econ_basket_id, cb_id))
-    cursor.execute("INSERT INTO users (username, password_hash, role, basket_id, institution_id) VALUES (?, ?, ?, ?, ?)", ("spoke_nsb", "spoke123", Role.INSTITUTION.value, econ_basket_id, nsb_id))
-    cursor.execute("INSERT INTO users (username, password_hash, role, basket_id, institution_id) VALUES (?, ?, ?, ?, ?)", ("spoke_gh1", "spoke123", Role.INSTITUTION.value, health_basket_id, gh1_id))
+    cursor.execute("INSERT INTO users (username, password_hash, role, basket_id, institution_id) VALUES (?, ?, ?, ?, ?)", ("spoke_cb", _seed_hash_password("spoke123"), Role.INSTITUTION.value, econ_basket_id, cb_id))
+    cursor.execute("INSERT INTO users (username, password_hash, role, basket_id, institution_id) VALUES (?, ?, ?, ?, ?)", ("spoke_nsb", _seed_hash_password("spoke123"), Role.INSTITUTION.value, econ_basket_id, nsb_id))
+    cursor.execute("INSERT INTO users (username, password_hash, role, basket_id, institution_id) VALUES (?, ?, ?, ?, ?)", ("spoke_gh1", _seed_hash_password("spoke123"), Role.INSTITUTION.value, health_basket_id, gh1_id))
     
     conn.commit()
 

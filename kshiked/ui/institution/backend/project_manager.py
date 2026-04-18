@@ -187,7 +187,7 @@ class ProjectManager:
 
   @staticmethod
   def add_update(project_id: int, author_name: str, update_type: str, content: str, certainty: Optional[float] = None):
-    """update_type: 'OBSERVATION', 'ANALYSIS_REQUEST', 'POLICY_ACTION'"""
+    """update_type: 'OBSERVATION', 'ANALYSIS_REQUEST', 'RESOURCE_GAP', 'POLICY_ACTION', 'ANALYSIS_RESULT'"""
     timestamp = time.time()
     with get_connection() as conn:
       cursor = conn.cursor()

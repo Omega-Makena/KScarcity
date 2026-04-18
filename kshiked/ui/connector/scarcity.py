@@ -18,6 +18,9 @@ class ScarcityConnector:
     self._connected = False
     self._training_complete = False
     self._granger_cache: Optional[List[Dict[str, Any]]] = None
+    self._kg_cache: Optional[list] = None
+    self._kg_cache_ts: float = 0.0
+    self._KG_TTL: float = 10.0  # seconds
   
   def connect(self) -> bool:
     """Try to connect to scarcity engine."""
@@ -118,20 +121,31 @@ class ScarcityConnector:
           count += 1
       
       self._training_complete = True
-      self._granger_cache = None # Invalidate cached causal results
+      self._granger_cache = None  # Invalidate cached causal results
+      self._kg_cache = None  # Invalidate knowledge graph cache
       logger.info(f"Trained Scarcity Engine on {count} historical data points")
       
     except Exception as e:
       logger.error(f"Failed to train on historical data: {e}")
   
+  def _get_knowledge_graph(self) -> list:
+    """Return cached knowledge graph (TTL = _KG_TTL seconds)."""
+    import time as _time
+    now = _time.time()
+    if self._kg_cache is not None and (now - self._kg_cache_ts) < self._KG_TTL:
+      return self._kg_cache
+    graph = self._engine.get_knowledge_graph()
+    self._kg_cache = graph
+    self._kg_cache_ts = now
+    return graph
+
   def get_hypotheses(self, limit: int = 50) -> List[HypothesisData]:
     """Get top hypotheses from engine."""
     if not self._connected or not self._engine:
       return []
-    
+
     try:
-      # Get graph from engine
-      graph = self._engine.get_knowledge_graph()
+      graph = self._get_knowledge_graph()
       
       # Convert to dashboard format
       results = []
@@ -241,7 +255,7 @@ class ScarcityConnector:
     
     if self._engine and self._connected:
       try:
-        graph = self._engine.get_knowledge_graph()
+        graph = self._get_knowledge_graph()
         status["nodes"] = len(set(
           [n.get('id') for n in graph] if isinstance(graph, list) else []
         ))

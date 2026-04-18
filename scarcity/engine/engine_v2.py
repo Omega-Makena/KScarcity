@@ -10,6 +10,7 @@ HARDENED v4: Includes Meta-Controller and Explicit Scoring.
 import time
 import logging
 import math
+import numpy as np
 from typing import Dict, List, Any
 
 from .discovery import HypothesisPool, Hypothesis, RelationshipType
@@ -56,7 +57,9 @@ class OnlineDiscoveryEngine:
     It serves as the high-level API for external consumers to feed data and
     retrieve the learned Knowledge Graph.
     """
-    def __init__(self, explore_interval: int = 10):
+    VALID_MODES = {"balanced", "performance"}
+
+    def __init__(self, explore_interval: int = 10, mode: str = "balanced"):
         """
         Initializes the discovery engine and its sub-components.
 
@@ -72,6 +75,35 @@ class OnlineDiscoveryEngine:
         self.step_count = 0
         self.explore_interval = explore_interval
         self.start_time = time.time()
+        self.mode = "balanced"
+        self.lifecycle_interval = 10
+        self.arbitration_interval = 50
+        self.grouping_enabled = True
+        self.exploration_enabled = True
+        self.update_error_total = 0
+        self.set_mode(mode)
+
+    def set_mode(self, mode: str) -> None:
+        """Switch engine runtime mode.
+
+        balanced: full discovery loop behavior.
+        performance: reduced overhead for faster pilot-style stream processing.
+        """
+        mode_norm = str(mode or "balanced").strip().lower()
+        if mode_norm not in self.VALID_MODES:
+            raise ValueError(f"Unsupported mode '{mode}'. Valid modes: {sorted(self.VALID_MODES)}")
+
+        self.mode = mode_norm
+        if mode_norm == "performance":
+            self.lifecycle_interval = 25
+            self.arbitration_interval = 100
+            self.grouping_enabled = False
+            self.exploration_enabled = False
+        else:
+            self.lifecycle_interval = 10
+            self.arbitration_interval = 50
+            self.grouping_enabled = True
+            self.exploration_enabled = True
         
     def initialize(self, schema: Dict[str, Any]) -> None:
         """
@@ -193,6 +225,9 @@ class OnlineDiscoveryEngine:
         Returns:
             A clean dictionary mapping variable names to float values (or NaN).
         """
+        if not isinstance(row, dict):
+            return {}
+
         clean_row = {}
         for k, v in row.items():
             if not isinstance(k, str): continue 
@@ -236,21 +271,26 @@ class OnlineDiscoveryEngine:
         # 2. Update Hypotheses (Evaluate -> Fit -> UpdateConf)
         # Note: This calls the new Hypothesis.update which returns the Dict of metrics
         self.hypotheses.update_all(safe_row)
+        row_update_errors = int(getattr(self.hypotheses, "last_update_errors", 0))
+        self.update_error_total += row_update_errors
         
-        # 3. Meta-Controller Lifecycle (Every 10 steps)
-        if self.step_count % 10 == 0:
+        # 3. Meta-Controller Lifecycle
+        if self.step_count % self.lifecycle_interval == 0:
             self.meta_controller.manage_lifecycle(self.hypotheses)
         
-        # 4. Monitor Grouping
-        hypothesis_errors = {}
-        self.grouper.monitor(safe_row, hypothesis_errors)
+        # 4. Monitor Grouping (optional in performance mode)
+        hypothesis_errors = self._build_group_error_signal()
+        drift_pressure = float(np.mean(list(hypothesis_errors.values()))) if hypothesis_errors else 0.0
+        drift_alert = bool(drift_pressure > self.grouper.split_threshold)
+        if self.grouping_enabled:
+            self.grouper.monitor(safe_row, hypothesis_errors)
         
-        # 5. Arbitration (Every 50 steps)
-        if self.step_count % 50 == 0:
+        # 5. Arbitration
+        if self.step_count % self.arbitration_interval == 0:
             self._arbitrate_step()
             
         # 6. Exploration
-        if self.step_count % self.explore_interval == 0:
+        if self.exploration_enabled and self.step_count % self.explore_interval == 0:
             self._explore_step()
         
         # Gather Stats
@@ -258,11 +298,37 @@ class OnlineDiscoveryEngine:
         
         return {
             "step": self.step_count,
+            "engine_mode": self.mode,
+            "update_errors": row_update_errors,
+            "update_error_total": self.update_error_total,
+            "update_error_details": getattr(self.hypotheses, "last_update_error_details", [])[:5],
+            "drift_pressure": drift_pressure,
+            "drift_alert": drift_alert,
+            "group_error_signal": hypothesis_errors,
             "active_hypotheses": meta_stats['active'],
             "total_hypotheses": len(self.hypotheses.population),
             "meta_summary": meta_stats,
             "groups": len(self.grouper.groups)
         }
+
+    def _build_group_error_signal(self) -> Dict[str, float]:
+        """Aggregate per-group model error signal from current hypothesis fit scores."""
+        grouped: Dict[str, List[float]] = {}
+        for hyp in self.hypotheses.population.values():
+            fit = float(getattr(hyp, "fit_score", 0.5))
+            if not math.isfinite(fit):
+                continue
+
+            # Convert fit quality [0,1] to error pressure [0,1].
+            error = max(0.0, min(1.0, 1.0 - fit))
+
+            for var in getattr(hyp, "variables", []):
+                gid = self.grouper.get_group_id(var)
+                if not gid:
+                    continue
+                grouped.setdefault(gid, []).append(error)
+
+        return {gid: float(np.mean(vals)) for gid, vals in grouped.items() if vals}
     
     def _arbitrate_step(self) -> None:
         """

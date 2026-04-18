@@ -64,6 +64,18 @@ def _render_signal_gauges(data: DashboardData, theme):
     paper_bgcolor='rgba(0,0,0,0)', font={'color': theme.text_muted, 'size': 10},
   )
   st.plotly_chart(fig, use_container_width=True)
+  if signals:
+    _visible = signals[:15]
+    _critical = [s for s in _visible if s.intensity >= 0.6]
+    _warning = [s for s in _visible if 0.4 <= s.intensity < 0.6]
+    _normal = [s for s in _visible if s.intensity < 0.4]
+    _top_sig = max(_visible, key=lambda s: s.intensity)
+    st.caption(
+      f"Signal status across {len(_visible)} types: "
+      f"{len(_critical)} critical (≥60%), {len(_warning)} elevated (40–60%), "
+      f"{len(_normal)} normal (<40%). "
+      f"Highest: '{_top_sig.name}' at {_top_sig.intensity:.0%}."
+    )
 
 
 def _render_signal_cascade(data: DashboardData, theme):
@@ -104,6 +116,15 @@ def _render_signal_cascade(data: DashboardData, theme):
     paper_bgcolor='rgba(0,0,0,0)', font={'color': theme.text_primary, 'size': 10},
   )
   st.plotly_chart(fig, use_container_width=True)
+  if signals and counties:
+    _top_sig = signals[0]
+    _top_county_name = counties[0][0]
+    st.caption(
+      f"'{_top_sig.name}' ({_top_sig.intensity:.0%} intensity) is the dominant signal "
+      f"cascading across {len(counties)} highest-risk counties. "
+      f"Most exposed: {_top_county_name}. "
+      f"Wider ribbons indicate stronger signal pressure on that county."
+    )
 
 
 def _render_cooccurrence_heatmap(data: DashboardData, theme):
@@ -136,6 +157,19 @@ def _render_cooccurrence_heatmap(data: DashboardData, theme):
     xaxis={'tickangle': -45}, yaxis={'autorange': 'reversed'},
   )
   st.plotly_chart(fig, use_container_width=True)
+  if z_data.size > 0 and len(labels) >= 2:
+    import numpy as _np2
+    _z_mask = z_data.copy()
+    _np2.fill_diagonal(_z_mask, 0)
+    _max_idx = _np2.unravel_index(_np2.argmax(_z_mask), _z_mask.shape)
+    _max_val = float(_z_mask[_max_idx])
+    _l1 = labels[_max_idx[0]] if _max_idx[0] < len(labels) else "?"
+    _l2 = labels[_max_idx[1]] if _max_idx[1] < len(labels) else "?"
+    st.caption(
+      f"Brighter cells = signals that co-occur more frequently. "
+      f"Strongest co-occurrence: '{_l1}' & '{_l2}' ({_max_val:.2f}). "
+      f"High co-occurrence indicates a compound threat requiring a joint response."
+    )
 
 
 def _render_signal_silence(data: DashboardData, theme):

@@ -3,6 +3,25 @@
 from ._shared import (st, pd, np, go, make_subplots, HAS_DATA_STACK, HAS_PLOTLY, PALETTE, base_layout, discover_dimensions, flat_dim_options, dim_label, extract_dim)
 
 
+def _guide(theme, method_html: str, interp_html: str, rec_html: str) -> None:
+  """Render a collapsible 3-section analysis guide."""
+  with st.expander("Analysis Guide & Interpretation", expanded=False):
+    st.markdown(
+      f"<div style='font-size:0.82rem; line-height:1.65;'>"
+      f"<div style='color:{theme.accent_primary}; font-weight:700; font-size:0.72rem; "
+      f"letter-spacing:0.08em; margin-bottom:0.35rem;'>WHAT IS THIS ANALYSIS?</div>"
+      f"<div style='color:{theme.text_muted}; margin-bottom:0.9rem;'>{method_html}</div>"
+      f"<div style='color:{theme.accent_warning}; font-weight:700; font-size:0.72rem; "
+      f"letter-spacing:0.08em; margin-bottom:0.35rem;'>INTERPRETATION</div>"
+      f"<div style='color:{theme.text_muted}; margin-bottom:0.9rem;'>{interp_html}</div>"
+      f"<div style='color:{theme.accent_success}; font-weight:700; font-size:0.72rem; "
+      f"letter-spacing:0.08em; margin-bottom:0.35rem;'>RECOMMENDATION</div>"
+      f"<div style='color:{theme.text_muted};'>{rec_html}</div>"
+      f"</div>",
+      unsafe_allow_html=True,
+    )
+
+
 def render_sensitivity_tab(theme, outcome_dimensions):
   trajectory = st.session_state.get("sim_trajectory")
   if not trajectory or len(trajectory) < 6:
@@ -58,6 +77,59 @@ def render_sensitivity_tab(theme, outcome_dimensions):
       <span style="color:{theme.accent_danger}">-1.0</span> means strongly negative.
     </div>
     """, unsafe_allow_html=True)
+
+    # ── Sensitivity interpretation ───────────────────────────────────────────
+    try:
+      _flat_impacts = [(policy_keys[r], outcome_keys[c], impacts[r][c])
+                       for r in range(len(policy_keys)) for c in range(len(outcome_keys))]
+      _top_pos = max(_flat_impacts, key=lambda x: x[2])
+      _top_neg = min(_flat_impacts, key=lambda x: x[2])
+      _strong_pos = [(p, o, v) for p, o, v in _flat_impacts if v > 0.6]
+      _strong_neg = [(p, o, v) for p, o, v in _flat_impacts if v < -0.6]
+      _interp_sens = (
+        f"Strongest positive lever: <b>{dim_label(_top_pos[0])}</b> → <b>{dim_label(_top_pos[1])}</b> "
+        f"(ρ = {_top_pos[2]:+.2f}). "
+        f"Strongest negative lever: <b>{dim_label(_top_neg[0])}</b> → <b>{dim_label(_top_neg[1])}</b> "
+        f"(ρ = {_top_neg[2]:+.2f}). "
+        + (f"{len(_strong_pos)} strong positive association(s) and {len(_strong_neg)} strong negative association(s) detected (|ρ| > 0.6)."
+           if _strong_pos or _strong_neg else
+           "No strong associations (|ρ| > 0.6) detected — policy instruments have diffuse effects in this scenario.")
+      )
+      if _top_pos[2] > 0.5:
+        _rec_sens = (
+          f"To improve <b>{dim_label(_top_pos[1])}</b>, prioritise expanding "
+          f"<b>{dim_label(_top_pos[0])}</b> — it has the strongest positive association in this scenario. "
+          + (f"Conversely, be cautious with <b>{dim_label(_top_neg[0])}</b> — increasing it "
+             f"is associated with a deterioration in <b>{dim_label(_top_neg[1])}</b> (ρ = {_top_neg[2]:+.2f})."
+             if _top_neg[2] < -0.4 else "")
+        )
+      else:
+        _rec_sens = (
+          "No instrument has a dominant positive effect on any single outcome. "
+          "Policy must rely on combinations of instruments rather than a single lever. "
+          "Consider running different scenarios to find conditions under which stronger sensitivities emerge."
+        )
+    except Exception:
+      _interp_sens = "Look for the darkest green cells (strongest positive levers) and darkest red cells (strongest negative associations)."
+      _rec_sens = "Pull the green levers; avoid or reverse the red ones relative to your target outcome column."
+
+    _guide(
+      theme,
+      method_html=(
+        "The <b>Policy-Outcome Sensitivity Matrix</b> shows the <b>Pearson correlation</b> between "
+        "each policy instrument and each outcome dimension over the full simulation trajectory.<br><br>"
+        "Each cell value ρ ranges from −1 to +1:<br>"
+        "<ul style='margin:0.3rem 0; padding-left:1.2rem;'>"
+        "<li><b>+1.0</b> — instrument and outcome move in perfect lockstep (turning this lever up always improves the outcome)</li>"
+        "<li>&nbsp;0.0 — no relationship; this instrument doesn't affect this outcome</li>"
+        "<li><b>−1.0</b> — perfect negative correlation (turning this lever up worsens the outcome)</li>"
+        "</ul>"
+        "Note: correlation ≠ causation. A high correlation can arise because both variables respond to the same underlying shock. "
+        "Use the Causal Estimands tab for causal identification."
+      ),
+      interp_html=_interp_sens,
+      rec_html=_rec_sens,
+    )
 
 
 # ═════════════════════════════════════════════════════════════════════════════
@@ -145,6 +217,24 @@ def render_state_cube_tab(theme, outcome_dimensions):
             font=dict(color=theme.text_muted, size=13))),
   )
   st.plotly_chart(fig, use_container_width=True)
+  if x_vals and y_vals and z_vals and len(trajectory) > 1:
+    _dx = x_vals[-1] - x_vals[0]
+    _dy = y_vals[-1] - y_vals[0]
+    _dz = z_vals[-1] - z_vals[0]
+    st.markdown(f"""
+    <div style="font-size:0.78rem; color:{theme.text_muted}; padding:0.3rem 0;">
+      <b>How to read:</b> Each dot is the economy's state in
+      {x_label}–{y_label}–{z_label} space at a given quarter.
+      The path from <span style="color:{theme.accent_success};">&#x25C6; Start</span>
+      to <span style="color:{theme.accent_danger};">&#x25C6; End</span>
+      traces how the system evolved. Colour gradient = time (early = dark, late = bright).
+      <br><b>Net movement over simulation:</b>
+      {x_label} {_dx:+.3f} &nbsp;|&nbsp;
+      {y_label} {_dy:+.3f} &nbsp;|&nbsp;
+      {z_label} {_dz:+.3f}.
+      Drag to rotate; scroll to zoom.
+    </div>
+    """, unsafe_allow_html=True)
 
   # Dynamic summary table for ALL discovered sector_balances
   sector_keys = dims.get("sector_balances", [])
@@ -161,6 +251,73 @@ def render_state_cube_tab(theme, outcome_dimensions):
         "Change": f"{fin_v - init_v:+.4f}",
       })
     st.dataframe(pd.DataFrame(bal_data), use_container_width=True, hide_index=True)
+
+  # ── State Cube interpretation ─────────────────────────────────────────────
+  try:
+    _n = len(x_vals) - 1
+    _seg3 = [(x_vals[i+1]-x_vals[i])**2 + (y_vals[i+1]-y_vals[i])**2 + (z_vals[i+1]-z_vals[i])**2
+             for i in range(_n)]
+    _path_3d = sum(s**0.5 for s in _seg3)
+    _disp_3d = ((x_vals[-1]-x_vals[0])**2 + (y_vals[-1]-y_vals[0])**2 + (z_vals[-1]-z_vals[0])**2)**0.5
+    _straight_3d = float(_disp_3d / max(_path_3d, 1e-9))
+    _vx = [x_vals[i+1]-x_vals[i] for i in range(_n)]
+    _vy = [y_vals[i+1]-y_vals[i] for i in range(_n)]
+    _rev_x = sum(1 for i in range(1, len(_vx)) if _vx[i]*_vx[i-1] < 0)
+    _rev_y = sum(1 for i in range(1, len(_vy)) if _vy[i]*_vy[i-1] < 0)
+    if _straight_3d > 0.8:
+      _topo = "monotonic convergence — the economy moves cleanly toward a new equilibrium in all 3 dimensions"
+    elif _straight_3d > 0.45:
+      _topo = "curved adjustment — oscillatory dynamics present in at least one dimension"
+    else:
+      _topo = "highly looping trajectory — strong cyclical or oscillatory dynamics; the economy revisits similar states"
+    _interp_cube = (
+      f"3D path length: {_path_3d:.3f} units. Straightness index: <b>{_straight_3d:.2f}</b>. "
+      f"Topology: <b>{_topo}</b>. "
+      f"Direction reversals: {_rev_x} on {x_label}, {_rev_y} on {y_label}. "
+      f"The colour axis ({c_title}) encodes a 4th dimension — watch for colour banding or clustering, "
+      f"which indicates the 4th variable is correlated with the 3D trajectory shape."
+    )
+    if _straight_3d > 0.7:
+      _rec_cube = (
+        "Clean convergence detected. The system is well-behaved in all three selected dimensions. "
+        "Rotate the cube to check whether the trajectory is flat in any dimension (indicating that "
+        "variable is not actively adjusting — it may not be the right choice for the Z or X axis)."
+      )
+    else:
+      _rec_cube = (
+        f"Oscillatory dynamics detected ({max(_rev_x, _rev_y)} reversal(s)). "
+        "Rotate the 3D cube to identify the plane where oscillation is most pronounced — "
+        "the two variables whose axis contains the most curvature are the primary boom-bust pair. "
+        "Use the Phase Explorer tab to focus on just those two dimensions for a cleaner 2D analysis."
+      )
+  except Exception:
+    _interp_cube = "Examine the trajectory shape: tight cluster = near equilibrium; long arc = sustained trend; loop = cyclical dynamics."
+    _rec_cube = "Use the colour selector to encode a 4th variable — watch for colour banding along the trajectory, which signals correlation with the path direction."
+
+  _guide(
+    theme,
+    method_html=(
+      "The <b>3D State Cube</b> is a multi-dimensional projection of the economy's state space. "
+      "Three variables are mapped to X, Y, Z coordinates; colour adds a <b>4th dimension</b> "
+      "— making this effectively a <b>4D visualisation</b> of a system with far more than 4 variables.<br><br>"
+      "Why a cube instead of time-series lines? Because the economy is a <b>coupled system</b> — "
+      "all variables interact simultaneously. The cube shows these couplings directly: "
+      "when the economy moves through X-Y-Z space, it reveals whether the variables "
+      "move together (correlated adjustment) or independently.<br><br>"
+      "The <b>trajectory path</b> on the manifold (the 3D surface the economy is constrained to) "
+      "shows the dynamic structure:<br>"
+      "<ul style='margin:0.3rem 0; padding-left:1.2rem;'>"
+      "<li><b>Tight cluster</b> → near-equilibrium, low volatility</li>"
+      "<li><b>Long straight arc</b> → sustained directional trend (structural shift)</li>"
+      "<li><b>Looping</b> → cyclical dynamics; the economy repeatedly revisits similar states</li>"
+      "<li><b>Chaotic scatter</b> → high sensitivity to initial conditions</li>"
+      "</ul>"
+      "The sector balance table confirms <b>SFC accounting consistency</b>: all sector balances must "
+      "sum near zero (a household saving = a firm borrowing = a bank lending)."
+    ),
+    interp_html=_interp_cube,
+    rec_html=_rec_cube,
+  )
 
 
 # ═════════════════════════════════════════════════════════════════════════════
@@ -289,6 +446,23 @@ def render_compare_tab(theme, outcome_dimensions, default_dimensions):
           bgcolor='rgba(0,0,0,0)'),
   ))
   st.plotly_chart(fig, use_container_width=True)
+  if history and len(history) >= 2:
+    _end_vals = {h["label"]: h["trajectory"][-1].get("outcomes", {}).get(focus_dim, 0) * mult
+                 for h in history if h.get("trajectory")}
+    if _end_vals:
+      _sorted_runs = sorted(_end_vals.items(), key=lambda x: x[1], reverse=True)
+      _leader_lbl, _leader_val = _sorted_runs[0]
+      _trailer_lbl, _trailer_val = _sorted_runs[-1]
+      _sfx = "%" if is_pct else ""
+      st.markdown(f"""
+      <div style="font-size:0.78rem; color:{theme.text_muted}; padding:0.3rem 0;">
+        <b>Reading:</b> Each line is a saved scenario run overlaid for comparison.
+        At the final quarter: <b>{_leader_lbl}</b> leads at {_leader_val:.2f}{_sfx};
+        <b>{_trailer_lbl}</b> trails at {_trailer_val:.2f}{_sfx}
+        (gap = {abs(_leader_val - _trailer_val):.2f}{_sfx}).
+        {f"Shaded band = 25th–75th percentile uncertainty range from 12 jittered runs." if show_bands else ""}
+      </div>
+      """, unsafe_allow_html=True)
 
   # Summary table
   rows = []

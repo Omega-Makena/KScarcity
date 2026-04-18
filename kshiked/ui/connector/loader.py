@@ -4,6 +4,7 @@ Aggregates data from multiple connectors into a DashboardData object.
 """
 from __future__ import annotations
 import logging
+import time
 from datetime import datetime
 import streamlit as st
 
@@ -14,6 +15,10 @@ from .federation import FederationConnector
 from .simulation import SimulationConnector
 
 logger = logging.getLogger("sentinel.connector.loader")
+
+# How long (seconds) to reuse a cached DashboardData snapshot before refetching.
+# Eliminates 12+ connector calls on every Streamlit re-render.
+_DATA_CACHE_TTL = 30
 
 # =============================================================================
 # Singleton Connectors
@@ -50,10 +55,22 @@ def get_simulation_connector() -> SimulationConnector:
 def get_dashboard_data(force_causal: bool = False) -> DashboardData:
   """
   Fetch and aggregate all dashboard data.
-  
+
+  Results are cached in st.session_state for _DATA_CACHE_TTL seconds to avoid
+  re-running 12+ connector calls on every Streamlit re-render.
+
   Args:
-    force_causal: If True, force re-training/calculation of causal graph.
+    force_causal: If True, bypass cache and force fresh data fetch.
   """
+  _cache_key = "_dashboard_data_snapshot"
+  _ts_key = "_dashboard_data_snapshot_ts"
+
+  if not force_causal:
+    cached = st.session_state.get(_cache_key)
+    cached_ts = st.session_state.get(_ts_key, 0.0)
+    if cached is not None and (time.time() - cached_ts) < _DATA_CACHE_TTL:
+      return cached
+
   logger.info(f"Fetching dashboard data (force_causal={force_causal})")
   
   # 1. Connect to engines (cached singletons)
@@ -98,7 +115,7 @@ def get_dashboard_data(force_causal: bool = False) -> DashboardData:
   sim_state = simulation.get_state()
   
   # 4. Construct Data Package
-  return DashboardData(
+  result = DashboardData(
     threat_level=threat,
     time_to_escalation=escalation_time,
     signals=signals,
@@ -118,3 +135,8 @@ def get_dashboard_data(force_causal: bool = False) -> DashboardData:
     simulation=sim_state,
     last_update=datetime.now()
   )
+
+  # Store snapshot in session state so subsequent re-renders within TTL are free.
+  st.session_state[_cache_key] = result
+  st.session_state[_ts_key] = time.time()
+  return result

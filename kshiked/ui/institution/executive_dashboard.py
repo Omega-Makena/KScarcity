@@ -1767,89 +1767,109 @@ def render(mode: str = "executive"):
     if not global_risks:
       st.success("No active systemic signals detected.")
     else:
-      st.markdown("<br>", unsafe_allow_html=True)
+      st.caption("Click a card to expand the full threat brief inline.")
+      selected_key = "exec_threat_intel_expanded_idx"
+      if selected_key not in st.session_state:
+        st.session_state[selected_key] = None
+
+      threat_cards = []
       for risk in global_risks:
-        # 1. Normalize Scores
         scores = risk.get('composite_scores', {})
         if isinstance(scores, str):
-           try:
-               scores = json.loads(scores)
-           except:
-               scores = {}
-        
-        # Determine metrics (fallback to impact if others missing)
-        b_impact = float(scores.get('B_Impact', scores.get('composite_risk', scores.get('severity', 0))) * 10 if scores.get('composite_risk') or scores.get('severity') else scores.get('B_Impact', 0))
-        a_detect = float(scores.get('A_Detection', b_impact))
-        c_cert = float(scores.get('C_Certainty', scores.get('confidence', scores.get('trend', 0.8)) * 10 if scores.get('confidence') or scores.get('trend') else scores.get('C_Certainty', 0)))
+          try:
+            scores = json.loads(scores)
+          except Exception:
+            scores = {}
 
-        # Visual Classing
+        b_impact = float(
+          scores.get('B_Impact', scores.get('composite_risk', scores.get('severity', 0))) * 10
+          if scores.get('composite_risk') or scores.get('severity')
+          else scores.get('B_Impact', 0)
+        )
+        a_detect = float(scores.get('A_Detection', b_impact))
+        c_cert = float(
+          scores.get('C_Certainty', scores.get('confidence', scores.get('trend', 0.8)) * 10
+          if scores.get('confidence') or scores.get('trend')
+          else scores.get('C_Certainty', 0))
+        )
+
         sev_class = "cr" if b_impact > 7 else "hi" if b_impact > 4 else "md"
         color_hex = theme.accent_danger if sev_class == "cr" else theme.accent_warning if sev_class == "hi" else theme.accent_primary
         bg_hex = f"{color_hex}11"
         border_hex = f"{color_hex}44"
-        
-        sector_name = all_baskets.get(risk['basket_id'], f"Sector {risk['basket_id']}")
+
+        basket_id = risk.get('basket_id')
+        sector_name = all_baskets.get(basket_id, f"Sector {basket_id}")
         title = risk.get('title', 'Uncharacterized Risk Profile')
         detected = pd.to_datetime(risk.get('timestamp', time.time()), unit='s').strftime('%Y-%m-%d %H:%M')
-
-        # Generate Strategic Narratives
-        # 1. Inaction Projection
-        p_str = generate_inaction_projection(severity=b_impact)
-        projection_text = p_str if p_str else "Current severity level projects no immediate critical structural breaches."
-        
-        # 2. Strategic Recommendation
+        projection_text = generate_inaction_projection(severity=b_impact) or "Current severity level projects no immediate critical structural breaches."
         rec = generate_recommendation(risk=risk, all_baskets=all_baskets, global_risks=global_risks)
-        recommendation_text = f"<span style='color:{rec.level_color}; font-weight:700;'>[{rec.level}]</span> {rec.summary} <br><span style='font-size:0.8rem; color:{theme.text_muted};'>{rec.urgency}</span>"
-        
-        # Build UI Card
-        html = f"""
-        <div style="background:{bg_hex}; border:1px solid {border_hex}; border-radius:8px; padding:1.2rem; margin-bottom:1rem; font-family:'IBM Plex Sans', sans-serif;">
-          <!-- Header -->
-          <div style="display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:1rem;">
-            <div>
-              <div style="font-size:0.75rem; text-transform:uppercase; letter-spacing:1px; color:{color_hex}; font-weight:700; margin-bottom:0.2rem;">
-                {sector_name}
+
+        threat_cards.append({
+          "risk": risk,
+          "sector_name": sector_name,
+          "title": title,
+          "detected": detected,
+          "b_impact": b_impact,
+          "a_detect": a_detect,
+          "c_cert": c_cert,
+          "color_hex": color_hex,
+          "bg_hex": bg_hex,
+          "border_hex": border_hex,
+          "projection_text": projection_text,
+          "recommendation": rec,
+        })
+
+      cards_per_row = 3
+      for i, card in enumerate(threat_cards):
+        if i % cards_per_row == 0:
+          row_cols = st.columns(cards_per_row)
+        col = row_cols[i % cards_per_row]
+        with col:
+          st.markdown(
+            f"""
+            <div style="background:{card['bg_hex']}; border:1px solid {card['border_hex']}; border-radius:10px; padding:1rem; min-height:250px; font-family:'IBM Plex Sans', sans-serif; display:flex; flex-direction:column; justify-content:space-between;">
+              <div>
+                <div style="font-size:0.72rem; text-transform:uppercase; letter-spacing:0.8px; color:{card['color_hex']}; font-weight:700; margin-bottom:0.35rem;">
+                  {card['sector_name']}
+                </div>
+                <div style="font-size:0.95rem; font-weight:620; color:{theme.text_primary}; line-height:1.35; margin-bottom:0.65rem;">
+                  {card['title']}
+                </div>
               </div>
-              <div style="font-size:1.1rem; font-weight:600; color:{theme.text_primary};">
-                {title}
+              <div>
+                <div style="font-size:0.78rem; color:{theme.text_muted}; margin-bottom:0.35rem;">Detected {card['detected']}</div>
+                <div style="display:flex; flex-direction:column; gap:0.2rem;">
+                  <div style="font-size:0.8rem; color:{theme.text_primary};">Impact <span class=\"exec-num\" style=\"font-weight:700; color:{card['color_hex']};\">{card['b_impact']:.1f}</span>/10</div>
+                  <div style="font-size:0.8rem; color:{theme.text_primary};">Detection <span class=\"exec-num\" style=\"font-weight:700;\">{card['a_detect']:.1f}</span>/10</div>
+                  <div style="font-size:0.8rem; color:{theme.text_primary};">Certainty <span class=\"exec-num\" style=\"font-weight:700;\">{card['c_cert']:.1f}</span>/10</div>
+                </div>
               </div>
             </div>
-            <div style="font-size:0.8rem; color:{color_hex}; font-weight:600; text-align:right;">
-              Impact: <span class="exec-num">{b_impact:.1f}/10</span><br>
-              <span style="font-size:0.7rem; color:{theme.text_muted}; font-weight:400;">Detected: {detected}</span>
-            </div>
-          </div>
-          
-          <!-- Metrics Bar -->
-          <div style="display:flex; gap:1.5rem; border-top:1px solid {theme.border_default}; border-bottom:1px solid {theme.border_default}; padding:0.8rem 0; margin-bottom:1rem;">
-             <div style="flex:1;">
-               <div style="font-size:0.7rem; color:{theme.text_muted}; text-transform:uppercase;">Detection</div>
-               <div style="font-size:1.1rem; font-weight:600; color:{theme.text_primary};"><span class="exec-num">{a_detect:.1f}</span><span style="font-size:0.8rem; color:{theme.text_muted};">/10</span></div>
-             </div>
-             <div style="flex:1;">
-               <div style="font-size:0.7rem; color:{theme.text_muted}; text-transform:uppercase;">Impact Profile</div>
-               <div style="font-size:1.1rem; font-weight:600; color:{color_hex};"><span class="exec-num">{b_impact:.1f}</span><span style="font-size:0.8rem; color:{theme.text_muted};">/10</span></div>
-             </div>
-             <div style="flex:1;">
-               <div style="font-size:0.7rem; color:{theme.text_muted}; text-transform:uppercase;">Certainty</div>
-               <div style="font-size:1.1rem; font-weight:600; color:{theme.text_primary};"><span class="exec-num">{c_cert:.1f}</span><span style="font-size:0.8rem; color:{theme.text_muted};">/10</span></div>
-             </div>
-          </div>
-          
-          <!-- Narratives -->
-          <div style="display:flex; flex-direction:column; gap:0.8rem;">
-            <div>
-              <div style="font-size:0.75rem; font-weight:600; color:{theme.text_muted}; margin-bottom:0.2rem;">PROJECTION OF INACTION</div>
-              <div style="font-size:0.9rem; color:{theme.text_primary}; line-height:1.4;">{projection_text}</div>
-            </div>
-            <div>
-              <div style="font-size:0.75rem; font-weight:600; color:{theme.text_muted}; margin-bottom:0.2rem;">STRATEGIC RECOMMENDATION</div>
-              <div style="font-size:0.9rem; color:{theme.text_primary}; line-height:1.4;">{recommendation_text}</div>
-            </div>
-          </div>
-        </div>
-        """
-        st.markdown(html, unsafe_allow_html=True)
+            """,
+            unsafe_allow_html=True,
+          )
+          if st.button("Open Brief", key=f"exec_threat_card_open_{i}", use_container_width=True):
+            current = st.session_state.get(selected_key)
+            st.session_state[selected_key] = None if current == i else i
+
+          if st.session_state.get(selected_key) == i:
+            rec = card["recommendation"]
+            st.markdown(
+              f"""
+              <div style="background:{card['bg_hex']}; border:1px solid {card['border_hex']}; border-radius:10px; padding:0.9rem; margin-top:0.5rem; font-family:'IBM Plex Sans', sans-serif;">
+                <div style="font-size:0.74rem; color:{theme.text_muted}; font-weight:700; margin-bottom:0.2rem;">PROJECTION OF INACTION</div>
+                <div style="font-size:0.88rem; color:{theme.text_primary}; line-height:1.4; margin-bottom:0.65rem;">{card['projection_text']}</div>
+                <div style="font-size:0.74rem; color:{theme.text_muted}; font-weight:700; margin-bottom:0.2rem;">STRATEGIC RECOMMENDATION</div>
+                <div style="font-size:0.88rem; color:{theme.text_primary}; line-height:1.4; margin-bottom:0.6rem;">
+                  <span style='color:{rec.level_color}; font-weight:700;'>[{rec.level}]</span> {rec.summary}<br>
+                  <span style='font-size:0.8rem; color:{theme.text_muted};'>{rec.urgency}</span>
+                </div>
+                <div style="font-size:0.8rem; color:{theme.text_primary};">Impact: <b>{card['b_impact']:.1f}/10</b> &nbsp; Detection: <b>{card['a_detect']:.1f}/10</b> &nbsp; Certainty: <b>{card['c_cert']:.1f}/10</b></div>
+              </div>
+              """,
+              unsafe_allow_html=True,
+            )
       
   if active_section == "Social Signals":
     st.markdown("### Public Safety & Social Signal Monitor")

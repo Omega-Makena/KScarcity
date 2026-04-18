@@ -9,6 +9,8 @@ import pandas as pd
 import time
 from pathlib import Path
 
+from kshiked.ui.institution.backend.model_quality import get_recommended_model_name, log_quality_override
+
 st.set_page_config(page_title="Federated Learning", page_icon="", layout="wide")
 
 # ── Styling ──────────────────────────────────────────────────────────
@@ -108,6 +110,12 @@ with tab_upload:
     )
 
   with col_up2:
+    available_registry_models = _get_model_registry()
+    recommended_fl_model, recommended_reason = get_recommended_model_name("fl")
+    default_training_index = 0
+    if recommended_fl_model and recommended_fl_model in available_registry_models:
+      default_training_index = available_registry_models.index(recommended_fl_model)
+
     target_node = st.selectbox(
       "Target Node",
       options=[n["node_id"] for n in nodes] if nodes else ["org_a"],
@@ -115,9 +123,11 @@ with tab_upload:
     )
     model_name = st.selectbox(
       "Training Model",
-      options=_get_model_registry(),
-      index=0,
+      options=available_registry_models,
+      index=default_training_index,
     )
+    if recommended_fl_model:
+      st.caption(f"Recommended model: {recommended_fl_model}. {recommended_reason}")
 
   if uploaded_file is not None:
     if st.button(" Upload & Train", type="primary", use_container_width=True):
@@ -130,6 +140,17 @@ with tab_upload:
 
         # Ingest and train
         try:
+          if recommended_fl_model and model_name != recommended_fl_model:
+            log_quality_override(
+              family="fl",
+              selected=model_name,
+              recommended=recommended_fl_model,
+              actor=str(st.session_state.get("username") or "unknown"),
+              context="fl_dashboard_upload_train",
+              reason="manual_override",
+              details={"recommended_reason": recommended_reason, "target_node": target_node},
+            )
+
           fm.ingest_live_batch(source_path=str(save_path))
           result = fm.run_single_node_training(
             node_id=target_node,
@@ -148,11 +169,20 @@ with tab_upload:
 
   col_r1, col_r2, col_r3 = st.columns(3)
   with col_r1:
+    round_models = _get_model_registry()
+    recommended_fl_model, recommended_reason = get_recommended_model_name("fl")
+    default_round_index = 0
+    if recommended_fl_model and recommended_fl_model in round_models:
+      default_round_index = round_models.index(recommended_fl_model)
+
     round_model = st.selectbox(
       "Model for Sync Round",
-      options=_get_model_registry(),
+      options=round_models,
+      index=default_round_index,
       key="round_model",
     )
+    if recommended_fl_model:
+      st.caption(f"Recommended sync model: {recommended_fl_model}. {recommended_reason}")
   with col_r2:
     round_lr = st.number_input("Learning Rate", value=0.12, step=0.01, key="round_lr")
   with col_r3:
@@ -165,6 +195,17 @@ with tab_upload:
   if st.button(" Run Sync Round", use_container_width=True):
     with st.spinner("Running federated sync round..."):
       try:
+        if recommended_fl_model and round_model != recommended_fl_model:
+          log_quality_override(
+            family="fl",
+            selected=round_model,
+            recommended=recommended_fl_model,
+            actor=str(st.session_state.get("username") or "unknown"),
+            context="fl_dashboard_sync_round",
+            reason="manual_override",
+            details={"recommended_reason": recommended_reason, "learning_rate": round_lr},
+          )
+
         result = fm.run_sync_round(
           learning_rate=round_lr,
           model_name=round_model,
@@ -244,6 +285,17 @@ with tab_history:
         df_rounds.set_index("round_number")["global_loss"],
         use_container_width=True,
       )
+      _loss_series = df_rounds["global_loss"].dropna()
+      if len(_loss_series) >= 2:
+        _loss_first = float(_loss_series.iloc[0])
+        _loss_last = float(_loss_series.iloc[-1])
+        _loss_delta = _loss_last - _loss_first
+        _trend_txt = "decreasing — model is improving" if _loss_delta < 0 else "increasing — model may be diverging"
+        st.caption(
+          f"Training loss: started at {_loss_first:.4f}, now {_loss_last:.4f} "
+          f"over {len(_loss_series)} rounds ({_loss_delta:+.4f}). "
+          f"Trend is {_trend_txt}. Lower loss = better fit across federation nodes."
+        )
   else:
     st.info("No rounds completed yet. Upload data or run a sync round.")
 

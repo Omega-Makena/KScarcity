@@ -252,17 +252,21 @@ class ResearchSFCEconomy:
         )
     
     def _init_io_structure(self, gdp: float):
-        """Initialize IO sub-sectors."""
+        """Initialize IO sub-sectors (production + crisis sectors)."""
         from scarcity.simulation.io_structure import SubSectorType
         
-        sector_names = ["agriculture", "manufacturing", "services", "mining", "construction"]
+        # Use sector names from IO config, falling back to the full 9-sector list
         shares = self.io_cfg.sector_shares or {}
         emp_shares = self.io_cfg.employment_shares or {}
+        sector_names = list(shares.keys()) if shares else [
+            "agriculture", "manufacturing", "services", "mining", "construction",
+            "health", "water", "transport", "security",
+        ]
         
         for name in sector_names:
             sub_type = SubSectorType(name)
-            share = shares.get(name, 0.2)
-            emp_share = emp_shares.get(name, 0.2)
+            share = shares.get(name, 1.0 / len(sector_names))
+            emp_share = emp_shares.get(name, 1.0 / len(sector_names))
             self.sub_sectors[name] = SubSector(
                 name=name,
                 sub_type=sub_type,
@@ -864,6 +868,32 @@ class ResearchSFCEconomy:
                 }
             base_frame["io_sectors"] = io_detail
             self.sector_trajectory.append(io_detail.copy())
+            
+            # Crisis sector metrics (derived from IO sub-sector outputs)
+            crisis_names = ["health", "water", "transport", "security"]
+            crisis_sectors = {n: self.sub_sectors[n] for n in crisis_names if n in self.sub_sectors}
+            if crisis_sectors:
+                gdp_val = max(self.economy.gdp, 1.0)
+                health_s = crisis_sectors.get("health")
+                water_s = crisis_sectors.get("water")
+                transport_s = crisis_sectors.get("transport")
+                security_s = crisis_sectors.get("security")
+                
+                base_frame["crisis_dimensions"] = {
+                    "health_capacity": float(health_s.output / gdp_val) if health_s else 0.0,
+                    "water_access": float(water_s.output / gdp_val) if water_s else 0.0,
+                    "transport_connectivity": float(transport_s.output / gdp_val) if transport_s else 0.0,
+                    "security_stability": float(security_s.output / gdp_val) if security_s else 0.0,
+                    "infrastructure_score": float(
+                        sum(s.output for s in [transport_s, water_s] if s) / gdp_val
+                    ),
+                    "crisis_severity": float(
+                        1.0 - sum(s.output_share for s in crisis_sectors.values())
+                              / sum(s.output_share for s in self.sub_sectors.values())
+                    ) if self.sub_sectors else 0.0,
+                }
+                # Add crisis metrics to outcomes dict for UI visibility
+                base_frame["outcomes"].update(base_frame["crisis_dimensions"])
         
         # Inequality dimension
         if self.config.enable_heterogeneous and self.agents:

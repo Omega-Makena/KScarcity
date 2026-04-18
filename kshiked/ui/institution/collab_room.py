@@ -45,6 +45,7 @@ _THREAT_COLORS = {
 _UPDATE_COLORS = {
   "OBSERVATION": "#006600",
   "ANALYSIS_REQUEST": "#2563EB",
+  "RESOURCE_GAP": "#B45309",
   "POLICY_ACTION": "#BB0000",
   "ANALYSIS_RESULT": "#007B7B",
 }
@@ -91,67 +92,141 @@ def _render_analysis_result(content_json: str) -> None:
     unsafe_allow_html=True
   )
 
-  # Composite scores
+  # Composite scores — dynamic: render whatever keys the pipeline produced
   comp = data.get("composite", {})
   if comp:
-    _ca, _cb, _cc = st.columns(3)
-    _ca.metric("Detection", f"{comp.get('A_Detection', 0)}/10")
-    _cb.metric("Impact", f"{comp.get('B_Impact', 0)}/10")
-    _cc.metric("Certainty", f"{comp.get('C_Certainty', 0)}/10")
+    # Friendly display names for known keys; unknown keys rendered as-is
+    _comp_labels = {
+      "A_Detection": "Detection",
+      "B_Impact": "Impact",
+      "C_Certainty": "Certainty",
+    }
+    _comp_items = list(comp.items())
+    _comp_cols = st.columns(min(len(_comp_items), 4))
+    for _ci, (k, v) in enumerate(_comp_items[:4]):
+      label = _comp_labels.get(k, k.replace("_", " ").title())
+      try:
+        _comp_cols[_ci].metric(label, f"{float(v):.1f}/10")
+      except (TypeError, ValueError):
+        _comp_cols[_ci].metric(label, str(v))
 
   # Priority alerts
   for alert in data.get("priority_alerts", [])[:3]:
     st.warning(alert)
 
-  # Trend table
+  # Trend table — direction symbols instead of blank strings
   trends = data.get("trend_signals", [])
   if trends:
-    _dir_icons = {"acceleration": "", "deceleration": "", "stable": ""}
-    with st.expander("Temporal Trends", expanded=False):
-      rows = [{"Variable": t.get("column", ""), "Trend": f"{_dir_icons.get(t.get('direction','stable'),'')} {t.get('direction','').title()}",
-           "Volatility": t.get("volatility", ""), "Growth Rate": f"{t.get('growth_rate', 0):+.2%}"}
-          for t in trends]
+    _dir_symbols = {"acceleration": "↑", "deceleration": "↓", "stable": "→"}
+    with st.expander(f"Temporal Trends ({len(trends)} variables)", expanded=False):
+      rows = []
+      for t in trends:
+        direction = t.get("direction", "stable")
+        symbol = _dir_symbols.get(direction, "→")
+        growth = t.get("growth_rate", 0)
+        try:
+          growth_str = f"{float(growth):+.2%}"
+        except (TypeError, ValueError):
+          growth_str = str(growth)
+        rows.append({
+          "Variable": t.get("column", t.get("variable", "")),
+          "Trend": f"{symbol} {direction.title()}",
+          "Volatility": t.get("volatility", "—"),
+          "Growth Rate": growth_str,
+        })
       st.dataframe(rows, use_container_width=True, hide_index=True)
 
-  # 8 threat indices
+  # Threat indices — dynamic: render all indices present in the report
   threat_report = data.get("threat_report")
   if threat_report:
     indices = threat_report.get("indices", {})
-    _index_labels = {
-      "polarization": "Polarization (PI)",
-      "legitimacy_erosion": "Legitimacy Erosion (LEI)",
-      "mobilization_readiness": "Mobilization Readiness (MRS)",
-      "elite_cohesion": "Elite Cohesion (ECI)",
-      "information_warfare": "Information Warfare (IWI)",
-      "security_friction": "Security Friction (SFI)",
-      "economic_cascade": "Economic Cascade (ECR)",
-      "ethnic_tension": "Ethnic Tension (ETM)",
-    }
-    with st.expander("8 Threat Indices (Pulse Engine)", expanded=False):
-      _cols = st.columns(2)
-      for _i, (key, label) in enumerate(_index_labels.items()):
-        _d = indices.get(key, {})
-        _v = _d.get("value") or _d.get("avg_tension", 0.0)
-        _s = _d.get("severity", "LOW")
-        _sc = _THREAT_COLORS.get(_s, "#888")
-        with _cols[_i % 2]:
-          st.markdown(
-            f'<div style="border-left:3px solid {_sc}; padding:0.2rem 0.5rem; margin-bottom:0.3rem;">'
-            f'<span style="font-size:0.8rem; font-weight:600;">{label}</span> '
-            f'<span style="color:{_sc}; font-size:1rem;">{_v:.2f}</span> '
-            f'<span style="color:{_sc}; font-size:0.75rem;">{_s}</span></div>',
-            unsafe_allow_html=True
-          )
+    if indices:
+      # Friendly names for known standard indices; unknown keys shown in title-case
+      _known_labels = {
+        "polarization": "Polarization (PI)",
+        "legitimacy_erosion": "Legitimacy Erosion (LEI)",
+        "mobilization_readiness": "Mobilization Readiness (MRS)",
+        "elite_cohesion": "Elite Cohesion (ECI)",
+        "information_warfare": "Information Warfare (IWI)",
+        "security_friction": "Security Friction (SFI)",
+        "economic_cascade": "Economic Cascade (ECR)",
+        "ethnic_tension": "Ethnic Tension (ETM)",
+      }
+      with st.expander(f"Threat Indices — {len(indices)} active (Pulse Engine)", expanded=False):
+        _cols = st.columns(2)
+        for _i, (key, _d) in enumerate(indices.items()):
+          label = _known_labels.get(key, key.replace("_", " ").title())
+          if isinstance(_d, dict):
+            _v = _d.get("value") or _d.get("avg_tension", 0.0)
+            _s = _d.get("severity", "LOW")
+          else:
+            try:
+              _v = float(_d)
+            except (TypeError, ValueError):
+              _v = 0.0
+            _s = "CRITICAL" if _v > 0.8 else "HIGH" if _v > 0.6 else "ELEVATED" if _v > 0.4 else "LOW"
+          _sc = _THREAT_COLORS.get(_s, "#888")
+          with _cols[_i % 2]:
+            st.markdown(
+              f'<div style="border-left:3px solid {_sc}; padding:0.2rem 0.5rem; margin-bottom:0.3rem;">'
+              f'<span style="font-size:0.8rem; font-weight:600;">{label}</span> '
+              f'<span style="color:{_sc}; font-size:1rem;">{float(_v):.2f}</span> '
+              f'<span style="color:{_sc}; font-size:0.75rem;">{_s}</span></div>',
+              unsafe_allow_html=True
+            )
 
-  # SFC economic state
+  # SFC economic state — dynamic: render all keys present
   econ = data.get("economic_state")
   if econ:
-    with st.expander("Economic State (SFC Model)", expanded=False):
-      _e1, _e2, _e3, _e4 = st.columns(4)
-      _e1.metric("GDP Growth", f"{econ.get('gdp_growth', 0):.2%}")
-      _e2.metric("Inflation", f"{econ.get('inflation', 0):.2%}")
-      _e3.metric("Unemployment", f"{econ.get('unemployment', 0):.2%}")
-      _e4.metric("Interest Rate", f"{econ.get('interest_rate', 0):.2%}")
+    # Friendly names + format hints (pct vs plain) for known keys
+    _econ_meta = {
+      "gdp_growth":      ("GDP Growth",    "pct"),
+      "inflation":       ("Inflation",     "pct"),
+      "unemployment":    ("Unemployment",  "pct"),
+      "interest_rate":   ("Interest Rate", "pct"),
+      "govt_spending":   ("Gov Spending",  "pct"),
+      "trade_balance":   ("Trade Balance", "plain"),
+      "gini":            ("Gini Index",    "plain"),
+      "palma":           ("Palma Ratio",   "plain"),
+    }
+    _econ_items = list(econ.items())
+    with st.expander(f"Economic State (SFC Model) — {len(_econ_items)} indicators", expanded=False):
+      _ecols = st.columns(min(len(_econ_items), 4))
+      for _ei, (k, v) in enumerate(_econ_items):
+        label, fmt = _econ_meta.get(k, (k.replace("_", " ").title(), "plain"))
+        try:
+          val_str = f"{float(v):.2%}" if fmt == "pct" else f"{float(v):.3f}"
+        except (TypeError, ValueError):
+          val_str = str(v)
+        _ecols[_ei % 4].metric(label, val_str)
+
+  # Structural breaks
+  breaks = data.get("structural_breaks", [])
+  if breaks:
+    with st.expander(f"Structural Breaks ({len(breaks)} detected)", expanded=False):
+      for b in breaks:
+        if not isinstance(b, dict):
+          # structural_breaks is a list of raw row indices (ints)
+          st.markdown(
+            f'<div style="border-left:3px solid #BB0000; padding:0.2rem 0.5rem; margin-bottom:0.3rem;">'
+            f'<span style="font-size:0.85rem;">Regime shift at record <b>{b}</b></span>'
+            f'</div>',
+            unsafe_allow_html=True
+          )
+          continue
+        col = b.get("column", b.get("variable", ""))
+        bp = b.get("break_point", b.get("break_year", ""))
+        mag = b.get("magnitude", b.get("change", None))
+        mag_str = f" — magnitude {float(mag):+.2%}" if mag is not None else ""
+        desc = b.get("description", "")
+        desc_html = f'<br><span style="font-size:0.8rem; color:#555;">{desc}</span>' if desc else ""
+        st.markdown(
+          f'<div style="border-left:3px solid #BB0000; padding:0.2rem 0.5rem; margin-bottom:0.3rem;">'
+          f'<span style="font-size:0.85rem;"><b>{col}</b> at t={bp}{mag_str}</span>'
+          f'{desc_html}'
+          f'</div>',
+          unsafe_allow_html=True
+        )
 
   # Relationships
   rels = data.get("relationship_summary", [])
@@ -163,15 +238,29 @@ def _render_analysis_result(content_json: str) -> None:
   # Propagation
   prop = data.get("propagation_chains", [])
   if prop:
-    with st.expander("Risk Propagation Chain", expanded=False):
+    with st.expander(f"Risk Propagation Chain ({len(prop)} paths)", expanded=False):
       for c in prop:
+        desc = c.get("description", "")
+        impact = c.get("estimated_impact", 0)
+        try:
+          impact_str = f"{float(impact):.0%}"
+        except (TypeError, ValueError):
+          impact_str = str(impact)
         st.markdown(
-          f'<div style="background:#FFF8E7; border-left:3px solid #F59E0B; padding:0.4rem 0.7rem; border-radius:0 4px 4px 0;">'
-          f'<b>{c.get("description", "")}</b> — impact: {c.get("estimated_impact", 0):.0%}</div>',
+          f'<div style="background:#FFF8E7; border-left:3px solid #F59E0B; padding:0.4rem 0.7rem; '
+          f'border-radius:0 4px 4px 0; margin-bottom:0.3rem;">'
+          f'<b>{desc}</b> — impact: {impact_str}</div>',
           unsafe_allow_html=True
         )
 
-  st.caption(f"Engine: {data.get('engine_used', '—')} · Elapsed: {data.get('elapsed_ms', 0):.0f} ms · Confidence: {data.get('overall_confidence', 0):.0%}")
+  sensitivity = data.get("sensitivity", "")
+  sens_str = f" · Sensitivity: {sensitivity}" if sensitivity else ""
+  st.caption(
+    f"Engine: {data.get('engine_used', '—')} · "
+    f"Elapsed: {data.get('elapsed_ms', 0):.0f} ms · "
+    f"Confidence: {data.get('overall_confidence', 0):.0%}"
+    f"{sens_str}"
+  )
 
 
 def _render_stream(updates: List[Dict[str, Any]]) -> None:
@@ -207,6 +296,38 @@ def _render_stream(updates: List[Dict[str, Any]]) -> None:
           st.caption(f"Certainty: {cert:.2f}")
 
       st.write("")
+
+
+def _render_resource_gap_summary(updates: List[Dict[str, Any]]) -> None:
+  resource_gaps = [u for u in updates if str(u.get("update_type", "")).upper() == "RESOURCE_GAP"]
+  if not resource_gaps:
+    return
+
+  ordered = sorted(resource_gaps, key=lambda u: float(u.get("timestamp") or 0), reverse=True)
+  st.markdown(
+    f"<div style='background:#FFF7ED; border:1px solid #FDBA74; border-left:4px solid #B45309; "
+    f"border-radius:6px; padding:0.5rem 0.7rem; margin-bottom:0.7rem;'>"
+    f"<span style='color:#9A3412; font-weight:700;'>Resource Gaps Raised: {len(resource_gaps)}</span>"
+    f"<br><span style='color:#7C2D12; font-size:0.82rem;'>"
+    f"Cross-sector collaboration may be blocked until these shortages are addressed."
+    f"</span></div>",
+    unsafe_allow_html=True,
+  )
+
+  for item in ordered[:3]:
+    author = item.get("author_name", "Unknown")
+    ts_raw = item.get("timestamp", 0)
+    ts_str = pd.to_datetime(ts_raw, unit="s").strftime("%Y-%m-%d %H:%M") if ts_raw else "-"
+    message = str(item.get("content", "")).strip()
+    if len(message) > 180:
+      message = message[:177] + "..."
+    st.caption(f"{author} · {ts_str} · {message}")
+
+
+def _resource_gap_needs_response(updates: List[Dict[str, Any]]) -> bool:
+  has_resource_gap = any(str(u.get("update_type", "")).upper() == "RESOURCE_GAP" for u in updates)
+  has_policy_action = any(str(u.get("update_type", "")).upper() == "POLICY_ACTION" for u in updates)
+  return has_resource_gap and not has_policy_action
 
 
 # ── Main render function ──────────────────────────────────────────────────────
@@ -313,17 +434,21 @@ def render_collab_room(
     severity = proj.get('severity', 1)
     sev_color = "#BB0000" if severity >= 4 else "#F59E0B" if severity >= 2.5 else "#006600"
 
+    project_data = ProjectManager.get_project_details(p_id)
+    participants = project_data.get('participants', [])
+    updates = project_data.get('updates', [])
+    needs_response = _resource_gap_needs_response(updates)
+
+    _sev_label = "[CRITICAL]" if severity >= 4 else "[HIGH]" if severity >= 2.5 else "[LOW]"
+    _response_tag = " [NEEDS RESPONSE]" if needs_response else ""
     with st.expander(
-      f"{'' if severity >= 4 else '' if severity >= 2.5 else ''} "
-      f"{proj['title']} — Phase: {phase} — Severity: {severity}",
+      f"{_sev_label} {proj['title']} — Phase: {phase} — Severity: {severity}{_response_tag}",
       expanded=(len(projects) == 1)
     ):
       _phase_banner(phase)
       st.write("")
 
-      project_data = ProjectManager.get_project_details(p_id)
-      participants = project_data.get('participants', [])
-      updates = project_data.get('updates', [])
+      _render_resource_gap_summary(updates)
 
       _left, _center, _right = st.columns([1, 2.5, 1.2])
 
@@ -353,6 +478,15 @@ def render_collab_room(
           fig_dis.update_layout(margin=dict(l=0, r=0, t=0, b=30), showlegend=False,
                      paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(0,0,0,0)")
           st.plotly_chart(fig_dis, use_container_width=True, key=f"collab_dis_{p_id}_{role}")
+          if dis:
+            _low_sectors = [s for s, v in dis.items() if v < 0.5]
+            _high_sectors = [s for s, v in dis.items() if v >= 0.7]
+            _txt = f"Green bars = high certainty (≥70%); red bars = low certainty (<50%). "
+            if _low_sectors:
+              _txt += f"Sectors with low agreement: {', '.join(_low_sectors)}. "
+            if _high_sectors:
+              _txt += f"Strong consensus on: {', '.join(_high_sectors)}."
+            st.caption(_txt)
 
       # ── CENTRE: shared causal stream ──────────────────────────────
       with _center:
@@ -363,19 +497,28 @@ def render_collab_room(
       with _right:
         st.markdown("**Post to Stream**")
 
+        if needs_response and is_executive:
+          st.warning("Resource gaps are open with no policy action yet. Prioritize executive response.")
+
         # Determine available update types by role
         if is_executive:
-          _types = ["OBSERVATION", "ANALYSIS_REQUEST", "POLICY_ACTION"]
+          _types = ["OBSERVATION", "ANALYSIS_REQUEST", "RESOURCE_GAP", "POLICY_ACTION"]
         elif is_admin:
-          _types = ["OBSERVATION", "ANALYSIS_REQUEST"]
+          _types = ["OBSERVATION", "ANALYSIS_REQUEST", "RESOURCE_GAP"]
         else: # spoke
-          _types = ["OBSERVATION"]
+          _types = ["OBSERVATION", "RESOURCE_GAP"]
 
         _utype = st.selectbox("Type", _types, key=f"collab_utype_{p_id}")
+        _placeholder = "Describe what you observed, request analysis, or post a policy directive..."
+        if _utype == "RESOURCE_GAP":
+          _placeholder = (
+            "Describe missing resources blocking cross-sector collaboration "
+            "(what is missing, impact, affected sectors, urgency, and requested support)..."
+          )
         _ucontent = st.text_area(
           "Message",
           height=120,
-          placeholder="Describe what you observed, request analysis, or post a policy directive...",
+          placeholder=_placeholder,
           key=f"collab_text_{p_id}"
         )
         _cert = None

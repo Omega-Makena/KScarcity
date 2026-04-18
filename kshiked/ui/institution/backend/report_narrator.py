@@ -389,41 +389,83 @@ def get_threat_index_explanation(key: str) -> str:
 # Module-by-Module Explanations (for spoke level)
 # ═══════════════════════════════════════════════════════════════════════
 
-def narrate_anomaly_detection(peak_score: float, structural_breaks: List[int]) -> str:
-  """Plain-language summary of anomaly detection results."""
+def narrate_anomaly_detection(
+  peak_score: float,
+  structural_breaks: List[int],
+  peak_column: str = "",
+  peak_index: int = -1,
+  col_deviations: Optional[Dict[str, float]] = None,
+) -> str:
+  """
+  Plain-language summary of anomaly detection results, referencing the
+  actual variables from the uploaded dataset.
+
+  Args:
+    peak_score:       RRCF anomaly score at the worst point.
+    structural_breaks: Row indices where the baseline pattern shifted.
+    peak_column:      Name of the variable with the highest z-score at peak_index.
+    peak_index:       Row index of the detected peak.
+    col_deviations:   Dict mapping column name → z-score at peak, highest = most anomalous.
+  """
+  col_phrase = f" in **{peak_column}**" if peak_column else ""
+  idx_phrase = f" at record {peak_index}" if peak_index >= 0 else ""
+
   if peak_score >= 2.0:
     narrative = (
-      f"**The system found a major anomaly** (score: {peak_score:.1f}). "
-      "This means something in your data changed sharply and unexpectedly — "
-      "it's far outside the normal pattern. "
-      "Think of it like a temperature reading that suddenly spikes: "
-      "it doesn't tell you *why*, but it tells you something happened."
+      f"**A major anomaly was detected{col_phrase}{idx_phrase}** (RRCF score: {peak_score:.2f}). "
     )
+    if peak_column:
+      narrative += (
+        f"The variable **{peak_column}** deviated sharply from its historical baseline — "
+        f"the engine flagged this as statistically exceptional. "
+      )
+    else:
+      narrative += "One or more variables shifted sharply and unexpectedly from their historical baselines. "
+    if col_deviations and len(col_deviations) > 1:
+      top2 = sorted(col_deviations.items(), key=lambda x: x[1], reverse=True)[:2]
+      narrative += (
+        f"The two most deviant variables were **{top2[0][0]}** (z={top2[0][1]:.1f}) "
+        f"and **{top2[1][0]}** (z={top2[1][1]:.1f}). "
+      )
+    narrative += "This warrants immediate review."
+
   elif peak_score >= 1.0:
     narrative = (
-      f"**A moderate anomaly detected** (score: {peak_score:.1f}). "
-      "Your data shows an unusual shift. It's not dramatic, but it's enough "
-      "to warrant attention. Monitor whether the trend continues."
+      f"**A moderate anomaly was detected{col_phrase}{idx_phrase}** (RRCF score: {peak_score:.2f}). "
     )
+    if peak_column:
+      narrative += f"**{peak_column}** showed an unusual shift — not dramatic, but outside the expected range. "
+    else:
+      narrative += "The data shows an unusual shift. "
+    narrative += "Monitor whether this persists across the next reporting period."
+
   elif peak_score > 0.3:
     narrative = (
-      f" **Minor deviation detected** (score: {peak_score:.1f}). "
-      "The data shows small deviations from the expected pattern. "
-      "This is common and usually resolves on its own."
+      f"**Minor deviation detected{col_phrase}{idx_phrase}** (RRCF score: {peak_score:.2f}). "
     )
+    if peak_column:
+      narrative += f"**{peak_column}** recorded a small departure from its norm. "
+    else:
+      narrative += "One or more variables showed small deviations from the expected pattern. "
+    narrative += "This is within normal operating range."
+
   else:
     narrative = (
-      f"**Your data looks normal** (score: {peak_score:.1f}). "
-      "No meaningful anomalies were detected."
+      f"**No significant anomalies detected** (RRCF score: {peak_score:.2f}). "
+      "All tracked variables are within their expected historical ranges."
     )
 
   if structural_breaks:
     n = len(structural_breaks)
+    break_rows = ", ".join(str(b) for b in structural_breaks[:5])
+    if n > 5:
+      break_rows += f" … (+{n - 5} more)"
     narrative += (
-      f"\n\nAdditionally, **{n} structural break{'s' if n > 1 else ''}** "
-      f"{'were' if n > 1 else 'was'} detected. This means the underlying "
-      f"pattern of your data changed fundamentally at these points — "
-      f"like a new 'normal' was established."
+      f"\n\n**{n} structural break{'s' if n > 1 else ''} detected** at row{'s' if n > 1 else ''} {break_rows}. "
+      f"At {'these points' if n > 1 else 'this point'} the underlying statistical baseline "
+      f"of the data shifted — the engine had to reset what it considers 'normal'. "
+      f"If your operations changed (new policy, staff, data source) around {'those dates' if n > 1 else 'that date'}, "
+      f"this is expected. If not, investigate what changed."
     )
 
   return narrative

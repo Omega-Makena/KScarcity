@@ -178,3 +178,16 @@ def _render_economic_indicators(data, theme):
   )
   
   st.plotly_chart(fig, use_container_width=True)
+  if esi:
+    _below = [k for k, v in esi.items() if v < 0.5]
+    _top = max(esi, key=esi.get)
+    _bottom = min(esi, key=esi.get)
+    _interp = (
+      f"ESI measures citizen satisfaction across economic domains (0–100%). "
+      f"Green bars are above the 50% satisfaction threshold; red bars are below. "
+      f"Highest satisfaction: '{_top}' ({esi[_top]:.0%}). "
+      f"Lowest: '{_bottom}' ({esi[_bottom]:.0%}). "
+    )
+    if _below:
+      _interp += f"Domains requiring urgent attention: {', '.join(_below)}."
+    st.caption(_interp)

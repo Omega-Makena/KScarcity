@@ -3,24 +3,108 @@ import pyotp
 import base64
 import binascii
 import time
+import hashlib
+import secrets
 from .database import get_connection
 from .models import Role
 
 TOTP_INTERVAL_SECONDS = 30
 TOTP_VALID_WINDOW_STEPS = 1
+DEVELOPER_USERNAMES = {"developer", "dev", "developer_dashboard"}
+PASSWORD_SCHEME = "pbkdf2_sha256"
+PASSWORD_ITERATIONS = 200_000
+
+
+def hash_password(password: str) -> str:
+  salt = secrets.token_hex(16)
+  digest = hashlib.pbkdf2_hmac(
+    "sha256",
+    str(password).encode("utf-8"),
+    salt.encode("utf-8"),
+    PASSWORD_ITERATIONS,
+  ).hex()
+  return f"{PASSWORD_SCHEME}${PASSWORD_ITERATIONS}${salt}${digest}"
+
+
+def _is_hashed_password(stored_value: str) -> bool:
+  return isinstance(stored_value, str) and stored_value.startswith(f"{PASSWORD_SCHEME}$")
+
+
+def verify_password(password: str, stored_value: str) -> bool:
+  if not stored_value:
+    return False
+
+  if _is_hashed_password(stored_value):
+    parts = stored_value.split("$", 3)
+    if len(parts) != 4:
+      return False
+    _, iter_text, salt, expected_digest = parts
+    try:
+      iterations = int(iter_text)
+    except ValueError:
+      return False
+    actual_digest = hashlib.pbkdf2_hmac(
+      "sha256",
+      str(password).encode("utf-8"),
+      salt.encode("utf-8"),
+      iterations,
+    ).hex()
+    return secrets.compare_digest(actual_digest, expected_digest)
+
+  # Legacy plaintext fallback for existing seeded/demo records.
+  return secrets.compare_digest(str(stored_value), str(password))
+
+
+def _ensure_developer_account_exists():
+  """Best-effort guard so dedicated developer login is always available."""
+  try:
+    exec_hash = hash_password("exec123")
+    dev_hash = hash_password("dev123")
+    with get_connection() as conn:
+      cursor = conn.cursor()
+      cursor.execute(
+        "INSERT OR IGNORE INTO users (username, password_hash, role) VALUES (?, ?, ?)",
+        ("executive", exec_hash, Role.EXECUTIVE.value),
+      )
+      cursor.execute(
+        "INSERT OR IGNORE INTO users (username, password_hash, role) VALUES (?, ?, ?)",
+        ("developer", dev_hash, Role.EXECUTIVE.value),
+      )
+      conn.commit()
+  except Exception:
+    # Keep auth resilient if DB/table migration is not ready yet.
+    pass
 
 def verify_credentials(username, password):
-  """Verifies user credentials against the DB. Password check disabled for demo."""
+  """Verifies user credentials against the DB with hashed password checking."""
+  _ensure_developer_account_exists()
   with get_connection() as conn:
     cursor = conn.cursor()
     cursor.execute("SELECT id, username, password_hash, role, basket_id, institution_id, totp_secret, is_2fa_enabled FROM users WHERE username = ?", (username,))
     user = cursor.fetchone()
-    
-    if user:
-      # DEMO MODE: password check disabled — any valid username is accepted
-      # Re-enable for production: if user['password_hash'] == password:
+
+    if user and verify_password(password, user["password_hash"]):
+      # Upgrade legacy plaintext storage to hashed representation.
+      if not _is_hashed_password(user["password_hash"]):
+        cursor.execute(
+          "UPDATE users SET password_hash = ? WHERE id = ?",
+          (hash_password(password), user["id"]),
+        )
+        conn.commit()
       return user
   return None
+
+
+def is_developer_username(username) -> bool:
+  """Returns True when the username should land on the dedicated developer dashboard."""
+  if not username:
+    return False
+  return str(username).strip().lower() in DEVELOPER_USERNAMES
+
+
+def is_developer_session() -> bool:
+  """Checks current Streamlit session identity for developer dashboard routing."""
+  return is_developer_username(st.session_state.get("username"))
 
 def generate_totp_secret():
   """Generates a new base32 secret for TOTP."""

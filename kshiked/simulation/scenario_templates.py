@@ -47,6 +47,132 @@ SHOCK_REGISTRY: Dict[str, Dict[str, Any]] = {
         "unit": "ratio",
         "examples": "KES depreciation (+0.10), Capital inflow (-0.05)",
     },
+
+    # ── HEALTH SECTOR ──────────────────────────────────────────────────
+    "cholera_outbreak": {
+        "label": "Cholera Outbreak",
+        "description": "Cholera/waterborne disease outbreak reduces labour force and consumer spending",
+        "min": -0.30, "max": 0.30, "default": 0.0, "step": 0.01,
+        "unit": "ratio", "sector": "Health",
+        "examples": "Moderate outbreak (+0.05), Severe epidemic (+0.15)",
+        "sfc_mapping": {"supply_shock": 0.6, "demand_shock": 0.4},
+    },
+    "health_capacity_collapse": {
+        "label": "Health Capacity Collapse",
+        "description": "Health facility overload degrades productive capacity and forces emergency fiscal response",
+        "min": -0.20, "max": 0.20, "default": 0.0, "step": 0.01,
+        "unit": "ratio", "sector": "Health",
+        "examples": "Partial collapse (+0.06), Full system failure (+0.15)",
+        "sfc_mapping": {"supply_shock": 0.7, "fiscal_shock": 0.3},
+    },
+    "health_worker_obstruction": {
+        "label": "Health Worker Obstruction",
+        "description": "Aid and health worker access blocked by insecurity or logistics failure",
+        "min": -0.15, "max": 0.15, "default": 0.0, "step": 0.01,
+        "unit": "ratio", "sector": "Health",
+        "examples": "Partial obstruction (+0.04), Full blockade (+0.10)",
+        "sfc_mapping": {"supply_shock": 1.0},
+    },
+
+    # ── WATER & SANITATION SECTOR ──────────────────────────────────────
+    "water_contamination": {
+        "label": "Water Contamination",
+        "description": "Water supply contamination degrades public health and productive capacity",
+        "min": -0.25, "max": 0.25, "default": 0.0, "step": 0.01,
+        "unit": "ratio", "sector": "Water",
+        "examples": "Localised contamination (+0.05), Widespread crisis (+0.15)",
+        "sfc_mapping": {"supply_shock": 1.0},
+    },
+    "rainfall_flood": {
+        "label": "Rainfall / Flood Event",
+        "description": "Extreme rainfall damages infrastructure and disrupts economic activity",
+        "min": -0.25, "max": 0.25, "default": 0.0, "step": 0.01,
+        "unit": "ratio", "sector": "Water",
+        "examples": "Seasonal flooding (+0.06), Catastrophic flood (+0.18)",
+        "sfc_mapping": {"supply_shock": 0.6, "demand_shock": 0.4},
+    },
+
+    # ── TRANSPORT SECTOR ───────────────────────────────────────────────
+    "road_closure": {
+        "label": "Road Closure / Blockage",
+        "description": "Road network disruption cuts supply chains and market access",
+        "min": -0.20, "max": 0.20, "default": 0.0, "step": 0.01,
+        "unit": "ratio", "sector": "Transport",
+        "examples": "Highway blockage (+0.05), Network collapse (+0.15)",
+        "sfc_mapping": {"supply_shock": 1.0},
+    },
+    "logistics_breakdown": {
+        "label": "Logistics Breakdown",
+        "description": "Distribution and logistics failure disrupts both production and delivery",
+        "min": -0.20, "max": 0.20, "default": 0.0, "step": 0.01,
+        "unit": "ratio", "sector": "Transport",
+        "examples": "Port congestion (+0.06), Full logistics failure (+0.15)",
+        "sfc_mapping": {"supply_shock": 0.6, "demand_shock": 0.4},
+    },
+
+    # ── SECURITY SECTOR ────────────────────────────────────────────────
+    "security_surge": {
+        "label": "Security Incident Surge",
+        "description": "Spike in security incidents reduces consumer activity and investor confidence",
+        "min": -0.20, "max": 0.20, "default": 0.0, "step": 0.01,
+        "unit": "ratio", "sector": "Security",
+        "examples": "Localised unrest (+0.04), Widespread incidents (+0.12)",
+        "sfc_mapping": {"demand_shock": 0.6, "fx_shock": 0.4},
+    },
+    "civil_unrest": {
+        "label": "Civil Unrest / Instability",
+        "description": "Broad civil unrest disrupts output, demand, and triggers capital flight",
+        "min": -0.25, "max": 0.25, "default": 0.0, "step": 0.01,
+        "unit": "ratio", "sector": "Security",
+        "examples": "Protests (+0.06), Widespread unrest (+0.18)",
+        "sfc_mapping": {"demand_shock": 0.4, "supply_shock": 0.3, "fx_shock": 0.3},
+    },
+
+    # ── DISPLACEMENT SECTOR ────────────────────────────────────────────
+    "mass_displacement": {
+        "label": "Mass Displacement",
+        "description": "Population displacement disrupts consumption patterns and forces emergency fiscal spending",
+        "min": -0.20, "max": 0.20, "default": 0.0, "step": 0.01,
+        "unit": "ratio", "sector": "Displacement",
+        "examples": "County-level IDPs (+0.05), Regional displacement (+0.12)",
+        "sfc_mapping": {"demand_shock": 0.5, "fiscal_shock": 0.5},
+    },
+    "refugee_influx": {
+        "label": "Refugee / Cross-Border Influx",
+        "description": "External refugee influx pressures fiscal resources and local labour markets",
+        "min": -0.15, "max": 0.15, "default": 0.0, "step": 0.01,
+        "unit": "ratio", "sector": "Displacement",
+        "examples": "Moderate influx (+0.04), Large-scale crisis (+0.10)",
+        "sfc_mapping": {"fiscal_shock": 0.6, "supply_shock": 0.4},
+    },
+
+    # ── FOOD & MARKETS SECTOR ──────────────────────────────────────────
+    "market_collapse": {
+        "label": "Local Market Collapse",
+        "description": "Market activity crash from displacement, security, or supply chain failure",
+        "min": -0.25, "max": 0.25, "default": 0.0, "step": 0.01,
+        "unit": "ratio", "sector": "Food & Markets",
+        "examples": "Market disruption (+0.06), Full market shutdown (+0.18)",
+        "sfc_mapping": {"demand_shock": 1.0},
+    },
+    "food_price_spike": {
+        "label": "Food Price Spike",
+        "description": "Food price surge from supply chain failure, conflict, or climate event",
+        "min": -0.25, "max": 0.25, "default": 0.0, "step": 0.01,
+        "unit": "ratio", "sector": "Food & Markets",
+        "examples": "Moderate price rise (+0.06), Severe food inflation (+0.15)",
+        "sfc_mapping": {"supply_shock": 1.0},
+    },
+
+    # ── COMMUNICATIONS SECTOR ──────────────────────────────────────────
+    "misinformation_crisis": {
+        "label": "Misinformation Crisis",
+        "description": "Misinformation wave causes investor panic and erodes consumer confidence",
+        "min": -0.15, "max": 0.15, "default": 0.0, "step": 0.01,
+        "unit": "ratio", "sector": "Communications",
+        "examples": "Viral rumour (+0.03), Co-ordinated misinfo campaign (+0.10)",
+        "sfc_mapping": {"fx_shock": 0.6, "demand_shock": 0.4},
+    },
 }
 
 POLICY_INSTRUMENT_REGISTRY: Dict[str, Dict[str, Any]] = {
@@ -91,6 +217,90 @@ POLICY_INSTRUMENT_REGISTRY: Dict[str, Dict[str, Any]] = {
         "min": 0.0, "max": 0.10, "default": 0.008, "step": 0.001,
         "unit": "%", "display_scale": 100,
         "category": "Fiscal",
+    },
+
+    # ── HEALTH POLICY INSTRUMENTS ──────────────────────────────────────
+    "health_emergency_spending": {
+        "label": "Health Emergency Spending / GDP",
+        "description": "Emergency health budget allocation as share of GDP",
+        "min": 0.0, "max": 0.08, "default": 0.0, "step": 0.005,
+        "unit": "%", "display_scale": 100,
+        "category": "Health",
+    },
+    "vaccination_coverage": {
+        "label": "Vaccination / Treatment Coverage",
+        "description": "Target vaccination or treatment coverage rate (0-1)",
+        "min": 0.0, "max": 1.0, "default": 0.0, "step": 0.05,
+        "unit": "ratio", "display_scale": 100,
+        "category": "Health",
+    },
+
+    # ── WATER POLICY INSTRUMENTS ───────────────────────────────────────
+    "water_infra_spend": {
+        "label": "Water Infrastructure Spend / GDP",
+        "description": "Emergency water and sanitation infrastructure investment",
+        "min": 0.0, "max": 0.05, "default": 0.0, "step": 0.005,
+        "unit": "%", "display_scale": 100,
+        "category": "Water",
+    },
+
+    # ── TRANSPORT POLICY INSTRUMENTS ───────────────────────────────────
+    "road_repair_budget": {
+        "label": "Road Repair Budget / GDP",
+        "description": "Emergency road and bridge repair allocation",
+        "min": 0.0, "max": 0.05, "default": 0.0, "step": 0.005,
+        "unit": "%", "display_scale": 100,
+        "category": "Transport",
+    },
+
+    # ── SECURITY POLICY INSTRUMENTS ────────────────────────────────────
+    "security_deployment": {
+        "label": "Security Deployment Spend / GDP",
+        "description": "Security force deployment and peacekeeping budget",
+        "min": 0.0, "max": 0.05, "default": 0.0, "step": 0.005,
+        "unit": "%", "display_scale": 100,
+        "category": "Security",
+    },
+
+    # ── SOCIAL PROTECTION INSTRUMENTS ──────────────────────────────────
+    "displacement_relief": {
+        "label": "IDP Relief Fund / GDP",
+        "description": "Emergency IDP and displacement relief allocation",
+        "min": 0.0, "max": 0.05, "default": 0.0, "step": 0.005,
+        "unit": "%", "display_scale": 100,
+        "category": "Social Protection",
+    },
+    "cash_transfer_rate": {
+        "label": "Cash Transfers / GDP",
+        "description": "Direct cash transfer programs to affected households",
+        "min": 0.0, "max": 0.05, "default": 0.0, "step": 0.005,
+        "unit": "%", "display_scale": 100,
+        "category": "Social Protection",
+    },
+
+    # ── MARKETS POLICY INSTRUMENTS ─────────────────────────────────────
+    "price_stabilization": {
+        "label": "Price Stabilisation Fund / GDP",
+        "description": "Market price stabilisation interventions",
+        "min": 0.0, "max": 0.03, "default": 0.0, "step": 0.005,
+        "unit": "%", "display_scale": 100,
+        "category": "Markets",
+    },
+    "food_reserve_release": {
+        "label": "Strategic Food Reserve Release",
+        "description": "National food reserve deployment rate (0-1)",
+        "min": 0.0, "max": 1.0, "default": 0.0, "step": 0.1,
+        "unit": "ratio", "display_scale": 100,
+        "category": "Markets",
+    },
+
+    # ── COMMUNICATIONS INSTRUMENTS ─────────────────────────────────────
+    "counter_misinfo_spend": {
+        "label": "Counter-Misinformation Spend / GDP",
+        "description": "Public communications and counter-misinformation budget",
+        "min": 0.0, "max": 0.02, "default": 0.0, "step": 0.002,
+        "unit": "%", "display_scale": 100,
+        "category": "Communications",
     },
 }
 
@@ -217,6 +427,8 @@ class ScenarioTemplate:
     shock_duration: int = 0
     # Shape: "step" (permanent), "pulse" (temporary), "ramp" (gradual)
     shock_shape: str = "step"
+    # Exponential decay rate for "decay" shape (per quarter). Calibrated per scenario.
+    shock_decay_rate: float = 0.15
 
     # Suggested policy response (optional preset)
     suggested_policy: Optional[Dict[str, Any]] = None
@@ -262,9 +474,9 @@ class ScenarioTemplate:
                 vec[ramp_end:] = magnitude
 
             elif self.shock_shape == "decay":
-                # Shock hits then decays exponentially
+                # Shock hits then decays exponentially at per-scenario calibrated rate
                 for t in range(self.shock_onset, steps):
-                    decay_factor = np.exp(-0.15 * (t - self.shock_onset))
+                    decay_factor = np.exp(-self.shock_decay_rate * (t - self.shock_onset))
                     vec[t] = magnitude * decay_factor
 
             vectors[key] = vec
@@ -346,6 +558,74 @@ POLICY_TEMPLATES = {
             "subsidy_rate": 0.03,  # Subsidies to fund the price caps
         },
     },
+
+    # ── SECTOR-SPECIFIC CRISIS POLICY RESPONSES ──────────────────────
+    "health_emergency_response": {
+        "name": "Health Emergency Response",
+        "description": "Surge health spending + vaccination + subsidies for medical supplies",
+        "policy_mode": "custom",
+        "instruments": {
+            "health_emergency_spending": 0.03,  # 3% GDP health surge
+            "vaccination_coverage": 0.60,       # 60% coverage target
+            "subsidy_rate": 0.015,              # Medical supply subsidies
+        },
+    },
+    "water_crisis_response": {
+        "name": "Water Crisis Response",
+        "description": "Emergency water infrastructure + treatment subsidies",
+        "policy_mode": "custom",
+        "instruments": {
+            "water_infra_spend": 0.02,     # 2% GDP water emergency
+            "subsidy_rate": 0.01,          # Water treatment subsidies
+        },
+    },
+    "transport_emergency": {
+        "name": "Transport Emergency",
+        "description": "Road repair + transport subsidies + spending boost",
+        "policy_mode": "custom",
+        "instruments": {
+            "road_repair_budget": 0.025,          # 2.5% GDP road repair
+            "custom_spending_ratio": 0.15,        # Boost spending to 15%
+        },
+    },
+    "security_stabilization": {
+        "name": "Security Stabilisation",
+        "description": "Security deployment + peacekeeping + rate hold for stability signal",
+        "policy_mode": "custom",
+        "instruments": {
+            "security_deployment": 0.02,   # 2% GDP security
+            "custom_rate": 0.07,           # Hold rate steady
+        },
+    },
+    "displacement_response": {
+        "name": "Displacement Response",
+        "description": "IDP relief fund + cash transfers + spending increase",
+        "policy_mode": "custom",
+        "instruments": {
+            "displacement_relief": 0.02,          # 2% GDP relief
+            "cash_transfer_rate": 0.015,          # 1.5% GDP transfers
+            "custom_spending_ratio": 0.16,        # Boost spending to 16%
+        },
+    },
+    "market_intervention": {
+        "name": "Market Intervention",
+        "description": "Price stabilisation + food reserves + consumer subsidies",
+        "policy_mode": "custom",
+        "instruments": {
+            "price_stabilization": 0.015,  # 1.5% GDP stabilisation
+            "food_reserve_release": 0.5,   # Release 50% of reserves
+            "subsidy_rate": 0.02,          # Consumer subsidies
+        },
+    },
+    "communications_response": {
+        "name": "Communications Response",
+        "description": "Counter-misinformation + rate hold for stability signal",
+        "policy_mode": "custom",
+        "instruments": {
+            "counter_misinfo_spend": 0.008,  # 0.8% GDP comms
+            "custom_rate": 0.07,             # Hold rate steady
+        },
+    },
 }
 
 
@@ -362,7 +642,8 @@ SCENARIO_LIBRARY: List[ScenarioTemplate] = [
         category="Supply",
         shocks={"supply_shock": 0.08, "fx_shock": 0.05},
         shock_onset=5,
-        shock_shape="step",
+        shock_shape="decay",
+        shock_decay_rate=0.10,  # ~7 quarters to half-magnitude; oil shocks partly self-correct
         suggested_dimensions=["inflation", "cost_of_living_index", "household_welfare", "fiscal_deficit_gdp", "gdp_growth"],
         suggested_policy=POLICY_TEMPLATES["cbk_tightening"],
         context="Kenya imports ~100% of petroleum. A $30/bbl increase flows through to transport, "
@@ -379,6 +660,7 @@ SCENARIO_LIBRARY: List[ScenarioTemplate] = [
         shock_onset=5,
         shock_duration=8,
         shock_shape="pulse",
+        shock_decay_rate=0.05,  # Very slow decay; drought impacts persist for 2+ seasons
         suggested_dimensions=["household_welfare", "inflation", "unemployment", "fiscal_space", "savings_rate"],
         suggested_policy=POLICY_TEMPLATES["fiscal_stimulus"],
         context="Agriculture is ~22% of Kenya's GDP and employs ~54% of the workforce. "
@@ -396,6 +678,7 @@ SCENARIO_LIBRARY: List[ScenarioTemplate] = [
         shock_onset=5,
         shock_shape="ramp",
         shock_duration=6,
+        shock_decay_rate=0.08,  # Moderate persistence; food prices tend to stabilise in 8-10 quarters
         suggested_dimensions=["cost_of_living_index", "household_welfare", "inflation", "savings_rate"],
         suggested_policy=POLICY_TEMPLATES["price_controls"],
         context="Kenya imports wheat, rice, and palm oil. The 2021-2022 food price surge pushed "
@@ -412,6 +695,7 @@ SCENARIO_LIBRARY: List[ScenarioTemplate] = [
         shock_onset=5,
         shock_shape="ramp",
         shock_duration=4,
+        shock_decay_rate=0.08,  # Open-economy PPP mean-reversion; KES typically stabilises in ~8 quarters
         suggested_dimensions=["inflation", "debt_to_gdp", "cost_of_living_index", "gdp_growth", "financial_stability"],
         suggested_policy=POLICY_TEMPLATES["aggressive_tightening"],
         context="The KES depreciated ~20% against USD in 2023. With ~68% of Kenya's public debt "
@@ -426,7 +710,8 @@ SCENARIO_LIBRARY: List[ScenarioTemplate] = [
         category="External",
         shocks={"demand_shock": -0.10, "fx_shock": 0.03},
         shock_onset=5,
-        shock_shape="step",
+        shock_shape="decay",
+        shock_decay_rate=0.05,  # Slow recovery consistent with global cycle (2-3 years)
         suggested_dimensions=["gdp_growth", "unemployment", "fiscal_space", "investment_ratio", "household_welfare"],
         suggested_policy=POLICY_TEMPLATES["expansionary_mix"],
         context="Kenya's exports (tea, flowers, textiles) and diaspora remittances (~$4B/yr) depend on "
@@ -458,6 +743,7 @@ SCENARIO_LIBRARY: List[ScenarioTemplate] = [
         shock_onset=5,
         shock_shape="ramp",
         shock_duration=6,
+        shock_decay_rate=0.07,  # Fiscal consolidation is slow; markets only recover with credible reforms
         suggested_dimensions=["debt_to_gdp", "fiscal_space", "financial_stability", "gdp_growth", "unemployment"],
         suggested_policy=POLICY_TEMPLATES["austerity"],
         context="Kenya's public debt hit 68% of GDP in 2023. If debt service exceeds 30% of revenue, "
@@ -493,6 +779,208 @@ SCENARIO_LIBRARY: List[ScenarioTemplate] = [
         context="Kenya periodically undertakes large infrastructure programs (SGR, expressway, "
                 "housing). These boost short-term GDP but raise debt. The question: does the "
                 "growth payoff exceed the debt cost?",
+    ),
+
+    # ── CRISIS SECTOR SCENARIOS ──────────────────────────────────────
+    ScenarioTemplate(
+        id="cholera_crisis",
+        name="Cholera Outbreak Crisis",
+        description="Multi-county cholera outbreak devastates health system, reduces labour force, "
+                    "and collapses consumer demand in affected regions.",
+        category="Health",
+        shocks={"supply_shock": 0.10, "demand_shock": -0.06},
+        shock_onset=5,
+        shock_duration=8,
+        shock_shape="pulse",
+        suggested_dimensions=["gdp_growth", "inflation", "unemployment", "household_welfare",
+                              "fiscal_deficit_gdp", "savings_rate"],
+        suggested_policy=POLICY_TEMPLATES["health_emergency_response"],
+        context="Kenya's cholera outbreaks (2014-15, 2017, 2019) typically affect 3-10 counties, "
+                "with case fatality rates of 1.5-3%. Health system overload cascades into worker "
+                "absenteeism, market closures, and displacement. The 2017 outbreak caused an "
+                "estimated 0.3pp GDP drag in affected counties.",
+    ),
+
+    ScenarioTemplate(
+        id="water_contamination_crisis",
+        name="Water Contamination Crisis",
+        description="Widespread water supply contamination degrades public health and productive capacity.",
+        category="Water",
+        shocks={"supply_shock": 0.08},
+        shock_onset=5,
+        shock_duration=10,
+        shock_shape="ramp",
+        suggested_dimensions=["gdp_growth", "inflation", "household_welfare", "cost_of_living_index"],
+        suggested_policy=POLICY_TEMPLATES["water_crisis_response"],
+        context="40% of Kenyans lack access to clean water. Contamination events hit arid counties "
+                "hardest (Turkana, Garissa, Marsabit) where baseline water risk exceeds 70%. "
+                "Contamination cascades into cholera, displacement, and market disruption.",
+    ),
+
+    ScenarioTemplate(
+        id="road_network_collapse",
+        name="Road Network Collapse",
+        description="Major road closures cut supply chains across multiple counties, disrupting "
+                    "production and market access.",
+        category="Transport",
+        shocks={"supply_shock": 0.12},
+        shock_onset=5,
+        shock_duration=6,
+        shock_shape="pulse",
+        suggested_dimensions=["gdp_growth", "inflation", "cost_of_living_index", "household_welfare"],
+        suggested_policy=POLICY_TEMPLATES["transport_emergency"],
+        context="Kenya's road network carries 93% of passenger and 97% of freight traffic. "
+                "The 2023 El Niño floods destroyed 7,000+ km of roads, with reconstruction "
+                "costs exceeding KES 50B. Remote counties become isolated when roads fail, "
+                "triggering food price spikes and health supply shortages.",
+    ),
+
+    ScenarioTemplate(
+        id="security_crisis",
+        name="Security Crisis",
+        description="Widespread security incidents from civil unrest, cross-border tensions, "
+                    "or inter-community conflict.",
+        category="Security",
+        shocks={"demand_shock": -0.08, "supply_shock": 0.05, "fx_shock": 0.06},
+        shock_onset=5,
+        shock_shape="decay",
+        suggested_dimensions=["gdp_growth", "unemployment", "investment_ratio",
+                              "financial_stability", "household_welfare"],
+        suggested_policy=POLICY_TEMPLATES["security_stabilization"],
+        context="Kenya faces periodic security shocks: Westgate (2013), Garissa University (2015), "
+                "post-election violence (2007-08, 2017). Tourism drops 30-50%, FDI freezes, "
+                "and the KES depreciates. The 2007-08 crisis cut GDP growth from 7% to 1.5%.",
+    ),
+
+    ScenarioTemplate(
+        id="displacement_crisis",
+        name="Mass Displacement Crisis",
+        description="Large-scale population displacement from conflict, climate, or disease "
+                    "disrupts consumption and forces emergency fiscal response.",
+        category="Displacement",
+        shocks={"demand_shock": -0.06, "fiscal_shock": -0.04},
+        shock_onset=5,
+        shock_duration=10,
+        shock_shape="ramp",
+        suggested_dimensions=["gdp_growth", "unemployment", "household_welfare",
+                              "fiscal_deficit_gdp", "debt_to_gdp"],
+        suggested_policy=POLICY_TEMPLATES["displacement_response"],
+        context="Kenya hosts 550,000+ refugees (Dadaab, Kakuma) and faces internal displacement "
+                "from climate and conflict. The 2007-08 violence displaced 600,000. Displacement "
+                "disrupts local markets, strains host-community services, and forces emergency "
+                "fiscal spending.",
+    ),
+
+    ScenarioTemplate(
+        id="market_disruption",
+        name="Market Disruption Crisis",
+        description="Local market collapse from combined displacement, security, and supply chain failure.",
+        category="Food & Markets",
+        shocks={"demand_shock": -0.10, "supply_shock": 0.06},
+        shock_onset=5,
+        shock_duration=6,
+        shock_shape="pulse",
+        suggested_dimensions=["gdp_growth", "inflation", "cost_of_living_index",
+                              "household_welfare", "savings_rate"],
+        suggested_policy=POLICY_TEMPLATES["market_intervention"],
+        context="Kenyan informal markets employ 83% of the workforce. When markets collapse "
+                "(from displacement, security, or logistics failure), food prices spike 30-80% "
+                "and food insecurity surges. The KIHBS shows bottom quintile households spend "
+                "60%+ of income on food, making them most vulnerable.",
+    ),
+
+    ScenarioTemplate(
+        id="misinformation_wave",
+        name="Misinformation Wave",
+        description="Co-ordinated misinformation campaign triggers investor panic, currency pressure, "
+                    "and consumer confidence collapse.",
+        category="Communications",
+        shocks={"fx_shock": 0.06, "demand_shock": -0.04},
+        shock_onset=5,
+        shock_shape="decay",
+        suggested_dimensions=["gdp_growth", "inflation", "financial_stability",
+                              "household_welfare", "investment_ratio"],
+        suggested_policy=POLICY_TEMPLATES["communications_response"],
+        context="Misinformation amplifies real crises. During COVID-19, social media rumours "
+                "about bank collapses triggered deposit withdrawals. During cholera outbreaks, "
+                "false health claims obstruct treatment. Investor sentiment is particularly "
+                "sensitive to political misinformation during election cycles.",
+    ),
+
+    # ── CRISIS REGIME STRESS TESTS (Item 14) ────────────────────────────
+    # These scenarios are designed to push the simulation toward the nonlinear
+    # crisis regime thresholds introduced in Item 7:
+    #   sudden_stop  → output_gap ≤ −12%
+    #   bank_run     → NPL ratio ≥ 20%
+    #   debt_crisis  → govt debt/GDP ≥ calibrated threshold (~120% for Kenya)
+
+    ScenarioTemplate(
+        id="banking_sector_crisis",
+        name="Banking Sector Crisis (NPL Spiral)",
+        description=(
+            "Severe credit deterioration — non-performing loans surge as collateral "
+            "values collapse, credit freezes, and investment collapses. Designed to "
+            "stress-test the bank-run regime switch."
+        ),
+        category="Financial",
+        shocks={
+            "demand_shock":  -0.18,  # Deep demand collapse → GDP contraction → NPL surge
+            "supply_shock":   0.06,  # Cost-push pressure → tighter margins for firms
+            "fiscal_shock":  -0.05,  # Fiscal squeeze as tax revenues fall
+        },
+        shock_onset=4,
+        shock_duration=16,
+        shock_shape="ramp",          # Gradual build — bank crises unfold over 4–6 quarters
+        shock_decay_rate=0.05,
+        suggested_dimensions=[
+            "financial_stability", "gdp_growth", "unemployment",
+            "debt_to_gdp", "investment_ratio",
+            "regime_bank_run", "regime_sudden_stop",
+            "effective_mpc", "gini",
+        ],
+        suggested_policy=POLICY_TEMPLATES["expansionary_mix"],
+        context=(
+            "Kenya's banking sector NPL ratio rose from 9.4% (2019) to 14.8% (2023). "
+            "A full banking crisis (NPL ≥ 20%) — triggered by a deep recession, "
+            "currency shock, or property market collapse — would freeze credit, "
+            "crush investment, and force CBK emergency intervention. "
+            "This scenario pushes the BGG financial accelerator toward its crisis regime. "
+            "Watch the 'Bank Run Regime' flag in outcomes."
+        ),
+    ),
+
+    ScenarioTemplate(
+        id="sovereign_debt_spiral",
+        name="Sovereign Debt Spiral",
+        description=(
+            "Persistent fiscal deficits compound with rising borrowing costs and "
+            "FX depreciation, pushing government debt toward unsustainable levels. "
+            "Designed to stress-test the debt-crisis regime switch."
+        ),
+        category="Fiscal",
+        shocks={
+            "fiscal_shock": -0.10,   # Revenue collapse + spending pressures
+            "fx_shock":      0.08,   # Currency depreciation raises external debt burden
+            "demand_shock": -0.05,   # Confidence drag from fiscal uncertainty
+        },
+        shock_onset=3,
+        shock_shape="step",          # Structural: debt accumulates from day one
+        suggested_dimensions=[
+            "debt_to_gdp", "fiscal_space", "fiscal_deficit_gdp",
+            "gdp_growth", "inflation", "financial_stability",
+            "regime_debt_crisis", "regime_sudden_stop",
+            "q1_share", "gini",
+        ],
+        suggested_policy=POLICY_TEMPLATES["austerity"],
+        context=(
+            "Kenya's public debt hit 68% of GDP in 2023, with ~68% in foreign currency. "
+            "A prolonged fiscal deterioration — from aid cuts, revenue shortfalls, "
+            "and rising debt service costs — can trigger a debt crisis: market access "
+            "closes, the IMF is called, and forced austerity compresses growth. "
+            "This scenario accumulates deficits over many quarters to push debt/GDP "
+            "toward the crisis threshold. Watch the 'Debt Crisis Regime' flag. "
+            "Combine with the Austerity policy response to test consolidation paths."
+        ),
     ),
 ]
 

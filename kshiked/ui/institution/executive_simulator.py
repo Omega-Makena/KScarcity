@@ -129,6 +129,40 @@ STRATEGIC_SCENARIOS = {
           "In 2011 this pushed inflation to 20% and lost KES 25% of value.",
     "duration": 6, "shape": "step",
   },
+  
+  # ── NEW: MULTI-SECTOR CRISIS PRESETS ─────────────────────────────
+  "Multi-County Cholera Outbreak": {
+    "shocks": {
+        "cholera_outbreak": 0.12, 
+        "health_capacity_collapse": 0.10,
+        "mass_displacement": 0.05
+    },
+    "context": "A severe cholera outbreak devastates the healthcare system across multiple counties, "
+          "reducing labor force participation and triggering localised displacement and market collapse.",
+    "duration": 8, "shape": "pulse",
+  },
+  "Catastrophic El Niño Flooding": {
+    "shocks": {
+        "rainfall_flood": 0.18, 
+        "road_closure": 0.15, 
+        "water_contamination": 0.10,
+        "food_price_spike": 0.12
+    },
+    "context": "Extreme rainfall destroys critical road networks and contaminates water supplies. "
+          "The resulting logistics breakdown isolates communities and triggers severe food price inflation.",
+    "duration": 6, "shape": "ramp",
+  },
+  "Security Disruption & Market Panic": {
+    "shocks": {
+        "civil_unrest": 0.15, 
+        "security_surge": 0.10,
+        "misinformation_crisis": 0.08,
+        "market_collapse": 0.15
+    },
+    "context": "Widespread civil unrest drives a collapse in consumer confidence and capital flight. "
+          "Misinformation amplifies the crisis, leading to mass market shutdowns and severe FDI withdrawal.",
+    "duration": 4, "shape": "decay",
+  },
 }
 
 SEVERITY_MULT = {"Mild": 0.5, "Moderate": 1.0, "Severe": 1.5, "Critical": 2.0}
@@ -436,6 +470,11 @@ def _render_distributional_panel(theme, results, traces_config):
                   bgcolor="rgba(0,0,0,0)", font=dict(size=10)),
     ))
     st.plotly_chart(fig_q, use_container_width=True)
+    st.caption(
+      "Q1 lines (darker) show the bottom 20% income trajectory; Q5 lines (lighter) show the richest 20%. "
+      "Widening gap between Q1 and Q5 means inequality is rising. "
+      "Solid = selected policy, dotted = no intervention, dashed = alternative."
+    )
 
   with col_right:
     # Pro-poor growth bar: Q1 vs Q5 growth % per scenario
@@ -477,6 +516,14 @@ def _render_distributional_panel(theme, results, traces_config):
                     bgcolor="rgba(0,0,0,0)", font=dict(size=10)),
       ))
       st.plotly_chart(fig_bar, use_container_width=True)
+      if bar_names and q1_growths and q5_growths:
+        _pp_pairs = list(zip(bar_names, q1_growths, q5_growths))
+        _pp_best = max(_pp_pairs, key=lambda x: x[1] - x[2])
+        st.caption(
+          f"Green bars = bottom 20%; blue bars = top 20% income growth over the simulation. "
+          f"Most pro-poor policy: '{_pp_best[0]}' (bottom +{_pp_best[1]:.1f}% vs top +{_pp_best[2]:.1f}%). "
+          f"When green bars are taller, growth reaches the poorest first."
+        )
 
   # ── Panel 2: Gini trajectory ────────────────────────────────────────────
   fig_gini = go.Figure()
@@ -509,6 +556,21 @@ def _render_distributional_panel(theme, results, traces_config):
                 bgcolor="rgba(0,0,0,0)", font=dict(size=10)),
   ))
   st.plotly_chart(fig_gini, use_container_width=True)
+  _gini_valid = [(key, results.get(key, {}).get("trajectory", [])) for key, *_ in traces_config]
+  _gini_end_vals = {}
+  for _k, _tr in _gini_valid:
+    _g_vals = [f.get("inequality", {}).get("gini") for f in _tr if f.get("inequality", {}).get("gini") is not None]
+    if _g_vals:
+      _gini_end_vals[_k] = _g_vals[-1]
+  if _gini_end_vals:
+    _gini_best = min(_gini_end_vals, key=_gini_end_vals.get)
+    _gini_worst = max(_gini_end_vals, key=_gini_end_vals.get)
+    st.caption(
+      f"Gini coefficient tracks inequality over time (0 = perfect equality, 1 = maximum inequality). "
+      f"Kenya benchmark: 0.408 (dashed line). "
+      f"Most equal outcome at end of horizon: '{_gini_best}' (Gini {_gini_end_vals[_gini_best]:.3f}); "
+      f"least equal: '{_gini_worst}' (Gini {_gini_end_vals[_gini_worst]:.3f})."
+    )
 
   # ── Panel 3: Verdict cards ──────────────────────────────────────────────
   verdict_cols = st.columns(len(traces_config))
@@ -589,6 +651,22 @@ def _render_strategic_results(theme, results, meta):
       return PALETTE[0] if val < good_thresh else PALETTE[2] if val < bad_thresh else PALETTE[3]
     return PALETTE[0] if val > good_thresh else PALETTE[2] if val > bad_thresh else PALETTE[3]
 
+  # Determine if we should show a 6th "Crisis Impact" card
+  crisis_severity = summary.get("crisis_severity", 0) * 100
+  infrastructure_drop = (1.0 - summary.get("infrastructure_score", 1.0)) * 100
+  health_drop = (1.0 - summary.get("health_capacity", 1.0)) * 100
+  security_drop = (1.0 - summary.get("security_stability", 1.0)) * 100
+  
+  show_crisis_card = crisis_severity > 5.0
+  crisis_label = "CRISIS IMPACT"
+  crisis_val = f"{crisis_severity:.1f}%"
+  if health_drop > infrastructure_drop and health_drop > security_drop:
+    crisis_subtext = "Health capacity collapse"
+  elif infrastructure_drop > security_drop:
+    crisis_subtext = "Infrastructure collapse"
+  else:
+    crisis_subtext = "Security disruption"
+
   cards = [
     ("VULNERABILITY", f"{vuln*100:.0f}%", _color(vuln, 0.3, 0.6, True), "Risk of external currency/debt crisis"),
     ("STABILITY", f"{fin_stab*100:.0f}%", _color(fin_stab, 0.6, 0.35), "Banking sector resilience"),
@@ -596,6 +674,8 @@ def _render_strategic_results(theme, results, meta):
     ("PRICES", f"{infl:.1f}%", _color(infl, 5, 10, True), "Cost of living increase"),
     ("JOBS", f"{unemp:.1f}%", _color(unemp, 6, 10, True), "Unemployment rate"),
   ]
+  if show_crisis_card:
+    cards.append((crisis_label, crisis_val, _color(crisis_severity, 5, 10, True), crisis_subtext))
 
   cols = st.columns(len(cards))
   for col, (label, value, color, subtext) in zip(cols, cards):
@@ -621,6 +701,20 @@ def _render_strategic_results(theme, results, meta):
     system_health_text.append("The nation is at high risk of a **currency or debt crisis**.")
   if fin_stab < 0.35:
     system_health_text.append("The banking sector is dangerously **fragile and prone to failure**.")
+    system_health_text.append("The banking sector is dangerously **fragile and prone to failure**.")
+    
+  # Crisis metrics
+  if crisis_severity > 15.0:
+    system_health_text.append("A **severe multi-sector crisis** threatens national stability.")
+  elif crisis_severity > 5.0:
+    system_health_text.append("The nation faces a **significant crisis event**.")
+    
+  if health_drop > 5.0:
+    system_health_text.append("The healthcare system faces **imminent collapse** under surging caseloads.")
+  if infrastructure_drop > 5.0:
+    system_health_text.append("Critical transport and water infrastructure are **severely compromised**.")
+  if security_drop > 5.0:
+    system_health_text.append("**Pervasive insecurity** is disrupting all economic activity.")
     
   if not system_health_text:
     system_health_text.append("The economic foundations remain generally stable under this scenario.")
@@ -870,11 +964,13 @@ def _render_econometric_mode(theme):
       merge_shock_vectors, merge_policy_instruments,
     )
 
-    setup_tabs = st.tabs(["Results", "Research Engine"])
+    setup_tabs = st.tabs(["Results", "Research Engine", "Developer Tests"])
     with setup_tabs[0]:
       render_scenario_runner_tab(theme, OUTCOME_DIMENSIONS, DEFAULT_DIMENSIONS, run_clicked)
     with setup_tabs[1]:
       render_research_engine_tab(theme, SFCEconomy, SFCConfig, calibrate_from_data)
+    with setup_tabs[2]:
+      _render_developer_tests_tab(theme)
 
   # ── CATEGORY 2: CORE ANALYSIS ────────────────────────────────────
   elif category == "Core Analysis":
@@ -920,17 +1016,19 @@ def _render_econometric_mode(theme):
   # ── CATEGORY 4: RESEARCH MODULES ─────────────────────────────────
   elif category == "Research Modules":
     res_tabs = st.tabs([
-      "IO Sectors", "Inequality", "Financial", "Open Economy", "Causal Estimands"
+      "Research Engine", "IO Sectors", "Inequality", "Financial", "Open Economy", "Causal Estimands"
     ])
     with res_tabs[0]:
-      render_io_sectors_tab(theme)
+      render_research_engine_tab(theme, SFCEconomy, SFCConfig, calibrate_from_data)
     with res_tabs[1]:
-      render_inequality_tab(theme)
+      render_io_sectors_tab(theme)
     with res_tabs[2]:
-      render_financial_tab(theme)
+      render_inequality_tab(theme)
     with res_tabs[3]:
-      render_open_economy_tab(theme)
+      render_financial_tab(theme)
     with res_tabs[4]:
+      render_open_economy_tab(theme)
+    with res_tabs[5]:
       _render_causal_estimands_deep(theme)
     # with res_tabs[4]:
     #   from kshiked.ui.institution.backend.research_engine import ResearchEngine, EngineContext
@@ -939,6 +1037,304 @@ def _render_econometric_mode(theme):
     #   ctx = EngineContext(role="executive", user_id=st.session_state.get('username'), sector_id=None)
     #   engine = ResearchEngine(context=ctx)
     #   render_research_engine_panel(engine, theme)
+
+
+def _render_developer_tests_tab(theme):
+  """Developer-facing QA dashboard for model registry, benchmarks, tests, and reports."""
+  st.markdown(
+    f"<div style='color:{theme.accent_warning}; font-weight:700; font-size:0.86rem; margin-bottom:0.35rem;'>"
+    f"DEVELOPER TESTS — BENCHMARKS, SIMULATIONS, METRICS, REPORTS</div>",
+    unsafe_allow_html=True,
+  )
+  st.caption(
+    "Provides execution-time technical checks with explicit baselines so reports are clear, auditable, and credible."
+  )
+
+  if pd is None or np is None:
+    st.info("Developer Tests requires pandas and numpy in the active environment.")
+    return
+
+  import importlib
+
+  def _status_from_bool(ok):
+    return "PASS" if ok else "FAIL"
+
+  def _status_from_score(score):
+    if score >= 0.75:
+      return "PASS"
+    if score >= 0.50:
+      return "WARN"
+    return "FAIL"
+
+  def _safe_get_num(container, key):
+    try:
+      val = container.get(key, None) if isinstance(container, dict) else None
+      return float(val) if val is not None else None
+    except Exception:
+      return None
+
+  tab_models, tab_bench, tab_tests, tab_reports = st.tabs([
+    "Model Registry",
+    "Benchmarks & Metrics",
+    "Execution Tests",
+    "Report Credibility",
+  ])
+
+  with tab_models:
+    model_specs = [
+      ("Core SFC Engine", "scarcity.simulation.sfc", "SFCEconomy", "Scenario simulation backbone"),
+      ("Research SFC Engine", "scarcity.simulation.research_sfc", "ResearchSFCEconomy", "Unified multi-module research model"),
+      ("IO Structure", "scarcity.simulation.io_structure", "LeontiefModel", "Input-output sector propagation"),
+      ("Heterogeneous Agents", "scarcity.simulation.heterogeneous", "HeterogeneousHouseholdEconomy", "Distributional household dynamics"),
+      ("Financial Accelerator", "scarcity.simulation.financial_accelerator", "FinancialAccelerator", "Credit cycle and banking stress"),
+      ("Open Economy", "scarcity.simulation.open_economy", "OpenEconomySFC", "External sector and FX channel"),
+      ("Scenario Templates", "kshiked.simulation.scenario_templates", "SCENARIO_LIBRARY", "Shock/policy scenario catalogue"),
+      ("Kenya Calibration", "kshiked.simulation.kenya_calibration", "calibrate_from_data", "Data-driven parameter calibration"),
+      ("Causal Engine", "scarcity.causal.engine", "run_causal", "Parallel structural estimands"),
+      ("Sector Projection", "kshiked.simulation.sector_engine", "SectorSimulator", "Multi-sector ripple simulation"),
+    ]
+
+    rows = []
+    loaded_count = 0
+    for label, module_name, symbol, purpose in model_specs:
+      ok = False
+      err = ""
+      try:
+        mod = importlib.import_module(module_name)
+        ok = hasattr(mod, symbol)
+        if not ok:
+          err = f"Missing symbol: {symbol}"
+      except Exception as e:
+        err = str(e)
+      if ok:
+        loaded_count += 1
+      rows.append({
+        "Model": label,
+        "Module": module_name,
+        "Symbol": symbol,
+        "Purpose": purpose,
+        "Status": _status_from_bool(ok),
+        "Notes": "Ready" if ok else err[:120],
+      })
+
+    reg_df = pd.DataFrame(rows)
+    st.dataframe(reg_df, use_container_width=True, hide_index=True)
+    st.caption(f"Loaded models: {loaded_count}/{len(model_specs)}")
+
+  with tab_bench:
+    traj = st.session_state.get("sim_trajectory", []) or []
+    compare_runs = st.session_state.get("sim_compare_history", []) or []
+    calib = st.session_state.get("sim_calibration")
+    sim_state = st.session_state.get("sim_state")
+    sector_results = st.session_state.get("sim_sector_results", {}) or {}
+    p6_result = st.session_state.get("ced_p6_result")
+    research_summary = st.session_state.get("sim_research_summary", {}) or {}
+
+    latest = traj[-1] if traj else {}
+    outcomes = latest.get("outcomes", {}) if isinstance(latest, dict) else {}
+
+    gdp_growth = _safe_get_num(outcomes, "gdp_growth")
+    inflation = _safe_get_num(outcomes, "inflation")
+    unemployment = _safe_get_num(outcomes, "unemployment")
+    debt_to_gdp = _safe_get_num(outcomes, "debt_to_gdp")
+    fsi = _safe_get_num(outcomes, "financial_stability")
+
+    fin_sum = research_summary.get("financial", {}) if isinstance(research_summary, dict) else {}
+    ineq_sum = research_summary.get("inequality", {}) if isinstance(research_summary, dict) else {}
+    ext_sum = research_summary.get("external", {}) if isinstance(research_summary, dict) else {}
+
+    baseline_rows = []
+
+    def _append_band(metric, value, min_v, max_v, rationale):
+      if value is None:
+        status = "WARN"
+        txt = "N/A"
+      else:
+        status = "PASS" if (value >= min_v and value <= max_v) else "FAIL"
+        txt = f"{value:.4f}"
+      baseline_rows.append({
+        "Metric": metric,
+        "Actual": txt,
+        "Baseline": f"[{min_v:.4f}, {max_v:.4f}]",
+        "Status": status,
+        "Reasonable Baseline": rationale,
+      })
+
+    def _append_threshold(metric, value, op, threshold, rationale):
+      if value is None:
+        status = "WARN"
+        txt = "N/A"
+      else:
+        if op == ">=":
+          ok = value >= threshold
+        elif op == "<=":
+          ok = value <= threshold
+        else:
+          ok = False
+        status = "PASS" if ok else "FAIL"
+        txt = f"{value:.4f}"
+      baseline_rows.append({
+        "Metric": metric,
+        "Actual": txt,
+        "Baseline": f"{op} {threshold:.4f}",
+        "Status": status,
+        "Reasonable Baseline": rationale,
+      })
+
+    _append_band("GDP Growth", gdp_growth, -0.15, 0.15, "Quarterly growth should remain in plausible stress-to-recovery range")
+    _append_band("Inflation", inflation, -0.02, 0.20, "Reasonable macro envelope for quarterly inflation dynamics")
+    _append_band("Unemployment", unemployment, 0.02, 0.30, "Aligned with engine NAIRU and unemployment bounds")
+    _append_band("Debt / GDP", debt_to_gdp, 0.00, 1.20, "Debt sustainability envelope for policy stress testing")
+    _append_threshold("Financial Stability Index", fsi, ">=", 0.35, "Composite resilience score below 0.35 indicates stress regime")
+    _append_threshold("NPL Ratio", _safe_get_num(fin_sum, "npl_ratio"), "<=", 0.10, "Prudential caution baseline")
+    _append_threshold("CAR", _safe_get_num(fin_sum, "car"), ">=", 0.145, "CBK minimum capital adequacy ratio")
+    _append_threshold("Reserves (months)", _safe_get_num(ext_sum, "reserves_months"), ">=", 3.0, "Import cover adequacy floor")
+    _append_threshold("Gini", _safe_get_num(ineq_sum, "gini"), "<=", 0.408, "Kenya benchmark inequality reference")
+
+    bench_df = pd.DataFrame(baseline_rows)
+    st.dataframe(bench_df, use_container_width=True, hide_index=True)
+
+    pass_count = int((bench_df["Status"] == "PASS").sum())
+    fail_count = int((bench_df["Status"] == "FAIL").sum())
+    warn_count = int((bench_df["Status"] == "WARN").sum())
+    c1, c2, c3, c4 = st.columns(4)
+    c1.metric("Trajectory Frames", len(traj))
+    c2.metric("Compare Runs", len(compare_runs))
+    c3.metric("Sector Artifacts", len(sector_results) if isinstance(sector_results, dict) else 0)
+    c4.metric("Estimand Artifacts", len(getattr(p6_result, "results", []) or []) if p6_result else 0)
+    st.caption(
+      f"Baseline checks: PASS={pass_count}, WARN={warn_count}, FAIL={fail_count}. "
+      f"Calibration confidence: {getattr(calib, 'overall_confidence', 0.0):.0%}."
+    )
+
+    if sim_state is not None and hasattr(sim_state, "interest_rate"):
+      st.caption(
+        f"Live engine snapshot: policy rate={float(getattr(sim_state, 'interest_rate', 0.0)):.4f}, "
+        f"inflation={float(getattr(sim_state, 'inflation', 0.0)):.4f}, "
+        f"unemployment={float(getattr(sim_state, 'unemployment', 0.0)):.4f}."
+      )
+
+  with tab_tests:
+    traj = st.session_state.get("sim_trajectory", []) or []
+    calib = st.session_state.get("sim_calibration")
+    latest = traj[-1] if traj else {}
+    outcomes = latest.get("outcomes", {}) if isinstance(latest, dict) else {}
+    t_vals = [f.get("t") for f in traj if isinstance(f, dict)]
+
+    checks = []
+
+    def _add_check(name, ok, baseline, evidence):
+      checks.append({
+        "Check": name,
+        "Status": "PASS" if ok else "FAIL",
+        "Baseline": baseline,
+        "Evidence": evidence,
+      })
+
+    _add_check(
+      "Simulation produced trajectory",
+      len(traj) > 0,
+      "frames >= 1",
+      f"frames={len(traj)}",
+    )
+    _add_check(
+      "Execution horizon is substantive",
+      len(traj) >= 20,
+      "frames >= 20",
+      f"frames={len(traj)}",
+    )
+    _add_check(
+      "Time index monotonic",
+      (len(t_vals) <= 1) or all((t_vals[i] is not None and t_vals[i + 1] is not None and t_vals[i + 1] > t_vals[i]) for i in range(len(t_vals) - 1)),
+      "t(i+1) > t(i)",
+      f"points={len(t_vals)}",
+    )
+    req_keys = ["gdp_growth", "inflation", "unemployment"]
+    _add_check(
+      "Required outcome keys present",
+      all(k in outcomes for k in req_keys),
+      "contains gdp_growth, inflation, unemployment",
+      f"keys={list(outcomes.keys())[:8]}",
+    )
+    numeric_vals = [v for v in outcomes.values() if isinstance(v, (int, float))]
+    _add_check(
+      "Outcome values finite",
+      bool(numeric_vals) and bool(np.isfinite(np.array(numeric_vals, dtype=float)).all()),
+      "all numeric outcomes finite",
+      f"numeric={len(numeric_vals)}",
+    )
+    conf = float(getattr(calib, "overall_confidence", 0.0)) if calib is not None else 0.0
+    _add_check(
+      "Calibration confidence acceptable",
+      conf >= 0.50,
+      "confidence >= 50%",
+      f"confidence={conf:.0%}",
+    )
+
+    test_df = pd.DataFrame(checks)
+    st.dataframe(test_df, use_container_width=True, hide_index=True)
+    st.caption(
+      "Execution tests are deterministic health checks; FAIL entries indicate immediate investigation points."
+    )
+
+  with tab_reports:
+    candidate_reports = [
+      "AUDIT_REPORT.md",
+      "validation_report.md",
+      "COMPREHENSIVE_DOCUMENTATION.md",
+      "audits/kshield_batch_audit_report.md",
+      "audits/kshield_forensic_audit.md",
+      "audits/scarcity_main_audit_report.md",
+      "audits/scarcity_verification_report.md",
+      "audits/pytest_main_run.txt",
+      "audits/pytest_fast_tests.txt",
+      "audits/pytest_slow_tests.txt",
+    ]
+
+    credibility_terms = [
+      "baseline", "benchmark", "confidence", "method", "assumption", "validation", "pytest", "audit",
+    ]
+
+    rows = []
+    for rel in candidate_reports:
+      path = Path(project_root) / rel
+      exists = path.exists() and path.is_file()
+      size_kb = (path.stat().st_size / 1024.0) if exists else 0.0
+      signal_hits = 0
+      if exists:
+        try:
+          txt = path.read_text(encoding="utf-8", errors="ignore")[:12000].lower()
+          signal_hits = sum(1 for term in credibility_terms if term in txt)
+        except Exception:
+          signal_hits = 0
+
+      if not exists:
+        status = "FAIL"
+      elif size_kb < 0.5:
+        status = "WARN"
+      elif signal_hits >= 3:
+        status = "PASS"
+      elif signal_hits >= 1:
+        status = "WARN"
+      else:
+        status = "FAIL"
+
+      rows.append({
+        "Report": rel,
+        "Exists": exists,
+        "Size (KB)": round(size_kb, 2),
+        "Credibility Signals": signal_hits,
+        "Status": status,
+        "Baseline Rule": "file exists, non-trivial length, includes method/baseline/validation cues",
+      })
+
+    rep_df = pd.DataFrame(rows)
+    st.dataframe(rep_df, use_container_width=True, hide_index=True)
+    score = float((rep_df["Status"] == "PASS").mean()) if len(rep_df) else 0.0
+    st.caption(
+      f"Report credibility score: {score:.0%}. "
+      f"PASS requires presence plus multiple methodological credibility signals."
+    )
 
 
 # ═══════════════════════════════════════════════════════════════════════
@@ -1133,7 +1529,7 @@ def _render_causal_estimands_deep(theme):
 
   # ── PANEL 3 — DOSE-RESPONSE CURVE (2D) ───────────────────────────
   st.markdown(
-    f'<div style="color:{theme.accent_secondary}; font-weight:600; font-size:0.82rem; '
+    f'<div style="color:{theme.accent_warning}; font-weight:600; font-size:0.82rem; '
     f'margin-top:0.6rem; margin-bottom:0.4rem;">③ DOSE-RESPONSE CURVE</div>',
     unsafe_allow_html=True,
   )
@@ -1165,7 +1561,7 @@ def _render_causal_estimands_deep(theme):
       x=bin_mid + bin_mid[::-1],
       y=upper + lower[::-1],
       fill="toself",
-      fillcolor=f"{PALETTE[0]}22",
+      fillcolor="rgba({},{},{},0.13)".format(int(PALETTE[0][1:3],16),int(PALETTE[0][3:5],16),int(PALETTE[0][5:7],16)),
       line=dict(color="rgba(0,0,0,0)"),
       hoverinfo="skip",
       showlegend=False,
@@ -1192,7 +1588,7 @@ def _render_causal_estimands_deep(theme):
 
   # ── PANEL 4 — 3D ATE SURFACE ──────────────────────────────────────
   st.markdown(
-    f'<div style="color:{theme.accent_secondary}; font-weight:600; font-size:0.82rem; '
+    f'<div style="color:{theme.accent_warning}; font-weight:600; font-size:0.82rem; '
     f'margin-top:0.6rem; margin-bottom:0.4rem;">④ 3D ATE SURFACE</div>',
     unsafe_allow_html=True,
   )
@@ -1267,11 +1663,24 @@ def _render_causal_estimands_deep(theme):
     margin=dict(l=0, r=0, t=40, b=0),
   )
   st.plotly_chart(fig_surf, use_container_width=True)
+  if not _np.all(_np.isnan(_z)):
+    _peak_q_idx, _peak_w_idx = _np.unravel_index(_np.nanargmax(_z), _z.shape)
+    _trough_q_idx, _trough_w_idx = _np.unravel_index(_np.nanargmin(_z), _z.shape)
+    st.markdown(f"""
+    <div style="font-size:0.78rem; color:{theme.text_muted}; padding:0.3rem 0;">
+      <b>How to read this 3D surface:</b> X-axis = treatment intensity threshold (Q10–Q70 quantile);
+      Y-axis = estimation window (years of data used); Z-axis (height) = the causal effect (ATE).
+      Green peaks = conditions where the treatment has the strongest positive effect.
+      Red valleys = conditions where the effect is negative or attenuated.
+      Peak ATE ({_np.nanmax(_z):+.3f}) at quantile {q_steps[_peak_q_idx]:.0%} / window {w_steps[_peak_w_idx]}yr.
+      Drag to rotate; scroll to zoom.
+    </div>
+    """, unsafe_allow_html=True)
 
   # ── PANEL 5 — 3D HETEROGENEITY SCATTER ───────────────────────────
   if confounder:
     st.markdown(
-      f'<div style="color:{theme.accent_secondary}; font-weight:600; font-size:0.82rem; '
+      f'<div style="color:{theme.accent_warning}; font-weight:600; font-size:0.82rem; '
       f'margin-top:0.6rem; margin-bottom:0.4rem;">⑤ 3D HETEROGENEITY SCATTER</div>',
       unsafe_allow_html=True,
     )
@@ -1320,27 +1729,248 @@ def _render_causal_estimands_deep(theme):
       margin=dict(l=0, r=0, t=40, b=0),
     )
     st.plotly_chart(fig_sc3, use_container_width=True)
+    st.markdown(f"""
+    <div style="font-size:0.78rem; color:{theme.text_muted}; padding:0.3rem 0;">
+      <b>How to read this 3D scatter:</b> Each dot is one data observation.
+      X-axis = treatment level ({treatment[:20]}); Y-axis = confounder ({confounder[:20]});
+      Z-axis = outcome ({outcome[:20]}). Colour encodes the outcome value (bright = high, dark = low).
+      Clusters of bright dots at high treatment/confounder values reveal where the effect is strongest.
+      Drag to rotate and look for distinct subgroup patterns. Drag to rotate; scroll to zoom.
+    </div>
+    """, unsafe_allow_html=True)
 
-  # ── PANEL 6 — STRUCTURAL CAUSAL ESTIMATES (DoWhy / EconML) ───────
+  # ── PANEL 6 — PARALLEL MULTI-ESTIMAND STRUCTURAL INFERENCE ──────
   st.markdown(
-    f'<div style="color:{theme.accent_secondary}; font-weight:600; font-size:0.82rem; '
-    f'margin-top:0.6rem; margin-bottom:0.4rem;">⑥ STRUCTURAL CAUSAL ESTIMATES</div>',
+    f'<div style="color:{theme.accent_warning}; font-weight:600; font-size:0.82rem; '
+    f'margin-top:0.6rem; margin-bottom:0.4rem;">⑥ STRUCTURAL CAUSAL INFERENCE — ALL ESTIMANDS</div>',
     unsafe_allow_html=True,
   )
   st.caption(
-    "Structural estimate using the Scarcity causal engine (DoWhy backdoor + optional EconML CATE). "
-    "Slower than the OLS panels above but accounts for confounding via a causal graph."
+    "Runs the full Scarcity causal engine across all available estimand types in parallel. "
+    "Accounts for confounding via DoWhy backdoor; CATE/ITE use EconML when installed."
   )
-  with st.expander("Run structural estimate (DoWhy)", expanded=False):
+
+  # Try to load engine deps lazily
+  _has_causal_engine = False
+  _has_econml_here = False
+  try:
+    from scarcity.causal.engine import run_causal as _run_causal
+    from scarcity.causal.specs import (
+      EstimandSpec as _EstimandSpec,
+      EstimandType as _EstimandType,
+      RuntimeSpec as _RuntimeSpec,
+      ParallelismMode as _ParallelismMode,
+      FailPolicy as _FailPolicy,
+      TimeSeriesPolicy as _TSPolicy,
+    )
+    _has_causal_engine = True
     try:
-      from kshiked.ui.kshield.causal import render_causal_evidence_panel
-      render_causal_evidence_panel(
-        df=clean,
-        treatment=treatment,
-        outcome=outcome,
-        confounders=ctrl_cols or None,
-        theme=theme,
-        key_prefix="ced_structural",
+      import econml as _econml_mod  # noqa: F401
+      _has_econml_here = True
+    except ImportError:
+      pass
+  except Exception:
+    pass
+
+  if not _has_causal_engine:
+    st.caption("Structural inference unavailable: scarcity causal engine not found. "
+           "Install `dowhy` and `scikit-learn` to enable.")
+  else:
+    # Estimand catalogue
+    _ALL_ESTIMANDS = [
+      ("ATE", "Average effect for everyone"),
+      ("ATT", "Average effect for treated group"),
+      ("ATC", "Average effect for untreated group"),
+      ("LATE", "Local avg effect via instrument"),
+      ("CATE", "Conditional/subgroup effects — EconML"),
+      ("ITE", "Individual-level effects — EconML"),
+      ("MEDIATION_NDE", "Natural direct effect — needs mediator"),
+      ("MEDIATION_NIE", "Natural indirect effect — needs mediator"),
+    ]
+    if not _has_econml_here:
+      _ALL_ESTIMANDS = [e for e in _ALL_ESTIMANDS if e[0] not in ("CATE", "ITE")]
+      st.caption("econml not installed — CATE and ITE hidden. `pip install econml` to enable.")
+
+    _avail_extras = ["(none)"] + [c for c in num_cols if c not in (treatment, outcome)]
+
+    _p6c1, _p6c2 = st.columns(2)
+    with _p6c1:
+      _instrument = st.selectbox(
+        "Instrument variable (for LATE)", _avail_extras,
+        index=0, key="ced_p6_iv",
+        help="A variable that affects treatment but not outcome directly.",
       )
-    except Exception as _e:
-      st.caption(f"Structural estimate unavailable: {_e}")
+      _instrument = None if _instrument == "(none)" else _instrument
+    with _p6c2:
+      _mediator = st.selectbox(
+        "Mediator variable (for MEDIATION)", _avail_extras,
+        index=0, key="ced_p6_med",
+        help="A variable through which the treatment partially works.",
+      )
+      _mediator = None if _mediator == "(none)" else _mediator
+
+    _em_opts = [c for c in num_cols if c not in (treatment, outcome, _instrument or "", _mediator or "")]
+    _effect_mods = st.multiselect(
+      "Effect modifiers (for CATE subgroup breakdown)", _em_opts,
+      default=[], key="ced_p6_em", max_selections=4,
+    )
+
+    _estimand_labels = [f"{code} — {desc}" for code, desc in _ALL_ESTIMANDS]
+    _default_labels = [lbl for lbl in _estimand_labels if lbl.split(" — ", 1)[0] in ("ATE", "ATT", "ATC")]
+    _selected_labels = st.multiselect(
+      f"Estimands to run ({len(_ALL_ESTIMANDS)} available)",
+      _estimand_labels, default=_default_labels, key="ced_p6_estimands",
+    )
+    _selected_codes = [lbl.split(" — ", 1)[0] for lbl in _selected_labels]
+
+    _p6c3, _p6c4 = st.columns(2)
+    with _p6c3:
+      _parallelism_label = st.selectbox(
+        "Execution mode",
+        ["Thread (balanced)", "Safe single (most stable)", "Process (fastest)"],
+        index=0, key="ced_p6_parallel",
+      )
+      _pmode_map = {
+        "Thread (balanced)": "thread",
+        "Safe single (most stable)": "none",
+        "Process (fastest)": "process",
+      }
+      _pmode = _pmode_map[_parallelism_label]
+    with _p6c4:
+      _n_jobs = st.slider("Parallel workers", 1, 8, 2, key="ced_p6_njobs")
+
+    if st.button("Run All Estimands", key="ced_p6_run", type="primary",
+           use_container_width=True):
+      _skipped = []
+      _specs = []
+      for _code in _selected_codes:
+        try:
+          _etype = _EstimandType(_code)
+        except ValueError:
+          _skipped.append(f"{_code} (unknown type)")
+          continue
+        if _etype in (_EstimandType.LATE,) and not _instrument:
+          _skipped.append("LATE (no instrument selected)")
+          continue
+        if _etype in (_EstimandType.MEDIATION_NDE, _EstimandType.MEDIATION_NIE) and not _mediator:
+          _skipped.append(f"{_code} (no mediator selected)")
+          continue
+        _specs.append(_EstimandSpec(
+          treatment=treatment,
+          outcome=outcome,
+          confounders=ctrl_cols or [],
+          effect_modifiers=_effect_mods or [],
+          instrument=_instrument,
+          mediator=_mediator,
+          type=_etype,
+        ))
+
+      if _skipped:
+        st.warning("Skipped: " + ", ".join(_skipped))
+      if not _specs:
+        st.error("No valid estimands after validation. Select estimands and check instrument/mediator.")
+      else:
+        _runtime = _RuntimeSpec(
+          parallelism=_ParallelismMode(_pmode),
+          n_jobs=_n_jobs,
+          chunk_size=1,
+          fail_policy=_FailPolicy.CONTINUE,
+          time_series_policy=_TSPolicy.NONE,
+          estimator_method=None,
+        )
+        with st.spinner(f"Running {len(_specs)} estimand(s) in {_parallelism_label.lower()} mode…"):
+          try:
+            _result = _run_causal(clean, _specs, _runtime)
+            # Auto-fallback to sequential if parallel worker fails
+            if not _result.results and _result.errors and _pmode != "none":
+              _fallback_rt = _RuntimeSpec(
+                parallelism=_ParallelismMode.NONE, n_jobs=1, chunk_size=1,
+                fail_policy=_FailPolicy.CONTINUE, time_series_policy=_TSPolicy.NONE,
+              )
+              st.warning("Parallel execution failed — retrying sequentially.")
+              _result = _run_causal(clean, _specs, _fallback_rt)
+          except Exception as _ce:
+            st.error(f"Causal engine error: {_ce}")
+            _result = None
+
+        if _result:
+          st.session_state["ced_p6_result"] = _result
+
+    # ── Display cached results ─────────────────────────────────────
+    _p6_result = st.session_state.get("ced_p6_result")
+    if _p6_result and _p6_result.results:
+      _summary = _p6_result.summary
+      if _summary:
+        _sm1, _sm2, _sm3, _sm4 = st.columns(4)
+        _sm1.metric("Estimands run", _summary.total_specs)
+        _sm2.metric("Succeeded", _summary.succeeded)
+        _sm3.metric("Failed", _summary.failed)
+        _sm4.metric("Mode", _summary.parallelism.upper())
+
+      _rows = []
+      for _art in _p6_result.results:
+        _est = _art.estimate
+        _scalar = float(_est) if isinstance(_est, (int, float)) else (
+          float(_est.mean()) if hasattr(_est, "mean") else float(str(_est).split()[0])
+          if str(_est) else 0.0
+        )
+        _ci = _art.confidence_intervals
+        _ci_lo = _ci_hi = None
+        if isinstance(_ci, (list, tuple)) and len(_ci) >= 2:
+          _ci_lo, _ci_hi = float(_ci[0]), float(_ci[1])
+        elif hasattr(_ci, "__iter__"):
+          _ci_vals = list(_ci)
+          if len(_ci_vals) >= 2:
+            _ci_lo, _ci_hi = float(_ci_vals[0]), float(_ci_vals[1])
+        _excludes_zero = (
+          _ci_lo is not None and _ci_hi is not None and
+          ((_ci_lo > 0 and _ci_hi > 0) or (_ci_lo < 0 and _ci_hi < 0))
+        )
+        _rows.append({
+          "Estimand": _art.estimand_type,
+          "Estimate": round(_scalar, 5),
+          "CI Low": round(_ci_lo, 5) if _ci_lo is not None else None,
+          "CI High": round(_ci_hi, 5) if _ci_hi is not None else None,
+          "CI Excludes 0": _excludes_zero,
+          "Backend": _art.backend.get("name", "") if _art.backend else "",
+          "Method": _art.backend.get("method_name", "") if _art.backend else "",
+        })
+
+      if pd is not None:
+        import pandas as _pd_p6
+        _rdf = _pd_p6.DataFrame(_rows).sort_values("Estimand")
+        st.dataframe(_rdf, use_container_width=True, hide_index=True)
+
+      # Bar chart of estimates
+      if _rows:
+        _est_names = [r["Estimand"] for r in _rows]
+        _est_vals = [r["Estimate"] for r in _rows]
+        _est_colors = [PALETTE[0] if v >= 0 else PALETTE[3] for v in _est_vals]
+        _ci_lo_arr = [r["CI Low"] for r in _rows]
+        _ci_hi_arr = [r["CI High"] for r in _rows]
+        _err_minus = [abs(v - lo) if lo is not None else 0 for v, lo in zip(_est_vals, _ci_lo_arr)]
+        _err_plus = [abs(hi - v) if hi is not None else 0 for v, hi in zip(_est_vals, _ci_hi_arr)]
+
+        _fig_p6 = go.Figure(go.Bar(
+          x=_est_names, y=_est_vals,
+          marker_color=_est_colors,
+          error_y=dict(type="data", array=_err_plus, arrayminus=_err_minus,
+                 visible=True, color="rgba(255,255,255,0.4)", thickness=1.5, width=5),
+          text=[f"{v:+.4f}" for v in _est_vals],
+          textposition="outside",
+          hovertemplate="<b>%{x}</b><br>Estimate: %{y:+.5f}<extra></extra>",
+        ))
+        _fig_p6.add_hline(y=0, line_dash="dash", line_color=theme.text_muted, line_width=1)
+        _fig_p6.update_layout(**base_layout(theme, height=360,
+          title=dict(
+            text=f"All Estimands: {treatment[:22]} → {outcome[:22]}",
+            font=dict(color=theme.text_muted, size=13)),
+          xaxis=dict(title="Estimand Type"),
+          yaxis=dict(title="Estimated Causal Effect"),
+        ))
+        st.plotly_chart(_fig_p6, use_container_width=True)
+
+      if _p6_result.errors:
+        with st.expander(f"Errors ({len(_p6_result.errors)})", expanded=False):
+          for _err in _p6_result.errors:
+            st.caption(f"[{_err.stage}] {_err.exception_type}: {_err.message}")

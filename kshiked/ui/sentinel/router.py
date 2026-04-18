@@ -217,12 +217,15 @@ def render_sentinel_dashboard():
   # Only fetch data when needed (not for HOME page)
   data = get_dashboard_data(force_causal=st.session_state.force_causal_retrain)
 
-  # Start document intelligence background job (once per process)
-  try:
-    from document_intel import get_document_intel
-    get_document_intel().start()
-  except Exception as exc:
-    logger.warning(f"Document intelligence unavailable: {exc}")
+  # Start document intelligence background job only once per session.
+  if not st.session_state.get("_doc_intel_started"):
+    try:
+      from document_intel import get_document_intel
+      get_document_intel().start()
+      st.session_state["_doc_intel_started"] = True
+    except Exception as exc:
+      logger.warning(f"Document intelligence unavailable: {exc}")
+      st.session_state["_doc_intel_started"] = True  # don't retry on error
 
   try:
     from flux_viz import get_flux_graph_html

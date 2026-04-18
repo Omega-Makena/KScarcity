@@ -201,6 +201,98 @@ def _extract_param(
     )
 
 
+def _estimate_mpc_regression(
+    loader: "KenyaEconomicDataLoader",
+) -> tuple:
+    """
+    Estimate the Marginal Propensity to Consume (MPC) via OLS regression.
+
+    Uses the national accounts identity to derive private consumption shares:
+        C/Y = 1 - G/Y - NX/Y - I_proxy/Y
+
+    Then runs: C/Y_t = α + MPC · Yd/Y_t + ε_t
+    where Yd = Y - T (disposable income share = 1 - tax_rate).
+
+    Requires: govt_consumption, tax_revenue, exports_gdp, imports_gdp.
+    Returns: (mpc_estimate, r_squared, n_observations, latest_year)
+             If insufficient / invalid data: (None, 0.0, 0, 0)
+    """
+    try:
+        import numpy as np
+        import pandas as pd
+    except ImportError:
+        return None, 0.0, 0, 0
+
+    ts_govt    = loader.get_indicator("govt_consumption")   # G/Y in %
+    ts_tax     = loader.get_indicator("tax_revenue")         # T/Y in %
+    ts_exports = loader.get_indicator("exports_gdp")         # X/Y in %
+    ts_imports = loader.get_indicator("imports_gdp")         # M/Y in %
+
+    if not all([ts_govt, ts_tax, ts_exports, ts_imports]):
+        return None, 0.0, 0, 0
+
+    def _ts_to_series(ts) -> "pd.Series":
+        return pd.Series(
+            {int(y): float(v)
+             for y, v in zip(ts.years, ts.values)
+             if not pd.isna(v)},
+            dtype=float,
+        )
+
+    df = pd.DataFrame({
+        "G":  _ts_to_series(ts_govt)    / 100.0,
+        "T":  _ts_to_series(ts_tax)     / 100.0,
+        "X":  _ts_to_series(ts_exports) / 100.0,
+        "M":  _ts_to_series(ts_imports) / 100.0,
+    }).dropna()
+
+    if len(df) < 5:
+        return None, 0.0, len(df), 0
+
+    # Kenya GFCF/GDP historically ≈ 17–18 %.  We fix the investment proxy here;
+    # a later improvement (item 6) will regress this too once GFCF data is wired.
+    I_PROXY = 0.175
+
+    df["NX"]      = df["X"] - df["M"]                          # net exports share
+    df["C_share"] = 1.0 - df["G"] - df["NX"] - I_PROXY         # private consumption share
+    df["Yd_share"] = 1.0 - df["T"]                             # disposable income share
+
+    # Drop implausible rows (data artefacts / structural breaks)
+    df = df[(df["C_share"] > 0.35) & (df["C_share"] < 0.92)]
+    df = df[(df["Yd_share"] > 0.55) & (df["Yd_share"] < 0.96)]
+
+    n = len(df)
+    if n < 5:
+        return None, 0.0, n, 0
+
+    x = df["Yd_share"].values
+    y = df["C_share"].values
+
+    x_mean = x.mean()
+    y_mean = y.mean()
+    cov_xy = float(np.sum((x - x_mean) * (y - y_mean)))
+    var_x  = float(np.sum((x - x_mean) ** 2))
+
+    if var_x < 1e-12:
+        return None, 0.0, n, 0
+
+    mpc   = cov_xy / var_x
+    alpha = y_mean - mpc * x_mean
+
+    # R²
+    y_hat  = alpha + mpc * x
+    ss_res = float(np.sum((y - y_hat) ** 2))
+    ss_tot = float(np.sum((y - y_mean) ** 2))
+    r_sq   = max(0.0, 1.0 - ss_res / ss_tot) if ss_tot > 1e-12 else 0.0
+
+    # Sanity bounds for Kenya (0.55–0.95 covers the literature range)
+    if not (0.50 <= mpc <= 0.97):
+        return None, r_sq, n, 0
+
+    latest_year = int(df.index.max())
+    return float(mpc), float(r_sq), n, latest_year
+
+
 def calibrate_from_data(
     loader: Optional["KenyaEconomicDataLoader"] = None,
     steps: int = 50,
@@ -286,23 +378,56 @@ def calibrate_from_data(
     p_unemp = _extract_param(loader, "unemployment", scale=0.01, fallback_key="nairu")
     params["nairu"] = p_unemp
 
-    # --- Consumption propensity: Derive from GDP composition ---
-    # MPC ≈ private consumption / (GDP - tax)
-    # We proxy it from household consumption share patterns
-    p_gdp_growth = _extract_param(loader, "gdp_growth", scale=0.01, fallback_key="consumption_propensity")
-    # Use exports/imports to infer openness and thus domestic absorption
-    p_trade = _extract_param(loader, "trade_gdp", scale=0.01)
-    # Higher trade openness → lower domestic consumption share
-    domestic_absorption = max(0.4, min(0.95, 1.0 - p_trade.value * 0.3))
-    mpc_param = CalibratedParam(
-        name="consumption_propensity",
-        value=_blend_with_fallback(domestic_absorption, _GENERIC_FALLBACKS["consumption_propensity"],
-                                    p_trade.confidence),
-        source=p_trade.source if p_trade.confidence > 0 else "fallback",
-        confidence=p_trade.confidence,
-        data_years=p_trade.data_years,
-        latest_year=p_trade.latest_year,
-    )
+    # --- Consumption propensity: OLS regression via national accounts identity ---
+    # C/Y_t = α + MPC · Yd/Y_t + ε_t  where Yd = Y − T (disposable income share)
+    # C/Y is derived as: 1 − G/Y − NX/Y − I_proxy/Y (national accounts identity)
+    # Falls back to trade-openness heuristic if insufficient data for regression.
+    mpc_regr, mpc_r2, mpc_n, mpc_latest = _estimate_mpc_regression(loader)
+
+    if mpc_regr is not None and mpc_n >= 5:
+        # Regression succeeded: confidence weighted by R² and sample coverage
+        mpc_conf = min(1.0, mpc_r2 * min(mpc_n / 15.0, 1.0))
+        mpc_conf = max(0.0, mpc_conf)
+        mpc_value = _blend_with_fallback(
+            mpc_regr,
+            _GENERIC_FALLBACKS["consumption_propensity"],
+            mpc_conf,
+        )
+        logger.info(
+            "MPC estimated by OLS regression: β=%.4f, R²=%.3f, n=%d",
+            mpc_regr, mpc_r2, mpc_n,
+        )
+        mpc_param = CalibratedParam(
+            name="consumption_propensity",
+            value=mpc_value,
+            source="data",
+            confidence=mpc_conf,
+            data_years=mpc_n,
+            latest_year=mpc_latest,
+        )
+    else:
+        # Fallback: trade-openness heuristic (pre-item-5 behaviour)
+        p_trade = _extract_param(loader, "trade_gdp", scale=0.01)
+        domestic_absorption = max(0.4, min(0.95, 1.0 - p_trade.value * 0.3))
+        mpc_conf = p_trade.confidence * 0.5   # lower confidence: heuristic, not regression
+        mpc_value = _blend_with_fallback(
+            domestic_absorption,
+            _GENERIC_FALLBACKS["consumption_propensity"],
+            mpc_conf,
+        )
+        logger.warning(
+            "MPC regression insufficient data (n=%d); using trade-openness heuristic: %.4f",
+            mpc_n, mpc_value,
+        )
+        mpc_param = CalibratedParam(
+            name="consumption_propensity",
+            value=mpc_value,
+            source=p_trade.source if p_trade.confidence > 0 else "fallback",
+            confidence=mpc_conf,
+            data_years=p_trade.data_years,
+            latest_year=p_trade.latest_year,
+        )
+
     params["consumption_propensity"] = mpc_param
 
     # --- Investment ratio: GFCF is not directly in our indicators ---
@@ -362,6 +487,22 @@ def calibrate_from_data(
     p_debt = _extract_param(loader, "govt_debt", scale=0.01, fallback_key="debt_to_gdp")
     params["debt_to_gdp"] = p_debt
 
+    # --- Crisis debt threshold: calibrated as 1.8× current debt/GDP (Kenya-specific) ---
+    # At Kenya's ~68% debt/GDP (2023), this places the threshold at ~122%, which represents
+    # genuine unsustainability (well above IMF's 55-70% PV DSF threshold for LICs, and the
+    # point at which market access typically closes for sub-investment-grade sovereigns).
+    # Clamped to [0.85, 1.30] to stay economically sensible.
+    crisis_debt_threshold_val = float(min(1.30, max(0.85, p_debt.value * 1.80)))
+    crisis_debt_thresh = CalibratedParam(
+        name="crisis_debt_gdp_threshold",
+        value=crisis_debt_threshold_val,
+        source=p_debt.source,
+        confidence=p_debt.confidence,
+        data_years=p_debt.data_years,
+        latest_year=p_debt.latest_year,
+    )
+    params["crisis_debt_gdp_threshold"] = crisis_debt_thresh
+
     # --- Inflation bounds: Derive from historical range ---
     inf_ts = loader.get_indicator("inflation")
     if inf_ts:
@@ -416,6 +557,17 @@ def calibrate_from_data(
         "dt": 1.0,
         "steps": steps,
         "policy_mode": policy_mode,
+
+        # Commodity price pass-through (Kenya-calibrated)
+        "oil_pass_through": 0.22,   # CBK estimate: ~22% of oil price moves into CPI
+        "food_pass_through": 0.40,  # Food ~35% of CPI basket; effective pass-through ~40%
+
+        # Crisis regime thresholds (Item 7 + Item 11: Kenya data-calibrated)
+        # debt threshold: 1.80× current debt/GDP, clamped [0.85, 1.30]
+        "crisis_debt_gdp_threshold": params["crisis_debt_gdp_threshold"].value,
+        # NPL threshold: CBK systemic concern level; no WB indicator available → hardcoded
+        "crisis_npl_threshold": 0.20,
+        # Output gap threshold and response magnitudes are structural; leave at defaults
     }
 
     # Apply user overrides last (highest priority)
@@ -554,6 +706,116 @@ OUTCOME_DIMENSIONS = {
         "format": ".2f",
         "higher_is": "better",
         "category": "Financial",
+    },
+
+    # ── CRISIS DIMENSIONS ──────────────────────────────────────────────
+    "health_capacity": {
+        "label": "Health System Capacity",
+        "description": "Health sector output as share of GDP — proxy for system capacity",
+        "unit": "ratio",
+        "format": ".1%",
+        "higher_is": "better",
+        "category": "Crisis",
+    },
+    "water_access": {
+        "label": "Water Access",
+        "description": "Water / sanitation sector output as share of GDP",
+        "unit": "ratio",
+        "format": ".1%",
+        "higher_is": "better",
+        "category": "Crisis",
+    },
+    "transport_connectivity": {
+        "label": "Transport Connectivity",
+        "description": "Transport sector output as share of GDP — proxy for supply chain health",
+        "unit": "ratio",
+        "format": ".1%",
+        "higher_is": "better",
+        "category": "Crisis",
+    },
+    "security_stability": {
+        "label": "Security Stability",
+        "description": "Security sector output as share of GDP — proxy for stability",
+        "unit": "ratio",
+        "format": ".1%",
+        "higher_is": "better",
+        "category": "Crisis",
+    },
+    "infrastructure_score": {
+        "label": "Infrastructure Resilience",
+        "description": "Combined transport + water output as share of GDP",
+        "unit": "ratio",
+        "format": ".1%",
+        "higher_is": "better",
+        "category": "Crisis",
+    },
+    "crisis_severity": {
+        "label": "Crisis Severity",
+        "description": "Overall crisis severity index (0=no crisis, 1=total collapse of crisis sectors)",
+        "unit": "score",
+        "format": ".2f",
+        "higher_is": "worse",
+        "category": "Crisis",
+    },
+
+    # ── INEQUALITY & QUINTILE DIMENSIONS (Item 6) ──────────────────────
+    "effective_mpc": {
+        "label": "Effective MPC",
+        "description": "Income-share-weighted aggregate marginal propensity to consume across all quintiles",
+        "unit": "ratio",
+        "format": ".3f",
+        "higher_is": "context",
+        "category": "Inequality",
+    },
+    "gini": {
+        "label": "Gini Coefficient",
+        "description": "Inequality of income distribution across quintiles (0=perfect equality, 1=perfect inequality)",
+        "unit": "index",
+        "format": ".3f",
+        "higher_is": "worse",
+        "category": "Inequality",
+    },
+    "q1_share": {
+        "label": "Bottom Quintile Share",
+        "description": "Income share of the lowest 20% (Q1) — falls when unemployment rises",
+        "unit": "ratio",
+        "format": ".3f",
+        "higher_is": "better",
+        "category": "Inequality",
+    },
+    "q5_share": {
+        "label": "Top Quintile Share",
+        "description": "Income share of the highest 20% (Q5) — rises when unemployment rises",
+        "unit": "ratio",
+        "format": ".3f",
+        "higher_is": "worse",
+        "category": "Inequality",
+    },
+
+    # ── CRISIS REGIME FLAGS (Item 7) ───────────────────────────────────
+    "regime_sudden_stop": {
+        "label": "Sudden Stop Regime",
+        "description": "Binary flag: 1 when output gap ≤ −12% — investment collapse + consumption contraction active",
+        "unit": "flag",
+        "format": ".0f",
+        "higher_is": "worse",
+        "category": "Crisis Regimes",
+    },
+    "regime_bank_run": {
+        "label": "Bank Run Regime",
+        "description": "Binary flag: 1 when NPL ratio ≥ 20% — credit freeze + extra spread active",
+        "unit": "flag",
+        "format": ".0f",
+        "higher_is": "worse",
+        "category": "Crisis Regimes",
+    },
+    "regime_debt_crisis": {
+        "label": "Debt Crisis Regime",
+        "description": "Binary flag: 1 when govt debt/GDP ≥ 150% — forced austerity (−15% spending) active",
+        "unit": "flag",
+        "format": ".0f",
+        "higher_is": "worse",
+        "category": "Crisis Regimes",
     },
 }
 

@@ -94,14 +94,13 @@ class LearnedSFCEconomy:
         initial_state = self._get_initial_state()
         self._sim.set_initial_state(initial_state)
 
-        # Apply shock perturbations if configured
-        if self._sfc_config and self._sfc_config.shock_vectors:
-            for t, shock_dict in enumerate(self._sfc_config.shock_vectors):
-                if t == 0:
-                    for var, val in shock_dict.items():
-                        mapped = self._map_shock_to_variable(var)
-                        if mapped:
-                            self._sim.perturb(mapped, initial_state.get(mapped, 0.0) * (1 + val))
+        # Apply t=0 shock perturbations if configured.
+        # Supports both canonical SFC format (dict[str, np.ndarray])
+        # and legacy learned format (list[dict[str, float]]).
+        for var, val in self._shock_dict_at_time(0).items():
+            mapped = self._map_shock_to_variable(var)
+            if mapped:
+                self._sim.perturb(mapped, initial_state.get(mapped, 0.0) * (1 + val))
 
         # Apply policy locks
         if self._sfc_config and self._sfc_config.policy_mode == "custom":
@@ -242,16 +241,50 @@ class LearnedSFCEconomy:
 
     def _apply_shocks_at(self, t: int):
         """Apply scheduled shocks for time step t."""
-        if not self._sfc_config or not self._sfc_config.shock_vectors:
+        if self._sim is None:
             return
 
-        if t < len(self._sfc_config.shock_vectors):
-            shock = self._sfc_config.shock_vectors[t]
-            for var, mag in shock.items():
-                mapped = self._map_shock_to_variable(var)
-                if mapped and abs(mag) > 1e-6:
-                    current = self._sim.state.get(mapped, 0.0)
-                    self._sim.perturb(mapped, current * (1 + mag))
+        shock = self._shock_dict_at_time(t)
+        for var, mag in shock.items():
+            mapped = self._map_shock_to_variable(var)
+            if mapped and abs(mag) > 1e-6:
+                current = self._sim.state.get(mapped, 0.0)
+                self._sim.perturb(mapped, current * (1 + mag))
+
+    def _shock_dict_at_time(self, t: int) -> Dict[str, float]:
+        """
+        Normalize configured shocks to a per-time dict.
+
+        Supports:
+        1. Canonical SFC format: {"demand_shock": np.ndarray, ...}
+        2. Legacy learned format: [{"demand": 0.1, ...}, ...]
+        """
+        if not self._sfc_config:
+            return {}
+
+        shock_vectors = self._sfc_config.shock_vectors
+        if not shock_vectors:
+            return {}
+
+        # Canonical SFC format: dict[str, vector]
+        if isinstance(shock_vectors, dict):
+            out: Dict[str, float] = {}
+            for key, vec in shock_vectors.items():
+                try:
+                    if t < len(vec):
+                        out[str(key)] = float(vec[t])
+                except TypeError:
+                    # Ignore malformed entries to keep simulation robust.
+                    continue
+            return out
+
+        # Legacy learned format: sequence[dict]
+        if isinstance(shock_vectors, (list, tuple)) and 0 <= t < len(shock_vectors):
+            step = shock_vectors[t]
+            if isinstance(step, dict):
+                return {str(k): float(v) for k, v in step.items()}
+
+        return {}
 
     def _apply_policy_locks(self):
         """Apply custom policy instrument locks."""
@@ -270,9 +303,13 @@ class LearnedSFCEconomy:
         """Map SFC shock keys to discovery engine variable names."""
         mapping = {
             "demand": "gdp_growth",
+            "demand_shock": "gdp_growth",
             "supply": "inflation_cpi",
+            "supply_shock": "inflation_cpi",
             "fiscal": "gov_expense_gdp",
+            "fiscal_shock": "gov_expense_gdp",
             "fx": "current_account",
+            "fx_shock": "current_account",
             "trade": "trade_gdp",
             "monetary": "real_interest_rate",
             "credit": "dom_credit_pvt",
@@ -326,10 +363,7 @@ class LearnedSFCEconomy:
 
     def _extract_shock_vector(self) -> Dict[str, float]:
         """Extract current shock vector."""
-        if self._sfc_config and self._sfc_config.shock_vectors:
-            idx = min(self.time, len(self._sfc_config.shock_vectors) - 1)
-            return dict(self._sfc_config.shock_vectors[idx])
-        return {}
+        return self._shock_dict_at_time(self.time)
 
     def _build_var_mapping(self) -> Dict[str, str]:
         """Build mapping between SFC variable names and discovery engine names."""

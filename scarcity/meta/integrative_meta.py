@@ -176,27 +176,48 @@ class MetaIntegrativeLayer:
     # --------------------------------------------------------------------- #
 
     def _compute_reward(self, telemetry: Dict[str, Any]) -> float:
-        weights = self.config['meta_score']['weights']
-        penalties = self.config['meta_score']['penalties']
+        # Use typed config when available; fall back to dict for legacy paths.
+        if self._config is not None:
+            ms = self._config.meta_score
+            w_accept = ms.weights.accept
+            w_stability = ms.weights.stability
+            w_contrast = ms.weights.contrast
+            p_latency = ms.penalties.latency
+            p_vram = ms.penalties.vram
+            p_oom = ms.penalties.oom
+            lat_norm = ms.latency_normalization
+            lat_clip = ms.latency_clip_max
+            r_min, r_max = ms.reward_clip_min, ms.reward_clip_max
+        else:
+            weights = self.config['meta_score']['weights']
+            penalties = self.config['meta_score']['penalties']
+            w_accept = weights.get('accept', 0.0)
+            w_stability = weights.get('stability', 0.0)
+            w_contrast = weights.get('contrast', 0.0)
+            p_latency = penalties.get('latency', 0.0)
+            p_vram = penalties.get('vram', 0.0)
+            p_oom = penalties.get('oom', 0.0)
+            lat_norm = self.config['meta_score'].get('latency_normalization', 120.0)
+            lat_clip = self.config['meta_score'].get('latency_clip_max', 2.0)
+            r_min, r_max = -1.0, 1.0
 
         accept = telemetry.get('accept_rate', 0.0)
         stability = telemetry.get('stability_avg', 0.0)
         contrast = telemetry.get('rcl_contrast', 0.0)
-        latency = telemetry.get('latency_ms', 0.0) / 120.0  # normalize
-        latency = float(np.clip(latency, 0.0, 2.0))
+        latency = float(np.clip(telemetry.get('latency_ms', 0.0) / lat_norm, 0.0, lat_clip))
         vram = telemetry.get('vram_util', 0.0)
         oom_flag = 1.0 if telemetry.get('oom_flag', False) else 0.0
 
         reward = (
-            weights.get('accept', 0.0) * accept +
-            weights.get('stability', 0.0) * stability +
-            weights.get('contrast', 0.0) * contrast -
-            penalties.get('latency', 0.0) * latency -
-            penalties.get('vram', 0.0) * vram -
-            penalties.get('oom', 0.0) * oom_flag
+            w_accept * accept +
+            w_stability * stability +
+            w_contrast * contrast -
+            p_latency * latency -
+            p_vram * vram -
+            p_oom * oom_flag
         )
 
-        reward = float(np.clip(reward, -1.0, 1.0))
+        reward = float(np.clip(reward, r_min, r_max))
         self.state.last_reward = reward
         return reward
 
@@ -444,9 +465,12 @@ class MetaSupervisor:
         self.low_accept_windows = 0
         self.running = False
         self._lock = asyncio.Lock()
+        # Suppress our own rollback for N cycles when optimizer already rolled back
+        self._rollback_suppression_cycles: int = 0
 
         self._processing_handler = self._handle_processing_metrics
         self._telemetry_handler = self._handle_telemetry
+        self._rollback_handler = self._handle_meta_rollback_active
 
     async def start(self) -> None:
         """Start the supervisor."""
@@ -455,6 +479,7 @@ class MetaSupervisor:
         self.running = True
         self.bus.subscribe("processing_metrics", self._processing_handler)
         self.bus.subscribe("telemetry", self._telemetry_handler)
+        self.bus.subscribe("meta_rollback_active", self._rollback_handler)
 
     async def stop(self) -> None:
         """Stop the supervisor."""
@@ -463,6 +488,11 @@ class MetaSupervisor:
         self.running = False
         self.bus.unsubscribe("processing_metrics", self._processing_handler)
         self.bus.unsubscribe("telemetry", self._telemetry_handler)
+        self.bus.unsubscribe("meta_rollback_active", self._rollback_handler)
+
+    async def _handle_meta_rollback_active(self, topic: str, data: Dict[str, Any]) -> None:
+        """Suppress integrative rollback for 2 cycles when optimizer already rolled back."""
+        self._rollback_suppression_cycles = 2
 
     async def _handle_processing_metrics(self, topic: str, data: Dict[str, Any]) -> None:
         self.last_processing = data or {}
@@ -482,6 +512,11 @@ class MetaSupervisor:
             return
 
         async with self._lock:
+            if self._rollback_suppression_cycles > 0:
+                self._rollback_suppression_cycles -= 1
+                # Optimizer already rolled back this cycle — skip integrative update
+                return
+
             meta_input = self._build_meta_input()
             outputs = self.layer.update(meta_input)
 
@@ -523,8 +558,13 @@ class MetaSupervisor:
             return None
 
         profile = self.current_profile.copy()
-        drg_cfg = self.config.get('drg_policy', {})
-        max_paths = drg_cfg.get('n_paths_max', 128)
+        # Prefer typed config; fall back to dict for legacy-constructed supervisors.
+        layer_config = self.layer._config
+        if layer_config is not None:
+            max_paths = layer_config.drg_policy.n_paths_max
+        else:
+            drg_cfg = self.config.get('drg_policy', {})
+            max_paths = drg_cfg.get('n_paths_max', 128)
 
         if 'n_paths_delta' in hint:
             delta = hint['n_paths_delta']

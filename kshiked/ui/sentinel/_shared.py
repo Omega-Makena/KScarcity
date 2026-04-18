@@ -41,6 +41,9 @@ try:
   HAS_PLOTLY = True
 except ImportError:
   HAS_PLOTLY = False
+  go = None
+  px = None
+  make_subplots = None
 
 try:
   import pandas as pd

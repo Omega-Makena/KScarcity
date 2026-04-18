@@ -4,8 +4,8 @@ Test: Stock-Flow Consistent Economic Simulation
 Validates SFC economy maintains consistency and produces sensible dynamics.
 """
 
-import pytest
 import numpy as np
+import pytest
 from scarcity.simulation.sfc import (
     SFCEconomy,
     SFCConfig,
@@ -91,21 +91,40 @@ class TestSFCEconomyDynamics:
         assert rate_high >= rate_low, f"Rate should increase with inflation"
     
     def test_unemployment_follows_okun(self):
-        """Unemployment should fall when GDP grows."""
-        economy = SFCEconomy()
-        economy.initialize(gdp=100)
-        economy.unemployment = 0.10
-        
-        # Force positive GDP growth
-        economy.gdp = 90  # Below demand → will grow
-        initial_unemployment = economy.unemployment
-        
-        for _ in range(5):
-            economy.step()
-        
-        # If GDP grew, unemployment should have fallen
-        if economy.gdp > 90:
-            assert economy.unemployment < initial_unemployment
+        """Unemployment falls with GDP growth and rises with GDP contraction (Okun's Law direction).
+
+        The original test set economy.gdp = 90 and hoped GDP would grow, but since
+        consumption / investment / spending all scale with current GDP, aggregate demand
+        ≈ GDP and there is no restoring force.  The fix: apply an explicit demand shock
+        to create genuine excess demand, then verify the directional response.
+        """
+        # --- Positive demand → GDP grows → unemployment falls ---
+        cfg_boom = SFCConfig(
+            shock_vectors={"demand_shock": np.full(20, 0.08)},  # 8% persistent demand boost
+        )
+        econ_boom = SFCEconomy(cfg_boom)
+        econ_boom.initialize(gdp=100)
+        u0_boom = econ_boom.unemployment
+        for _ in range(10):
+            econ_boom.step()
+        assert econ_boom.gdp > 100, "Demand boom should raise GDP"
+        assert econ_boom.unemployment < u0_boom, (
+            f"Unemployment should fall in a boom: {u0_boom:.4f} → {econ_boom.unemployment:.4f}"
+        )
+
+        # --- Negative demand → GDP contracts → unemployment rises ---
+        cfg_bust = SFCConfig(
+            shock_vectors={"demand_shock": np.full(20, -0.10)},  # 10% persistent demand collapse
+        )
+        econ_bust = SFCEconomy(cfg_bust)
+        econ_bust.initialize(gdp=100)
+        u0_bust = econ_bust.unemployment
+        for _ in range(10):
+            econ_bust.step()
+        assert econ_bust.gdp < 100, "Demand bust should contract GDP"
+        assert econ_bust.unemployment > u0_bust, (
+            f"Unemployment should rise in a bust: {u0_bust:.4f} → {econ_bust.unemployment:.4f}"
+        )
     
     def test_fiscal_deficit_increases_debt(self):
         """Government deficit should increase debt."""

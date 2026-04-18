@@ -69,7 +69,7 @@ def render_unified_report_export(
   evidence: Optional[Dict[str, object]] = None,
   key_prefix: str = "unified_report",
 ) -> None:
-  """Render one-click report export used consistently across dashboards."""
+  """Render a simple export button that reveals PDF/CSV/ZIP options."""
   highlights_list = [str(h) for h in (highlights or []) if str(h).strip()]
   interpretations_list = [str(i) for i in (interpretations or []) if str(i).strip()]
   export_payload: Dict[str, object] = {
@@ -92,18 +92,57 @@ def render_unified_report_export(
   )
 
   st.markdown("#### Unified Report Export")
-  st.caption(
-    "PDF is the primary report for decision makers. Use ZIP when you need full metadata and raw tables."
-  )
+  st.caption("Click the export button to choose PDF, CSV, or ZIP.")
 
-  mcols = st.columns(3)
-  mcols[0].metric("Dashboard", str(dashboard_name))
-  mcols[1].metric("Section", str(section_name))
-  mcols[2].metric("Metrics Included", len(export_payload.get("metrics", {})))
+  csv_rows: List[Dict[str, object]] = []
+  for k, v in (metrics or {}).items():
+    csv_rows.append(
+      {
+        "dashboard": str(dashboard_name),
+        "section": str(section_name),
+        "category": "metric",
+        "name": str(k),
+        "value": v,
+      }
+    )
+  for idx, h in enumerate(highlights_list, start=1):
+    csv_rows.append(
+      {
+        "dashboard": str(dashboard_name),
+        "section": str(section_name),
+        "category": "highlight",
+        "name": f"highlight_{idx}",
+        "value": h,
+      }
+    )
+  for idx, i in enumerate(interpretations_list, start=1):
+    csv_rows.append(
+      {
+        "dashboard": str(dashboard_name),
+        "section": str(section_name),
+        "category": "interpretation",
+        "name": f"interpretation_{idx}",
+        "value": i,
+      }
+    )
+  if isinstance(cost_delay, dict):
+    for key in (
+      "do_nothing_loss_kes_b_rounded",
+      "act_early_loss_kes_b_rounded",
+      "late_penalty_kes_b_rounded",
+    ):
+      if key in cost_delay:
+        csv_rows.append(
+          {
+            "dashboard": str(dashboard_name),
+            "section": str(section_name),
+            "category": "cost_of_delay",
+            "name": key,
+            "value": cost_delay.get(key),
+          }
+        )
 
-  if metrics:
-    metric_rows = [{"metric": str(k), "value": v} for k, v in metrics.items()]
-    st.dataframe(pd.DataFrame(metric_rows), use_container_width=True, hide_index=True)
+  csv_bytes = pd.DataFrame(csv_rows).to_csv(index=False).encode("utf-8")
 
   def _as_float(value: object) -> Optional[float]:
     try:
@@ -198,20 +237,35 @@ def render_unified_report_export(
 
   pdf_bytes = _render_pdf_report()
   slug = _safe_file_slug(f"{dashboard_name}_{section_name}")
-  st.download_button(
-    "Download Decision Report (PDF)",
-    data=pdf_bytes,
-    file_name=f"unified_report_{slug}.pdf",
-    mime="application/pdf",
-    key=f"{key_prefix}_{slug}_pdf",
-    type="primary",
-    use_container_width=True,
-  )
+  panel_state_key = f"{key_prefix}_{slug}_show_options"
+  if panel_state_key not in st.session_state:
+    st.session_state[panel_state_key] = False
 
-  with st.expander("Technical Metadata Package", expanded=False):
-    st.caption("Full metadata export for audits, integration, and deep technical review.")
-    st.markdown("##### Quick Summary")
-    st.text(summary_text)
+  trigger_label = "Export Report"
+  if st.button(trigger_label, key=f"{key_prefix}_{slug}_open_exports", type="primary", use_container_width=True):
+    st.session_state[panel_state_key] = True
+
+  if st.session_state.get(panel_state_key):
+    st.markdown("##### Choose Export Format")
+    export_cols = st.columns(3)
+
+    export_cols[0].download_button(
+      "PDF",
+      data=pdf_bytes,
+      file_name=f"unified_report_{slug}.pdf",
+      mime="application/pdf",
+      key=f"{key_prefix}_{slug}_pdf",
+      use_container_width=True,
+    )
+
+    export_cols[1].download_button(
+      "CSV",
+      data=csv_bytes,
+      file_name=f"unified_report_{slug}.csv",
+      mime="text/csv",
+      key=f"{key_prefix}_{slug}_csv",
+      use_container_width=True,
+    )
 
     zip_buf = io.BytesIO()
 
@@ -252,8 +306,8 @@ def render_unified_report_export(
           archive.writestr(f"tables/{_safe_file_slug(table_name)}.csv", df.to_csv(index=False))
 
     zip_buf.seek(0)
-    st.download_button(
-      "Export Full Metadata Package (.zip)",
+    export_cols[2].download_button(
+      "ZIP",
       data=zip_buf.getvalue(),
       file_name=f"unified_report_{slug}.zip",
       mime="application/zip",

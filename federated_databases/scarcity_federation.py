@@ -333,6 +333,7 @@ class ScarcityFederationManager:
         local_metrics: List[LocalTrainingMetrics] = []
         weighted_updates: List[np.ndarray] = []
         sample_weights: List[int] = []
+        skipped_updates: List[Dict[str, Any]] = []
 
         for node in nodes:
             node_id = node["node_id"]
@@ -346,6 +347,36 @@ class ScarcityFederationManager:
             local_weights, loss, grad_norm = self._train_local_step(
                 global_weights, x, y, learning_rate=learning_rate, model_name=model_name,
             )
+            if (
+                local_weights is None
+                or not np.all(np.isfinite(local_weights))
+                or not np.isfinite(loss)
+                or not np.isfinite(grad_norm)
+            ):
+                skip_reason = "non_finite_local_update"
+                skipped_updates.append({"node_id": node_id, "reason": skip_reason})
+                self.control.record_exchange(
+                    round_number=round_number,
+                    from_node=node_id,
+                    to_node="scarcity_aggregator",
+                    payload_type="model_update_skipped",
+                    payload_size=0,
+                    details={"reason": skip_reason},
+                )
+                self._append_audit_event(
+                    "local_update_skipped",
+                    {
+                        "round_number": round_number,
+                        "node_id": node_id,
+                        "reason": skip_reason,
+                    },
+                )
+                logger.warning(
+                    "Skipping corrupted local update from node %s in round %s",
+                    node_id,
+                    round_number,
+                )
+                continue
             sample_count = int(len(y))
             mean_criticality = float(np.mean(y)) if sample_count else 0.0
 
@@ -435,6 +466,7 @@ class ScarcityFederationManager:
             completed_at=completed_at,
             metadata={
                 "local_metrics": [asdict(m) for m in local_metrics],
+                "skipped_updates": skipped_updates,
                 "learning_rate": learning_rate,
                 "lookback_hours": lookback_hours,
             },

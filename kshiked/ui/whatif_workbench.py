@@ -63,7 +63,8 @@ def render_whatif_workbench(data: Any, theme: Any, get_flux_graph_html=None):
       calibrate_from_data, OUTCOME_DIMENSIONS, DEFAULT_DIMENSIONS
     )
     from kshiked.simulation.scenario_templates import (
-      SCENARIO_LIBRARY, POLICY_TEMPLATES, get_scenario_by_id, build_custom_scenario
+      SCENARIO_LIBRARY, POLICY_TEMPLATES, get_scenario_by_id, build_custom_scenario,
+      SHOCK_REGISTRY, POLICY_INSTRUMENT_REGISTRY
     )
     from scarcity.simulation.sfc import SFCEconomy, SFCConfig
   except ImportError as e:
@@ -82,12 +83,12 @@ def render_whatif_workbench(data: Any, theme: Any, get_flux_graph_html=None):
   # =====================================================================
   # STEP 1: PICK A SHOCK
   # =====================================================================
-  _render_shock_picker(theme, SCENARIO_LIBRARY, get_scenario_by_id)
+  _render_shock_picker(theme, SCENARIO_LIBRARY, get_scenario_by_id, SHOCK_REGISTRY)
 
   # =====================================================================
   # STEP 2: BUILD POLICY RESPONSE
   # =====================================================================
-  _render_policy_builder(theme, POLICY_TEMPLATES)
+  _render_policy_builder(theme, POLICY_TEMPLATES, POLICY_INSTRUMENT_REGISTRY)
 
   # =====================================================================
   # STEP 3: CHOOSE DIMENSIONS
@@ -117,7 +118,7 @@ def render_whatif_workbench(data: Any, theme: Any, get_flux_graph_html=None):
 # Component Functions
 # =========================================================================
 
-def _render_shock_picker(theme, scenario_library, get_scenario_by_id):
+def _render_shock_picker(theme, scenario_library, get_scenario_by_id, shock_registry=None):
   """Step 1: Scenario / shock selection."""
   st.markdown(f"""
   <div style="background: linear-gradient(135deg, {theme.bg_secondary}, {theme.bg_tertiary}); 
@@ -155,27 +156,41 @@ def _render_shock_picker(theme, scenario_library, get_scenario_by_id):
 
   # Custom shock builder
   if selected_id == "custom":
-    col_s1, col_s2 = st.columns(2)
     custom_shocks = {}
-    with col_s1:
-      custom_shocks["demand_shock"] = st.slider(
-        "Demand Shock", -0.20, 0.20, 0.0, 0.01,
-        help="Negative = contraction, Positive = boom", key="cust_demand"
-      )
-      custom_shocks["supply_shock"] = st.slider(
-        "Supply Shock", -0.05, 0.20, 0.0, 0.01,
-        help="Positive = supply disruption", key="cust_supply"
-      )
-    with col_s2:
-      custom_shocks["fiscal_shock"] = st.slider(
-        "Fiscal Shock", -0.10, 0.10, 0.0, 0.01,
-        help="Positive = spending boost", key="cust_fiscal"
-      )
-      custom_shocks["fx_shock"] = st.slider(
-        "FX / Rate Shock", -0.05, 0.15, 0.0, 0.01,
-        help="Positive = depreciation", key="cust_fx"
-      )
-    custom_shocks = {k: v for k, v in custom_shocks.items() if abs(v) > 0.001}
+    st.markdown(f"<div style='color:{theme.text_muted}; font-size:0.8rem; margin-bottom:1rem;'>"
+          f"Configure specific magnitude shocks below. Leave unmodified sliders at 0 to ignore.</div>", 
+          unsafe_allow_html=True)
+          
+    if shock_registry:
+      sectors = {}
+      for k, v in shock_registry.items():
+        sec = v.get("sector", "Macro")
+        sectors.setdefault(sec, []).append((k, v))
+        
+      for sec in sorted(sectors.keys()):
+        # Expand Macro by default, collapse specialized sectors
+        with st.expander(f"[{sec}] Sector Shocks", expanded=(sec=="Macro")):
+          cols = st.columns(2)
+          for i, (k, reg) in enumerate(sorted(sectors[sec], key=lambda x: x[1].get("label", x[0]))):
+            with cols[i % 2]:
+              val = st.slider(
+                reg.get("label", k), 
+                float(reg.get("min", -0.30)), float(reg.get("max", 0.30)), 
+                0.0, float(reg.get("step", 0.01)), key=f"cust_shock_{k}",
+                help=reg.get("examples", "")
+              )
+              if abs(val) > 0.001:
+                custom_shocks[k] = val
+    else:
+      # Fallback to hardcoded list if registry fails
+      col_s1, col_s2 = st.columns(2)
+      with col_s1:
+        custom_shocks["demand_shock"] = st.slider("Demand Shock", -0.20, 0.20, 0.0, 0.01, key="cust_demand")
+        custom_shocks["supply_shock"] = st.slider("Supply Shock", -0.05, 0.20, 0.0, 0.01, key="cust_supply")
+      with col_s2:
+        custom_shocks["fiscal_shock"] = st.slider("Fiscal Shock", -0.10, 0.10, 0.0, 0.01, key="cust_fiscal")
+        custom_shocks["fx_shock"] = st.slider("FX / Rate Shock", -0.05, 0.15, 0.0, 0.01, key="cust_fx")
+      
     st.session_state["_whatif_custom_shocks"] = custom_shocks
 
     col_t1, col_t2, col_t3 = st.columns(3)
@@ -189,7 +204,7 @@ def _render_shock_picker(theme, scenario_library, get_scenario_by_id):
   st.markdown("</div>", unsafe_allow_html=True)
 
 
-def _render_policy_builder(theme, policy_templates):
+def _render_policy_builder(theme, policy_templates, policy_instrument_registry=None):
   """Step 2: Policy response builder."""
   st.markdown(f"""
   <div style="background: linear-gradient(135deg, {theme.bg_secondary}, {theme.bg_tertiary}); 
@@ -233,70 +248,50 @@ def _render_policy_builder(theme, policy_templates):
   )
 
   if customize:
-    col_m, col_f = st.columns(2)
-
-    with col_m:
-      st.markdown(f"<div style='color:{theme.accent_primary}; font-weight:600; "
-            f"font-size:0.8rem; margin-bottom:0.5rem;'>MONETARY</div>",
-            unsafe_allow_html=True)
-
-      pol_rate = instruments.get("custom_rate")
-      policy_overrides["custom_rate"] = st.slider(
-        "Central Bank Rate (%)", 0.0, 20.0,
-        float(pol_rate) * 100 if pol_rate else 7.0,
-        0.25, key="pol_cbr",
-      ) / 100.0
-
-      pol_crr = instruments.get("crr")
-      policy_overrides["crr"] = st.slider(
-        "Cash Reserve Ratio (%)", 0.0, 15.0,
-        float(pol_crr) * 100 if pol_crr else 5.25,
-        0.25, key="pol_crr",
-      ) / 100.0
-
-      rate_cap_on = st.checkbox(
-        "Interest Rate Cap",
-        value="rate_cap" in instruments,
-        key="pol_rate_cap_on",
-      )
-      if rate_cap_on:
-        pol_cap = instruments.get("rate_cap")
-        policy_overrides["rate_cap"] = st.slider(
-          "Rate Cap (%)", 5.0, 25.0,
-          float(pol_cap) * 100 if pol_cap else 11.0,
-          0.5, key="pol_rate_cap_val",
-        ) / 100.0
-
-    with col_f:
-      st.markdown(f"<div style='color:{theme.accent_warning}; font-weight:600; "
-            f"font-size:0.8rem; margin-bottom:0.5rem;'>FISCAL</div>",
-            unsafe_allow_html=True)
-
-      pol_tax = instruments.get("custom_tax_rate")
-      policy_overrides["custom_tax_rate"] = st.slider(
-        "Tax Rate (%)", 5.0, 30.0,
-        float(pol_tax) * 100 if pol_tax else 15.6,
-        0.5, key="pol_tax",
-      ) / 100.0
-
-      pol_spend = instruments.get("custom_spending_ratio")
-      policy_overrides["custom_spending_ratio"] = st.slider(
-        "Govt Spending (% GDP)", 5.0, 30.0,
-        float(pol_spend) * 100 if pol_spend else 13.0,
-        0.5, key="pol_spend",
-      ) / 100.0
-
-      pol_sub = instruments.get("subsidy_rate")
-      policy_overrides["subsidy_rate"] = st.slider(
-        "Subsidies (% GDP)", 0.0, 10.0,
-        float(pol_sub) * 100 if pol_sub else 0.8,
-        0.1, key="pol_subsidy",
-      ) / 100.0
-
-      if st.checkbox("Price Controls", value="price_controls" in instruments, key="pol_pc_on"):
-        policy_overrides["price_controls"] = {"fuel": 1.05, "food": 1.03}
-
-    impl_lag = st.number_input("Implementation Lag (quarters)", 0, 10, 0, key="pol_lag")
+    st.markdown(f"<div style='color:{theme.text_muted}; font-size:0.8rem; margin-bottom:1rem;'>"
+          f"Override individual policy variables below. Unmodified variables use the template defaults.</div>", 
+          unsafe_allow_html=True)
+          
+    if policy_instrument_registry:
+      cats = {}
+      for k, v in policy_instrument_registry.items():
+        cat = v.get("category", "General")
+        cats.setdefault(cat, []).append((k, v))
+        
+      for cat in sorted(cats.keys()):
+        # Expand common Macro policies by default
+        with st.expander(f"[{cat}] Policy Instruments", expanded=(cat in ("Monetary", "Fiscal", "General"))):
+          cols = st.columns(2)
+          for i, (k, reg) in enumerate(sorted(cats[cat], key=lambda x: x[1].get("label", x[0]))):
+            with cols[i % 2]:
+              scale = float(reg.get("display_scale", 1))
+              pol_val = instruments.get(k)
+              # Standardize default starting slider point
+              if pol_val is not None:
+                default_val = float(pol_val) * scale
+              else:
+                default_val = float(reg.get("default", 0)) * scale
+              
+              val = st.slider(
+                f"{reg.get('label', k)} ({reg.get('unit', '')})",
+                float(reg.get("min", 0)) * scale, float(reg.get("max", 0.5)) * scale,
+                default_val,
+                float(reg.get("step", 0.01)) * scale, key=f"cust_pol_{k}",
+                help=reg.get("description", "")
+              )
+              policy_overrides[k] = val / scale if scale != 0 else val
+              
+    else:
+      # Fallback to hardcoded defaults
+      col_m, col_f = st.columns(2)
+      with col_m:
+        pol_rate = instruments.get("custom_rate")
+        policy_overrides["custom_rate"] = st.slider("Central Bank Rate (%)", 0.0, 20.0, float(pol_rate)*100 if pol_rate else 7.0, 0.25, key="pol_cbr") / 100.0
+      with col_f:
+        pol_tax = instruments.get("custom_tax_rate")
+        policy_overrides["custom_tax_rate"] = st.slider("Tax Rate (%)", 5.0, 30.0, float(pol_tax)*100 if pol_tax else 15.6, 0.5, key="pol_tax") / 100.0
+        
+    impl_lag = st.number_input("Implementation Lag (quarters)", 0, 10, int(instruments.get("implementation_lag", 0)), key="pol_lag_input")
     policy_overrides["implementation_lag"] = impl_lag
   else:
     policy_overrides = dict(instruments)

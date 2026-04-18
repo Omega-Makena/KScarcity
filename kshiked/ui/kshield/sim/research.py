@@ -2,6 +2,19 @@
 from ._shared import (st, pd, np, go, make_subplots, HAS_DATA_STACK, HAS_PLOTLY, PALETTE, base_layout)
 
 
+def _hex_rgba(hex6: str, alpha: float = 0.08) -> str:
+  """Convert #rrggbb to rgba(r,g,b,alpha) for Plotly fillcolor compatibility."""
+  if isinstance(hex6, str) and hex6.startswith("rgb"):
+    return hex6.replace(")", f",{alpha})").replace("rgb", "rgba")
+  if not isinstance(hex6, str) or not hex6.startswith("#"):
+    return str(hex6)
+  h = hex6.lstrip('#')
+  if len(h) < 6:
+    return hex6
+  r, g, b = int(h[0:2], 16), int(h[2:4], 16), int(h[4:6], 16)
+  return f"rgba({r},{g},{b},{alpha})"
+
+
 def render_io_sectors_tab(theme):
   """Input-Output disaggregation across 5 Kenya sectors."""
   trajectory = st.session_state.get("sim_research_trajectory")
@@ -430,7 +443,7 @@ def render_inequality_tab(theme):
   fig_ts.add_trace(go.Scatter(
     x=t_vals, y=gini_vals, name="Gini",
     line=dict(color=PALETTE[0], width=3),
-    fill='tozeroy', fillcolor=PALETTE[0] + '14',
+    fill='tozeroy', fillcolor=_hex_rgba(PALETTE[0], 0.08),
   ), secondary_y=False)
   fig_ts.add_trace(go.Scatter(
     x=t_vals, y=palma_vals, name="Palma Ratio",
@@ -669,7 +682,7 @@ def render_financial_tab(theme):
     fig_fin_ts.add_trace(go.Scatter(
       x=t_vals, y=vals, mode='lines', showlegend=False,
       line=dict(color=color, width=2.5),
-      fill='tozeroy', fillcolor=color + '14',
+      fill='tozeroy', fillcolor=_hex_rgba(color, 0.08),
     ), row=row, col=col)
 
   # Add threshold lines
@@ -894,7 +907,7 @@ def render_open_economy_tab(theme):
   fig_ri.add_trace(go.Scatter(
     x=list(range(min_ri)), y=reer_vals[:min_ri], name="REER",
     line=dict(color=PALETTE[1], width=3),
-    fill='tozeroy', fillcolor=PALETTE[1] + '14',
+    fill='tozeroy', fillcolor=_hex_rgba(PALETTE[1], 0.08),
   ), secondary_y=False)
   fig_ri.add_trace(go.Scatter(
     x=list(range(min_ri)), y=inflation_vals[:min_ri], name="Inflation (%)",
@@ -1204,7 +1217,7 @@ def render_research_engine_tab(theme, SFCEconomy, SFCConfig, calibrate_from_data
       fig_spark.add_trace(go.Scatter(
         x=t_vals, y=vals, mode='lines', name=name,
         line=dict(color=color, width=2.5), showlegend=False,
-        fill='tozeroy', fillcolor=color.replace(')', ',0.08)').replace('rgb', 'rgba') if color.startswith('rgb') else color + '14',
+        fill='tozeroy', fillcolor=_hex_rgba(color, 0.08),
       ), row=1, col=col)
       # Current value annotation
       if vals:

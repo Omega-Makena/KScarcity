@@ -1159,6 +1159,20 @@ def _render_causal_network(df: pd.DataFrame, cols: List[str], theme):
     yaxis=dict(visible=False, scaleanchor="x"),
   ))
   st.plotly_chart(fig, use_container_width=True)
+  if edges and node_list:
+    _hub = max(node_list, key=lambda n: conn_count[n])
+    _top_edge = max(edges, key=lambda e: e[2])
+    _interpretation_box(
+      "How to Read",
+      f"**Nodes** = indicators; **arrows** = statistically significant Granger-causal direction "
+      f"(X → Y means past X helps predict Y). **Arrow thickness** = F-statistic strength. "
+      f"**Node size** = number of connections.\n\n"
+      f"Most connected node: **{_hub}** ({conn_count[_hub]} connections). "
+      f"Strongest causal link: **{_top_edge[0]}** → **{_top_edge[1]}** "
+      f"(F={_top_edge[2]:.1f}, lag={_top_edge[3]} yr). "
+      f"Chains of arrows trace how a shock in one variable propagates through the system.",
+      theme,
+    )
 
 
 def _render_cross_corr(df: pd.DataFrame, cols: List[str], theme):
@@ -1363,6 +1377,11 @@ def _render_scatter_matrix(df: pd.DataFrame, cols: List[str], theme):
   ))
   fig.update_traces(diagonal_visible=True, marker=dict(size=3))
   st.plotly_chart(fig, use_container_width=True)
+  st.caption(
+    f"Scatter matrix of {len(plot_cols)} indicators. "
+    "Diagonal cells show each variable's distribution; off-diagonal cells show pairwise scatterplots. "
+    "A clear upward/downward pattern = correlation. Scattered clouds = weak or no relationship."
+  )
 
 
 # â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
@@ -1492,36 +1511,41 @@ def _interpret_granger(sig: pd.DataFrame, non_sig: pd.DataFrame) -> str:
 
 
 def _interpretation_box(title: str, content: str, theme):
-  """Styled interpretation box matching SENTINEL glass card theme."""
+  """Styled interpretation box — title + content rendered together inside the card."""
+  import re
+  # Convert basic markdown bold (**text**) and newlines to HTML
+  html_content = re.sub(r'\*\*(.+?)\*\*', r'<b>\1</b>', content)
+  html_content = html_content.replace('\n\n', '<br><br>').replace('\n', '<br>')
   st.markdown(
     f"""<div style="
       background: {theme.bg_card};
       backdrop-filter: blur(12px);
       -webkit-backdrop-filter: blur(12px);
       border: 1px solid {theme.border_default};
-      border-left: 3px solid {theme.accent_primary};
+      border-left: 4px solid {theme.accent_primary};
       padding: 1rem 1.2rem;
-      border-radius: 12px;
+      border-radius: 8px;
       margin: 1rem 0;
-      font-size: 0.85rem;
+      font-size: 0.84rem;
       font-family: IBM Plex Sans, sans-serif;
       color: {theme.text_secondary};
+      line-height: 1.6;
     ">
-    <div style="font-weight:600; margin-bottom:0.5rem;
-           color:{theme.accent_primary};
-           font-size:0.9rem; text-transform:uppercase;
-           letter-spacing:0.5px;">
-      {title}
-    </div>
+      <div style="font-weight:700; margin-bottom:0.6rem;
+             color:{theme.accent_primary};
+             font-size:0.82rem; text-transform:uppercase;
+             letter-spacing:0.06em;">
+        {title}
+      </div>
+      <div>{html_content}</div>
     </div>""",
     unsafe_allow_html=True,
   )
-  st.markdown(content)
 
 
 def _render_structural_tutorial(theme) -> None:
   """Explain what structural inference does, and why this module exists."""
-  with st.expander("Tutorial: What Is Happening Here, And Why", expanded=True):
+  with st.expander("How this works — click to expand", expanded=False):
     st.markdown(
       f"""
       <div style="font-size:0.85rem; color:{theme.text_secondary};">
@@ -1611,11 +1635,14 @@ def _render_structural_inference(df: pd.DataFrame, cols: List[str], theme):
   _render_structural_tutorial(theme)
 
   graph_dot = _build_graph_from_granger(df, cols)
-  with st.expander("Auto-discovered DAG (from Granger, cycle-pruned)", expanded=False):
+  with st.expander("Auto-discovered causal map (click to expand)", expanded=False):
     st.graphviz_chart(graph_dot)
     st.caption(
-      "Displayed for analyst context. Scarcity estimation below runs from selected "
-      "spec fields and runtime settings."
+      "This diagram shows which indicators statistically predict each other, "
+      "based on Granger causality tests across the dataset. "
+      "Arrows point from cause to effect. "
+      "Use it as a guide when choosing your Treatment and Outcome below — "
+      "but note that statistical precedence is not the same as proven causation."
     )
 
   c1, c2 = st.columns(2)
@@ -1686,75 +1713,74 @@ def _render_structural_inference(df: pd.DataFrame, cols: List[str], theme):
     "Selected effect types: " + ", ".join(selected_estimands)
   )
 
-  st.markdown("**Runtime Configuration**")
-  c5, c6, c7 = st.columns(3)
-  with c5:
-    parallelism_options = {
-      "Safe Single Mode (most stable)": ParallelismMode.NONE.value,
-      "Thread Mode (balanced)": ParallelismMode.THREAD.value,
-      "Process Mode (fastest, may fail on some systems)": ParallelismMode.PROCESS.value,
-    }
-    parallelism_label = st.selectbox(
-      "Execution Mode",
-      list(parallelism_options.keys()),
-      index=1,
-      key="scarcity_parallelism",
-    )
-    parallelism = parallelism_options[parallelism_label]
-  with c6:
-    n_jobs = st.slider("Workers (n_jobs)", 1, 8, 2, key="scarcity_n_jobs")
-  with c7:
-    chunk_size = st.slider("Chunk size", 1, 8, 1, key="scarcity_chunk_size")
+  # ── Runtime defaults (hidden from economist; advanced users can expand) ──
+  parallelism_options = {
+    "Safe Single Mode (most stable)": ParallelismMode.NONE.value,
+    "Thread Mode (balanced)": ParallelismMode.THREAD.value,
+    "Process Mode (fastest, may fail on some systems)": ParallelismMode.PROCESS.value,
+  }
+  fail_policy_options = {
+    "Continue remaining effect types if one fails": FailPolicy.CONTINUE.value,
+    "Stop immediately when one effect type fails": FailPolicy.FAIL_FAST.value,
+  }
+  ts_policy_options = {
+    "No strict time checks": TimeSeriesPolicy.NONE.value,
+    "Warn on time-series issues": TimeSeriesPolicy.WARN.value,
+    "Strictly enforce time checks": TimeSeriesPolicy.STRICT.value,
+  }
 
-  c8, c9 = st.columns(2)
-  with c8:
-    fail_policy_options = {
-      "Continue remaining effect types if one fails": FailPolicy.CONTINUE.value,
-      "Stop immediately when one effect type fails": FailPolicy.FAIL_FAST.value,
-    }
-    fail_policy_label = st.selectbox(
-      "Failure Handling",
-      list(fail_policy_options.keys()),
-      index=0,
-      key="scarcity_fail_policy",
+  with st.expander("Advanced execution settings", expanded=False):
+    st.caption(
+      "These settings control how the analysis runs internally. "
+      "The defaults work well in most cases — only change them if you experience errors."
     )
-    fail_policy = fail_policy_options[fail_policy_label]
-  with c9:
-    ts_policy_options = {
-      "No strict time checks": TimeSeriesPolicy.NONE.value,
-      "Warn on time-series issues": TimeSeriesPolicy.WARN.value,
-      "Strictly enforce time checks": TimeSeriesPolicy.STRICT.value,
-    }
-    ts_policy_label = st.selectbox(
-      "Time-Series Checks",
-      list(ts_policy_options.keys()),
-      index=0,
-      key="scarcity_ts_policy",
-    )
-    ts_policy = ts_policy_options[ts_policy_label]
+    c5, c6, c7 = st.columns(3)
+    with c5:
+      parallelism_label = st.selectbox(
+        "Execution Mode",
+        list(parallelism_options.keys()),
+        index=1,
+        key="scarcity_parallelism",
+      )
+    with c6:
+      n_jobs = st.slider("Workers (n_jobs)", 1, 8, 2, key="scarcity_n_jobs")
+    with c7:
+      chunk_size = st.slider("Chunk size", 1, 8, 1, key="scarcity_chunk_size")
+    c8, c9 = st.columns(2)
+    with c8:
+      fail_policy_label = st.selectbox(
+        "Failure Handling",
+        list(fail_policy_options.keys()),
+        index=0,
+        key="scarcity_fail_policy",
+      )
+    with c9:
+      ts_policy_label = st.selectbox(
+        "Time-Series Checks",
+        list(ts_policy_options.keys()),
+        index=0,
+        key="scarcity_ts_policy",
+      )
 
-  with st.expander("What these runtime settings mean", expanded=False):
-    st.markdown(
-      """
-      - **Execution Mode**:
-       - Safe Single Mode: slowest, most reliable.
-       - Thread Mode: faster, usually stable.
-       - Process Mode: fastest, but can fail in some environments.
-      - **Workers**: how many parallel workers to use.
-      - **Chunk size**: how many effect types each worker takes at once.
-      - **Failure Handling**:
-       - Continue: run others even if one fails.
-       - Stop immediately: halt on first failure.
-      - **Time-Series Checks**:
-       - No strict checks: permissive.
-       - Warn: report issues but still try.
-       - Strict: block invalid temporal setup.
-      """
-    )
+  parallelism = parallelism_options[parallelism_label]
+  fail_policy = fail_policy_options[fail_policy_label]
+  ts_policy = ts_policy_options[ts_policy_label]
 
-  run_clicked = st.button("Run Scarcity Structural Inference", key="run_scarcity_structural")
+  # Plain-English preview of the causal question
+  st.markdown(
+    f"<div style='margin:0.8rem 0; padding:0.7rem 1rem; "
+    f"border-left:3px solid #00bfff; background:rgba(0,191,255,0.05); "
+    f"border-radius:4px; font-size:0.82rem;'>"
+    f"<b>Question:</b> Does <b>{treatment}</b> causally affect <b>{outcome}</b> in Kenya?<br>"
+    f"<span style='color:#888; font-size:0.75rem;'>"
+    f"Testing with {len(selected_estimands)} method(s): {', '.join(selected_estimands)}. "
+    f"Results will show the estimated effect size and whether it is statistically robust.</span>"
+    f"</div>",
+    unsafe_allow_html=True,
+  )
+
+  run_clicked = st.button("Run causal analysis", key="run_scarcity_structural", type="primary")
   if not run_clicked:
-    st.caption("Configure estimands and runtime, then click run.")
     return
 
   skipped = []
@@ -1866,6 +1892,18 @@ def _render_structural_inference(df: pd.DataFrame, cols: List[str], theme):
     st.error("No successful estimands. See error details above.")
     return
 
+  # ── Method name map — replace acronyms with plain English ──────────────
+  _METHOD_LABELS = {
+    "ATE": "Average effect (whole population)",
+    "ATT": "Effect on those already affected",
+    "ATC": "Effect on those not yet affected",
+    "CATE": "Effect by subgroup",
+    "ITE": "Individual-level effect",
+    "LATE": "Effect for instrument-responsive group",
+    "MEDIATION_NDE": "Direct effect (not via mediator)",
+    "MEDIATION_NIE": "Indirect effect (via mediator)",
+  }
+
   rows = []
   for artifact in result.results:
     ci = artifact.confidence_intervals
@@ -1875,95 +1913,179 @@ def _render_structural_inference(df: pd.DataFrame, cols: List[str], theme):
       ci_low is not None and ci_high is not None and
       ((ci_low > 0 and ci_high > 0) or (ci_low < 0 and ci_high < 0))
     )
-    rows.append(
-      {
-        "Estimand": artifact.estimand_type,
-        "Treatment": artifact.spec.treatment,
-        "Outcome": artifact.spec.outcome,
-        "Estimate": est,
-        "Direction": _effect_direction(est),
-        "Magnitude": abs(est),
-        "CI Low": ci_low,
-        "CI High": ci_high,
-        "CI Excludes 0": ci_excludes_zero,
-        "CI": str(ci) if ci is not None else "N/A",
-        "Backend": artifact.backend.get("name"),
-        "Method": artifact.backend.get("method_name"),
-      }
+    method_code = str(artifact.estimand_type)
+    method_label = _METHOD_LABELS.get(method_code, method_code)
+    ci_str = (
+      f"[{ci_low:+.4f}, {ci_high:+.4f}]"
+      if ci_low is not None and ci_high is not None
+      else "N/A"
     )
-  results_df = pd.DataFrame(rows).sort_values("Estimand")
-  st.dataframe(results_df, use_container_width=True, hide_index=True)
+    rows.append({
+      "Method": method_label,
+      "Effect estimate": round(est, 4),
+      "Direction": _effect_direction(est),
+      "95% CI": ci_str,
+      "Significant": "Yes" if ci_excludes_zero else "No",
+      # Internal columns kept for analytics below
+      "_code": method_code,
+      "_est": est,
+      "_magnitude": abs(est),
+      "_excludes_zero": ci_excludes_zero,
+    })
 
-  colors = []
-  for v in results_df["Estimate"].tolist():
-    if v > 0:
-      colors.append(theme.accent_success)
-    elif v < 0:
-      colors.append(theme.accent_danger)
+  results_df = pd.DataFrame(rows).sort_values("_code")
+
+  # Display-only table — hide internal columns
+  display_cols = ["Method", "Effect estimate", "Direction", "95% CI", "Significant"]
+  st.dataframe(results_df[display_cols], use_container_width=True, hide_index=True)
+
+  # ── Chart: effect size by method ─────────────────────────────────────────
+  colors = [
+    theme.accent_success if v > 0 else (theme.accent_danger if v < 0 else theme.text_muted)
+    for v in results_df["_est"].tolist()
+  ]
+  # Show CI as error bars when available
+  ci_highs = []
+  ci_lows = []
+  for artifact in result.results:
+    ci = artifact.confidence_intervals
+    low, high = _extract_ci_bounds(ci)
+    ci_lows.append(low)
+    ci_highs.append(high)
+
+  # Reorder to match sorted results_df
+  sorted_codes = results_df["_code"].tolist()
+  artifact_by_code = {str(a.estimand_type): a for a in result.results}
+  err_y_plus, err_y_minus, err_y_visible = [], [], []
+  for code in sorted_codes:
+    art = artifact_by_code.get(code)
+    if art:
+      low, high = _extract_ci_bounds(art.confidence_intervals)
+      est_val = _to_scalar_estimate(art.estimate)
+      if low is not None and high is not None:
+        err_y_plus.append(abs(high - est_val))
+        err_y_minus.append(abs(est_val - low))
+        err_y_visible.append(True)
+      else:
+        err_y_plus.append(0)
+        err_y_minus.append(0)
+        err_y_visible.append(False)
     else:
-      colors.append(theme.text_muted)
+      err_y_plus.append(0)
+      err_y_minus.append(0)
+      err_y_visible.append(False)
+
+  has_ci = any(err_y_visible)
+  x_labels = results_df["Method"].tolist()
 
   fig = go.Figure()
   fig.add_trace(go.Bar(
-    x=results_df["Estimand"],
-    y=results_df["Estimate"],
+    x=x_labels,
+    y=results_df["_est"].tolist(),
     marker_color=colors,
-    hovertemplate="Estimand: %{x}<br>Estimate: %{y:.4f}<extra></extra>",
+    error_y=dict(
+      type="data",
+      symmetric=False,
+      array=err_y_plus,
+      arrayminus=err_y_minus,
+      visible=has_ci,
+      color=theme.text_muted,
+      thickness=1.5,
+      width=6,
+    ),
+    hovertemplate=(
+      "<b>%{x}</b><br>"
+      f"Effect on {outcome}: %{{y:+.4f}}<br>"
+      "<extra></extra>"
+    ),
   ))
+  # Zero reference line
+  fig.add_hline(y=0, line_dash="dot", line_color=theme.text_muted, line_width=1)
+
   fig.update_layout(**_base_layout(
     theme,
     height=320,
-    xaxis_title="Estimand Type",
-    yaxis_title="Estimated Effect",
-    title=dict(text="Scarcity Structural Estimates", font=dict(color=theme.text_secondary, size=13)),
+    xaxis_title=None,
+    yaxis_title=f"Effect on {outcome}",
+    title=dict(
+      text=f"Does '{treatment}' affect '{outcome}'?",
+      font=dict(color=theme.text_secondary, size=14),
+    ),
   ))
+  fig.update_xaxes(tickangle=-20, tickfont=dict(size=11))
+
+  st.markdown(
+    f"<div style='font-size:0.76rem; color:{theme.text_muted}; margin-bottom:0.3rem;'>"
+    "Each bar is a different estimation method. "
+    "<b style='color:{accent};'>Green bars</b> = positive effect (treatment raises outcome), "
+    "<b style='color:{danger};'>red bars</b> = negative effect. "
+    "Error bars show 95% confidence intervals where available. "
+    "Bars that clearly sit above or below the dotted zero line are statistically meaningful."
+    "</div>".format(accent=theme.accent_success, danger=theme.accent_danger),
+    unsafe_allow_html=True,
+  )
   st.plotly_chart(fig, use_container_width=True)
 
-  pos = int((results_df["Estimate"] > 0).sum())
-  neg = int((results_df["Estimate"] < 0).sum())
-  zero = int((results_df["Estimate"] == 0).sum())
+  # ── Plain-English interpretation ─────────────────────────────────────────
+  pos = int((results_df["_est"] > 0).sum())
+  neg = int((results_df["_est"] < 0).sum())
   total = len(results_df)
   dominant_direction = "increase" if pos >= neg else "decrease"
   agreement_ratio = (max(pos, neg) / max(1, pos + neg)) if (pos + neg) > 0 else 0.0
-
-  robust_mask = results_df["CI Excludes 0"] == True
-  robust_count = int(robust_mask.sum())
+  robust_count = int(results_df["_excludes_zero"].sum())
   robust_pct = (robust_count / total) * 100.0
+  strongest_row = results_df.loc[results_df["_magnitude"].idxmax()]
+  strongest_est = strongest_row["_est"]
+  strongest_label = strongest_row["Method"]
 
-  strongest = results_df.loc[results_df["Magnitude"].idxmax()]
-  strongest_txt = (
-    f"{strongest['Estimand']} ({strongest['Estimate']:+.4f}, {strongest['Direction'].lower()})"
+  if (pos + neg) > 0:
+    direction_word = "increases" if dominant_direction == "increase" else "decreases"
+    headline = (
+      f"**{treatment}** tends to **{direction_word} {outcome}** "
+      f"({agreement_ratio:.0%} of methods agree)."
+    )
+  else:
+    headline = (
+      f"No clear causal effect of **{treatment}** on **{outcome}** was detected — "
+      "all estimates are near zero."
+    )
+
+  robustness_line = (
+    f"**{robust_count} of {total}** estimation methods show a confidence interval that "
+    "does not cross zero — meaning the effect is unlikely to be due to chance."
+    if robust_count > 0
+    else "**None** of the confidence intervals clearly exclude zero — the evidence is weak."
   )
 
-  headline = (
-    f"Most estimands suggest an **{dominant_direction}** effect of **{treatment}** on **{outcome}** "
-    f"(agreement: {agreement_ratio:.0%}; +:{pos}, -:{neg}, ~0:{zero})."
-    if (pos + neg) > 0
-    else f"Estimated effects are near zero across estimands for **{treatment} -> {outcome}**."
-  )
-  robustness = (
-    f"Confidence intervals exclude zero for **{robust_count}/{total} estimands** ({robust_pct:.0f}%)."
-  )
-  caveat = (
-    "Interpretation confidence is **low** because estimands disagree in sign."
-    if pos > 0 and neg > 0
-    else "Sign agreement is **coherent** across estimands."
+  if pos > 0 and neg > 0:
+    caveat_line = (
+      "**Caution:** Methods disagree on whether the effect is positive or negative. "
+      "Do not draw firm conclusions — review your assumptions (confounders, data quality)."
+    )
+  elif robust_count == 0:
+    caveat_line = (
+      "The effect direction is consistent, but the confidence intervals overlap zero. "
+      "Treat this as suggestive, not conclusive."
+    )
+  else:
+    caveat_line = (
+      "Direction is consistent across methods and the effect is statistically robust."
+    )
+
+  strongest_note = (
+    f"Strongest estimate: **{strongest_label}** → **{strongest_est:+.4f}** "
+    f"({'positive' if strongest_est > 0 else 'negative'} effect)."
   )
 
   _interpretation_box(
-    "Estimand Interpretation",
+    f"What this tells us: {treatment} → {outcome}",
     f"{headline}\n\n"
-    f"Strongest estimated effect: **{strongest_txt}**.\n\n"
-    f"{robustness}\n\n"
-    f"{caveat}\n\n"
-    "Decision guidance: prioritize action only when sign agreement is high and CI exclusion is broad.",
-    theme,
-  )
-
-  _interpretation_box(
-    "Execution Summary",
-    f"Executed **{len(specs)} estimands** for **{treatment} -> {outcome}** using "
-    f"Scarcity causal engine with **{parallelism}** parallelism.",
+    f"{strongest_note}\n\n"
+    f"{robustness_line}\n\n"
+    f"{caveat_line}\n\n"
+    "**When to act on this:** Results are reliable when (1) most methods agree on direction, "
+    "and (2) confidence intervals exclude zero. Use this alongside domain knowledge — "
+    "statistical evidence alone does not prove causation.",
     theme,
   )
 

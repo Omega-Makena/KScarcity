@@ -23,6 +23,27 @@ from .research import (
   render_financial_tab, render_open_economy_tab,
   render_research_engine_tab,
 )
+from .backtest import render_backtest_tab
+from .sector_dashboard import render_sector_impact
+
+
+def _no_sim_prompt(theme) -> None:
+  """Shown when the user navigates to a tab that requires a prior simulation run."""
+  st.markdown(
+    f"<div style='text-align:center; padding:2.5rem 1rem; "
+    f"border:1px dashed {theme.border_default}; border-radius:8px; margin-top:1rem;'>"
+    f"<div style='font-size:1.6rem; opacity:0.25; margin-bottom:0.6rem;'>&#9654;</div>"
+    f"<div style='font-size:0.92rem; color:{theme.text_primary}; font-weight:600; "
+    f"margin-bottom:0.4rem;'>No simulation data yet</div>"
+    f"<div style='font-size:0.78rem; color:{theme.text_muted}; margin-bottom:1.2rem;'>"
+    f"Configure your scenario and run it in <b>Setup &amp; Run</b> first, "
+    f"then return here to explore results.</div>"
+    f"</div>",
+    unsafe_allow_html=True,
+  )
+  if st.button("Go to Setup & Run", key="_goto_setup", type="primary"):
+    st.session_state["sim_category"] = "Setup & Run"
+    st.rerun()
 
 
 def render_simulation(theme, data=None):
@@ -118,10 +139,10 @@ def render_simulation(theme, data=None):
     st.error(f"Simulation engine modules not available: {e}")
     return
 
-  # Category navigation -- 4 groups
+  # Category navigation -- 5 groups
   category = st.radio(
     "nav",
-    ["Setup & Run", "Core Analysis", "Advanced", "Research Modules"],
+    ["Setup & Run", "Core Analysis", "Advanced", "Research Modules", "Sector Impact"],
     horizontal=True,
     key="sim_category",
     label_visibility="collapsed",
@@ -153,7 +174,7 @@ def render_simulation(theme, data=None):
   # CATEGORY 2: CORE ANALYSIS
   elif category == "Core Analysis":
     if not st.session_state.get("sim_trajectory"):
-      st.info("Run a simulation in **Setup & Run** first.")
+      _no_sim_prompt(theme)
       return
     core_tabs = st.tabs([
       "Sensitivity", "3D Cube", "Compare",
@@ -175,7 +196,7 @@ def render_simulation(theme, data=None):
   # CATEGORY 3: ADVANCED
   elif category == "Advanced":
     if not st.session_state.get("sim_trajectory"):
-      st.info("Run a simulation in **Setup & Run** first.")
+      _no_sim_prompt(theme)
       return
     adv_tabs = st.tabs([
       "Monte Carlo", "Stress Matrix",
@@ -192,11 +213,16 @@ def render_simulation(theme, data=None):
     with adv_tabs[3]:
       render_diagnostics_tab(theme)
 
+  # CATEGORY 5: SECTOR IMPACT
+  elif category == "Sector Impact":
+    render_sector_impact(theme)
+
   # CATEGORY 4: RESEARCH MODULES
   elif category == "Research Modules":
     res_tabs = st.tabs([
       "Research Engine", "IO Sectors",
-      "Inequality", "Financial", "Open Economy",
+      "Inequality", "Financial", "Open Economy", "Causal Estimands",
+      "Historical Backtest",
     ])
     with res_tabs[0]:
       render_research_engine_tab(theme, SFCEconomy, SFCConfig, calibrate_from_data)
@@ -208,3 +234,25 @@ def render_simulation(theme, data=None):
       render_financial_tab(theme)
     with res_tabs[4]:
       render_open_economy_tab(theme)
+    with res_tabs[5]:
+      try:
+        from kshiked.ui.kshield.causal.view import _render_structural_inference, load_world_bank_data
+        _wb_df = load_world_bank_data()
+        if _wb_df is None or _wb_df.empty:
+          st.info(
+            "World Bank Kenya data not found. "
+            "Place `API_KEN_DS2_*.csv` in `data/simulation/` to enable causal estimands."
+          )
+        else:
+          _wb_cols = sorted(_wb_df.columns.tolist())
+          st.caption(
+            f"Running on World Bank Kenya dataset: {len(_wb_cols)} indicators × {len(_wb_df)} years. "
+            "Select treatment, outcome, and estimands below."
+          )
+          _render_structural_inference(_wb_df, _wb_cols, theme)
+      except Exception as _ce:
+        st.error(f"Causal estimands unavailable: {_ce}")
+        import traceback
+        st.code(traceback.format_exc())
+    with res_tabs[6]:
+      render_backtest_tab(theme, SFCEconomy, SFCConfig, calibrate_from_data, df)

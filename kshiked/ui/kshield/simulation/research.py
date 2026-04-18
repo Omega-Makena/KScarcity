@@ -2,6 +2,32 @@
 from ._shared import (st, pd, np, go, make_subplots, HAS_DATA_STACK, HAS_PLOTLY, PALETTE, base_layout)
 
 
+def _hex_rgba(hex6: str, alpha: float = 0.08) -> str:
+  """Convert #rrggbb hex to rgba(r,g,b,alpha) — Plotly fillcolor rejects 8-char hex."""
+  h = hex6.lstrip('#')
+  r, g, b = int(h[0:2], 16), int(h[2:4], 16), int(h[4:6], 16)
+  return f"rgba({r},{g},{b},{alpha})"
+
+
+def _guide(theme, method_html: str, interp_html: str, rec_html: str) -> None:
+  """Collapsible 3-section analysis guide (method / interpretation / recommendation)."""
+  with st.expander("Analysis Guide & Interpretation", expanded=False):
+    st.markdown(
+      f"<div style='font-size:0.82rem; line-height:1.65;'>"
+      f"<div style='color:{theme.accent_primary}; font-weight:700; font-size:0.72rem; "
+      f"letter-spacing:0.08em; margin-bottom:0.35rem;'>WHAT IS THIS ANALYSIS?</div>"
+      f"<div style='color:{theme.text_muted}; margin-bottom:0.9rem;'>{method_html}</div>"
+      f"<div style='color:{theme.accent_warning}; font-weight:700; font-size:0.72rem; "
+      f"letter-spacing:0.08em; margin-bottom:0.35rem;'>INTERPRETATION</div>"
+      f"<div style='color:{theme.text_muted}; margin-bottom:0.9rem;'>{interp_html}</div>"
+      f"<div style='color:{theme.accent_success}; font-weight:700; font-size:0.72rem; "
+      f"letter-spacing:0.08em; margin-bottom:0.35rem;'>RECOMMENDATION</div>"
+      f"<div style='color:{theme.text_muted};'>{rec_html}</div>"
+      f"</div>",
+      unsafe_allow_html=True,
+    )
+
+
 def render_io_sectors_tab(theme):
   """Input-Output disaggregation across 5 Kenya sectors."""
   trajectory = st.session_state.get("sim_research_trajectory")
@@ -67,6 +93,42 @@ def render_io_sectors_tab(theme):
       xaxis=dict(title="Final Demand", side="bottom"),
       yaxis=dict(title="Gross Output", autorange="reversed")))
     st.plotly_chart(fig_l, use_container_width=True)
+    st.caption("The Leontief inverse shows total production required (direct + indirect) to deliver one unit of final demand. Values > 1.0 indicate strong multiplier effects across the supply chain.")
+
+  try:
+    _g_A_max_idx = np.unravel_index(A_matrix.argmax(), A_matrix.shape)
+    _g_from = display_names[_g_A_max_idx[1]]
+    _g_to = display_names[_g_A_max_idx[0]]
+    _g_coeff = float(A_matrix[_g_A_max_idx])
+    _g_L_max = float(L_matrix.max())
+    _g_L_max_idx = np.unravel_index(L_matrix.argmax(), L_matrix.shape)
+    _g_L_from = display_names[_g_L_max_idx[1]]
+    _g_L_to = display_names[_g_L_max_idx[0]]
+  except Exception:
+    _g_from, _g_to, _g_coeff, _g_L_max, _g_L_from, _g_L_to = "?", "?", 0, 0, "?", "?"
+  _guide(theme,
+    method_html=(
+      "The <b>Leontief Input-Output model</b> captures how sectors depend on each other for production. "
+      "The <b>A matrix</b> (technical coefficients) shows what fraction of sector j's output is used as "
+      "input by sector i — a value of 0.3 means sector i buys 30 cents worth of inputs from sector j per "
+      "unit of its own output. The <b>Leontief inverse (I–A)⁻¹</b> extends this to capture indirect effects: "
+      "if final demand for sector j rises by 1 unit, how much total gross output does every sector in the "
+      "economy need to produce to satisfy it? Values above 1.0 indicate multiplier effects through the supply chain."
+    ),
+    interp_html=(
+      f"Strongest direct dependency: <b>{_g_from}</b> → <b>{_g_to}</b> "
+      f"(technical coefficient: <b>{_g_coeff:.3f}</b>). "
+      f"Highest Leontief multiplier: <b>{_g_L_from}</b> supplying <b>{_g_L_to}</b> "
+      f"(total output requirement: <b>{_g_L_max:.3f}</b>). "
+      "Values greater than 2.0 in the inverse indicate strong supply-chain amplification."
+    ),
+    rec_html=(
+      f"A demand stimulus targeting <b>{_g_L_from}</b> will have the largest multiplied "
+      "effect through the economy due to its high Leontief coefficient. "
+      "Sectors with high backward linkages are ideal targets for investment policy. "
+      "Watch for supply bottlenecks in the highest-coefficient cell — disruption there propagates widely."
+    ),
+  )
 
   # ── 2. INTER-SECTOR FLOW SANKEY ──────────────────────────────────────────
   st.markdown(f"<div style='color:{theme.accent_warning}; font-weight:600; "
@@ -107,6 +169,8 @@ def render_io_sectors_tab(theme):
       title=dict(text="Intermediate Input Flows Between Sectors",
             font=dict(color=theme.text_muted, size=13))))
     st.plotly_chart(fig_sankey, use_container_width=True)
+    _idx_max = flow_vals.index(max(flow_vals))
+    st.markdown(f"""<div style="font-size:0.78rem; color:{theme.text_muted}; padding:0.3rem 0;">Wider ribbons = larger intermediate flows. Largest flow: <b>{flow_labels[_idx_max]}</b>. These flows represent industries buying inputs from each other — thicker connections mean stronger inter-sector dependency.</div>""", unsafe_allow_html=True)
 
   # ── 3. OUTPUT SHARE EVOLUTION (Stacked Area) ─────────────────────────────
   st.markdown(f"<div style='color:{theme.accent_primary}; font-weight:600; "
@@ -130,6 +194,7 @@ def render_io_sectors_tab(theme):
     yaxis=dict(title="Share (%)", range=[0, 100]),
     legend=dict(orientation="h", y=1.08, x=0, bgcolor='rgba(0,0,0,0)')))
   st.plotly_chart(fig_area, use_container_width=True)
+  st.caption("Each colour band shows a sector's share of total output. A shrinking band means structural decline; a growing band means economic ascent.")
 
   # ── 4. COMPARATIVE ADVANTAGE SCATTER ─────────────────────────────────────
   st.markdown(f"<div style='color:{theme.accent_warning}; font-weight:600; "
@@ -167,6 +232,7 @@ def render_io_sectors_tab(theme):
     yaxis=dict(title="Output Share (%)", range=[0, max_val]),
     legend=dict(orientation="h", y=1.08, x=0, bgcolor='rgba(0,0,0,0)')))
   st.plotly_chart(fig_scatter, use_container_width=True)
+  st.caption("Sectors above the dashed diagonal produce more output per worker than their employment share would suggest (high productivity). Sectors below are labor-intensive relative to their output contribution. Bubble size = gross output.")
 
   # ── 5. OUTPUT MULTIPLIERS & LINKAGES BAR CHART ───────────────────────────
   st.markdown(f"<div style='color:{theme.accent_primary}; font-weight:600; "
@@ -202,6 +268,206 @@ def render_io_sectors_tab(theme):
         f"<b>Backward:</b> how much a sector's demand pulls from all sectors. "
         f"<b>Forward:</b> how much a sector's output feeds into all sectors.</div>",
         unsafe_allow_html=True)
+
+  try:
+    _g_top_mult_idx = int(np.argmax(multipliers))
+    _g_top_mult = display_names[_g_top_mult_idx]
+    _g_mult_val = float(multipliers[_g_top_mult_idx])
+    _g_top_bwd_idx = int(np.argmax(backward))
+    _g_top_bwd = display_names[_g_top_bwd_idx]
+    _g_top_fwd_idx = int(np.argmax(forward))
+    _g_top_fwd = display_names[_g_top_fwd_idx]
+  except Exception:
+    _g_top_mult, _g_mult_val, _g_top_bwd, _g_top_fwd = "?", 0, "?", "?"
+  _guide(theme,
+    method_html=(
+      "<b>Output multipliers</b> (column sum of Leontief inverse) show how much total economy-wide output "
+      "is generated when final demand for that sector rises by 1 unit. "
+      "<b>Backward linkages</b> measure how much a sector purchases from other sectors (it buys a lot = "
+      "high backward linkage = good demand stimulus). "
+      "<b>Forward linkages</b> measure how much a sector's output is used by other sectors as input "
+      "(it supplies a lot = high forward linkage = strategic infrastructure sector)."
+    ),
+    interp_html=(
+      f"Highest output multiplier: <b>{_g_top_mult}</b> at <b>{_g_mult_val:.2f}</b> — each unit of "
+      f"demand stimulus here generates {_g_mult_val:.2f}x in total economy-wide output. "
+      f"Strongest backward linkage: <b>{_g_top_bwd}</b> (buys most from other sectors). "
+      f"Strongest forward linkage: <b>{_g_top_fwd}</b> (supplies most to other sectors as input)."
+    ),
+    rec_html=(
+      f"Target <b>{_g_top_mult}</b> for demand-side stimulus (highest multiplier). "
+      f"Target <b>{_g_top_bwd}</b> sectors for supply chain resilience policy. "
+      f"Protect <b>{_g_top_fwd}</b> — disruption to high-forward-linkage sectors cascades widely."
+    ),
+  )
+
+  # ── 6. SECTOR-VS-SECTOR SHOCK & POLICY CLASSIFIER ──────────────────────
+  st.markdown(f"<div style='color:{theme.accent_warning}; font-weight:600; "
+        f"font-size:0.85rem; margin-top:1rem; margin-bottom:0.5rem;'>"
+        f"SECTOR CLASSIFICATION: SHOCKS &amp; POLICIES VS BENCHMARK SECTOR</div>",
+        unsafe_allow_html=True)
+
+  benchmark_sector = st.selectbox(
+    "Benchmark sector",
+    options=sector_names,
+    format_func=lambda x: str(x).title(),
+    key="io_sector_classifier_benchmark",
+    help="Classifies every sector's shock risk and policy priority relative to the selected sector.",
+  )
+
+  idx_by_sector = {name: i for i, name in enumerate(sector_names)}
+  benchmark_idx = idx_by_sector[benchmark_sector]
+  shock_sensitivity_cfg = getattr(getattr(research_econ, "io_cfg", None), "shock_sensitivity", {}) or {}
+
+  def _minmax(vals):
+    arr = np.asarray(vals, dtype=float)
+    if arr.size == 0:
+      return arr
+    lo = float(np.min(arr))
+    hi = float(np.max(arr))
+    if hi - lo < 1e-9:
+      return np.ones_like(arr) * 0.5
+    return (arr - lo) / (hi - lo)
+
+  def _norm_key(txt: str) -> str:
+    return "".join(ch for ch in str(txt).lower() if ch.isalnum())
+
+  def _shock_class(score: float) -> str:
+    if score >= 0.67:
+      return "High Spillover Risk"
+    if score >= 0.40:
+      return "Moderate Spillover Risk"
+    return "Contained Spillover Risk"
+
+  def _policy_class(score: float) -> str:
+    if score >= 0.70:
+      return "Tier 1 Policy Priority"
+    if score >= 0.45:
+      return "Tier 2 Policy Priority"
+    return "Monitor / Stabilize"
+
+  dep_vs_benchmark = []
+  spillover_vs_benchmark = []
+  sensitivity_avg = []
+
+  for sec in sector_names:
+    i = idx_by_sector[sec]
+    # Two-way direct dependence in A captures bilateral supply-chain coupling.
+    dep_in = float(A_matrix[i, benchmark_idx])
+    dep_out = float(A_matrix[benchmark_idx, i])
+    dep_vs_benchmark.append(0.5 * (dep_in + dep_out))
+
+    # Two-way Leontief pass-through captures direct + indirect cascade effects.
+    spill_in = float(L_matrix[i, benchmark_idx])
+    spill_out = float(L_matrix[benchmark_idx, i])
+    spillover_vs_benchmark.append(0.5 * (spill_in + spill_out))
+
+    sens = shock_sensitivity_cfg.get(sec, {})
+    sensitivity_avg.append(float(np.mean(list(sens.values()))) if sens else 0.0)
+
+  dep_norm = _minmax(dep_vs_benchmark)
+  spill_norm = _minmax(spillover_vs_benchmark)
+  sens_norm = _minmax(sensitivity_avg)
+
+  mult_norm = _minmax(multipliers)
+  bwd_norm = _minmax(backward)
+  fwd_norm = _minmax(forward)
+
+  shock_scores = 0.45 * dep_norm + 0.35 * spill_norm + 0.20 * sens_norm
+  policy_scores = 0.50 * mult_norm + 0.30 * bwd_norm + 0.20 * fwd_norm
+
+  try:
+    from kshiked.simulation.scenario_templates import SHOCK_REGISTRY, POLICY_INSTRUMENT_REGISTRY
+  except Exception:
+    SHOCK_REGISTRY, POLICY_INSTRUMENT_REGISTRY = {}, {}
+
+  shock_families = {s: set() for s in sector_names}
+  for sk, meta in SHOCK_REGISTRY.items():
+    sec_norm = _norm_key(meta.get("sector", ""))
+    if not sec_norm:
+      continue
+    label = str(meta.get("label", sk))
+    for sec in sector_names:
+      io_norm = _norm_key(sec)
+      if sec_norm == io_norm:
+        shock_families[sec].add(label)
+      elif sec_norm == "foodmarkets" and io_norm in {"agriculture", "manufacturing", "services"}:
+        shock_families[sec].add(label)
+      elif sec_norm == "communications" and io_norm == "services":
+        shock_families[sec].add(label)
+      elif sec_norm == "displacement" and io_norm in {"services", "security"}:
+        shock_families[sec].add(label)
+
+  policy_tools = {s: set() for s in sector_names}
+  for pk, meta in POLICY_INSTRUMENT_REGISTRY.items():
+    cat_norm = _norm_key(meta.get("category", ""))
+    label = str(meta.get("label", pk))
+    for sec in sector_names:
+      io_norm = _norm_key(sec)
+      if cat_norm in {"monetary", "fiscal"}:
+        policy_tools[sec].add(label)
+      elif cat_norm == io_norm:
+        policy_tools[sec].add(label)
+      elif cat_norm == "markets" and io_norm in {"agriculture", "manufacturing", "services"}:
+        policy_tools[sec].add(label)
+      elif cat_norm == "socialprotection" and io_norm in {"services", "health", "security"}:
+        policy_tools[sec].add(label)
+      elif cat_norm == "communications" and io_norm in {"services", "security"}:
+        policy_tools[sec].add(label)
+
+  rows = []
+  for i, sec in enumerate(sector_names):
+    shocks_for_sec = sorted(shock_families.get(sec, set()))
+    tools_for_sec = sorted(policy_tools.get(sec, set()))
+
+    rows.append({
+      "Sector": sec.title(),
+      f"Interdependence vs {benchmark_sector.title()}": round(float(dep_vs_benchmark[i]), 3),
+      f"Spillover vs {benchmark_sector.title()}": round(float(spillover_vs_benchmark[i]), 3),
+      "Shock Score": round(float(shock_scores[i]), 3),
+      "Shock Class": _shock_class(float(shock_scores[i])),
+      "Policy Score": round(float(policy_scores[i]), 3),
+      "Policy Class": _policy_class(float(policy_scores[i])),
+      "Matched Shock Families": ", ".join(shocks_for_sec[:3]) if shocks_for_sec else "Macro-general",
+      "Matched Policy Tools": ", ".join(tools_for_sec[:3]) if tools_for_sec else "Macro mix",
+    })
+
+  class_df = pd.DataFrame(rows).sort_values(["Shock Score", "Policy Score"], ascending=False)
+  st.dataframe(class_df, use_container_width=True, hide_index=True)
+
+  fig_cls = go.Figure()
+  fig_cls.add_trace(go.Bar(
+    x=class_df["Sector"],
+    y=class_df["Shock Score"],
+    name="Shock Score",
+    marker_color=PALETTE[3],
+    hovertemplate="%{x}<br>Shock score: %{y:.3f}<extra></extra>",
+  ))
+  fig_cls.add_trace(go.Bar(
+    x=class_df["Sector"],
+    y=class_df["Policy Score"],
+    name="Policy Score",
+    marker_color=PALETTE[0],
+    hovertemplate="%{x}<br>Policy score: %{y:.3f}<extra></extra>",
+  ))
+  fig_cls.update_layout(**base_layout(theme, height=360,
+    title=dict(
+      text=f"Sector Classification Against {benchmark_sector.title()}",
+      font=dict(color=theme.text_muted, size=13),
+    ),
+    barmode="group",
+    xaxis=dict(title="Sector"),
+    yaxis=dict(title="Score (0-1)", range=[0, 1.0]),
+    legend=dict(orientation="h", y=1.08, x=0, bgcolor="rgba(0,0,0,0)"),
+  ))
+  st.plotly_chart(fig_cls, use_container_width=True)
+
+  top_shock = str(class_df.iloc[0]["Sector"]) if not class_df.empty else "N/A"
+  top_policy = str(class_df.sort_values("Policy Score", ascending=False).iloc[0]["Sector"]) if not class_df.empty else "N/A"
+  st.caption(
+    f"Benchmark: {benchmark_sector.title()}. Highest spillover risk sector: {top_shock}. "
+    f"Highest policy leverage sector: {top_policy}."
+  )
 
 
 def render_inequality_tab(theme):
@@ -259,6 +525,7 @@ def render_inequality_tab(theme):
     ))
     fig_gini.update_layout(**base_layout(theme, height=280, margin=dict(l=30, r=30, t=60, b=10)))
     st.plotly_chart(fig_gini, use_container_width=True)
+    st.markdown(f"""<div style="font-size:0.78rem; color:{theme.text_muted}; padding:0.3rem 0;">Gini <b>{gini_now:.4f}</b> {'(above Kenya benchmark 0.408 — inequality is high)' if gini_now > 0.408 else '(below Kenya benchmark — relatively equal)'}. {'Rising' if gini_vals[-1] > gini_vals[0] else 'Falling'} from {gini_vals[0]:.4f} at the start. Higher = more unequal (0 = perfect equality, 1 = maximum inequality).</div>""", unsafe_allow_html=True)
 
   with col_p:
     palma_now = palma_vals[-1]
@@ -286,6 +553,37 @@ def render_inequality_tab(theme):
     ))
     fig_palma.update_layout(**base_layout(theme, height=280, margin=dict(l=30, r=30, t=60, b=10)))
     st.plotly_chart(fig_palma, use_container_width=True)
+    st.markdown(f"""<div style="font-size:0.78rem; color:{theme.text_muted}; padding:0.3rem 0;">Palma ratio <b>{palma_now:.2f}</b>: the richest 10% earn {palma_now:.2f}x the income of the poorest 40% combined. {'Rising' if palma_now > palma_vals[0] else 'Falling'} from {palma_vals[0]:.2f} at the start. Values above 2 suggest significant concentration at the top.</div>""", unsafe_allow_html=True)
+
+  try:
+    _g_gini_end = float(gini_vals[-1]) if gini_vals else 0
+    _g_gini_trend = "worsening" if len(gini_vals) > 1 and gini_vals[-1] > gini_vals[0] else "improving"
+    _g_palma_end = float(palma_vals[-1]) if palma_vals else 0
+    _g_palma_lbl = "severe" if _g_palma_end > 3.0 else "elevated" if _g_palma_end > 2.5 else "moderate"
+  except Exception:
+    _g_gini_end, _g_gini_trend, _g_palma_end, _g_palma_lbl = 0, "unknown", 0, "unknown"
+  _guide(theme,
+    method_html=(
+      "The <b>Gini coefficient</b> measures overall income inequality on a 0–1 scale: 0 = perfect equality "
+      "(everyone has the same income), 1 = perfect inequality (one person has all income). Kenya's current "
+      "real-world Gini is approximately 0.408. "
+      "The <b>Palma ratio</b> is the income share of the richest 10% divided by the income share of the "
+      "poorest 40%. It is more sensitive than the Gini to what happens at the extremes of the distribution — "
+      "Palma = 2.5 means the top 10% earn 2.5× what the bottom 40% earn combined."
+    ),
+    interp_html=(
+      f"Terminal Gini: <b>{_g_gini_end:.3f}</b> (Kenya benchmark: 0.408) — trend is <b>{_g_gini_trend}</b>. "
+      f"Terminal Palma: <b>{_g_palma_end:.2f}</b> — inequality level is <b>{_g_palma_lbl}</b>. "
+      + ("Gini is above Kenya's benchmark — the simulated policy is worsening inequality." if _g_gini_end > 0.408
+         else "Gini is below Kenya's benchmark — the simulated policy improves equality.")
+    ),
+    rec_html=(
+      "Policies that raise the Gini above 0.408 are regressive — they widen the income gap. "
+      "Target fiscal policy to reduce the Palma ratio: progressive taxation and direct transfers to the "
+      "poorest 40% are the most direct levers. "
+      "If Palma exceeds 3.0, social stability risks increase significantly."
+    ),
+  )
 
   # ── 2. QUINTILE INCOME SHARE STACKED AREA ────────────────────────────────
   st.markdown(f"<div style='color:{theme.accent_warning}; font-weight:600; "
@@ -319,6 +617,7 @@ def render_inequality_tab(theme):
       yaxis=dict(title="Income Share (%)", range=[0, 100]),
       legend=dict(orientation="h", y=1.08, x=0, bgcolor='rgba(0,0,0,0)')))
     st.plotly_chart(fig_qarea, use_container_width=True)
+    st.caption("Each band shows one income quintile's share of total income over time. A narrowing bottom band (Q1) means the poorest are losing ground; a widening top band (Q5) means concentration at the top.")
 
   # ── 3. PRO-POOR GROWTH BAR CHART ─────────────────────────────────────────
   st.markdown(f"<div style='color:{theme.accent_primary}; font-weight:600; "
@@ -366,6 +665,40 @@ def render_inequality_tab(theme):
             font=dict(color=theme.text_muted, size=13)),
       yaxis=dict(title="Growth (%)")))
     st.plotly_chart(fig_ppg, use_container_width=True)
+    st.markdown(f"""<div style="font-size:0.78rem; color:{theme.text_muted}; padding:0.3rem 0;">{'Bottom quintiles are growing faster than top — pro-poor outcome.' if is_pro_poor else 'Top quintiles are growing faster — regressive outcome.'} Bottom 40% avg growth: <b>{avg_bottom:+.1f}%</b>; Top 40% avg: <b>{avg_top:+.1f}%</b>. Green bars = growing faster than the top; red bars = falling behind.</div>""", unsafe_allow_html=True)
+
+  try:
+    q1_vals_g = [f.get("quintile_incomes", {}).get("q1_bottom_20", 0) for f in ineq_frames]
+    q5_vals_g = [f.get("quintile_incomes", {}).get("q5_top_20", 0) for f in ineq_frames]
+    _g_q1_start, _g_q1_end = float(q1_vals_g[0]) if q1_vals_g else 1, float(q1_vals_g[-1]) if q1_vals_g else 1
+    _g_q5_start, _g_q5_end = float(q5_vals_g[0]) if q5_vals_g else 1, float(q5_vals_g[-1]) if q5_vals_g else 1
+    _g_q1_growth = (_g_q1_end - _g_q1_start) / max(abs(_g_q1_start), 0.001) * 100
+    _g_q5_growth = (_g_q5_end - _g_q5_start) / max(abs(_g_q5_start), 0.001) * 100
+    _g_verdict = "pro-poor" if _g_q1_growth > _g_q5_growth else "regressive" if _g_q5_growth > _g_q1_growth + 0.5 else "neutral"
+  except Exception:
+    _g_q1_growth, _g_q5_growth, _g_verdict = 0, 0, "unknown"
+  _guide(theme,
+    method_html=(
+      "<b>Pro-poor growth</b> occurs when the income of the poorest quintile (Q1, bottom 20%) "
+      "grows faster than the richest quintile (Q5, top 20%). This bar chart shows the percentage income "
+      "change from simulation start to end for each quintile, allowing comparison of who gained and who lost "
+      "from the simulated policy. A 'pro-poor' label means the poorest benefit most; 'regressive' means the "
+      "wealthy benefit disproportionately."
+    ),
+    interp_html=(
+      f"Q1 (bottom 20%) income change: <b>{_g_q1_growth:+.1f}%</b>. "
+      f"Q5 (top 20%) income change: <b>{_g_q5_growth:+.1f}%</b>. "
+      f"Verdict: <b>{_g_verdict.upper()}</b> — "
+      + ("the poorest gain more than the richest from this scenario." if _g_verdict == "pro-poor"
+         else "the richest gain more, widening the gap." if _g_verdict == "regressive"
+         else "growth is distributed neutrally across quintiles.")
+    ),
+    rec_html=(
+      "To shift a regressive outcome to pro-poor: increase the government spending ratio directed at transfers "
+      "and public goods (healthcare, education) rather than capital subsidies. "
+      "Monitor Q1/Q5 income ratio as a key performance indicator for distributional equity goals."
+    ),
+  )
 
   # ── 4. INTERACTIVE LORENZ CURVE WITH SLIDER ──────────────────────────────
   st.markdown(f"<div style='color:{theme.accent_warning}; font-weight:600; "
@@ -422,6 +755,7 @@ def render_inequality_tab(theme):
       yaxis=dict(title="Cumulative Income Share", range=[0, 1]),
       legend=dict(orientation="h", y=1.08, x=0, bgcolor='rgba(0,0,0,0)')))
     st.plotly_chart(fig_lorenz, use_container_width=True)
+    st.markdown(f"""<div style="font-size:0.78rem; color:{theme.text_muted}; padding:0.3rem 0;">The Lorenz curve shows how income is distributed. At quarter {lorenz_t}, Gini = <b>{gini_t:.4f}</b>. The further the blue curve bows below the dashed equality line, the more unequal the distribution. The red shaded area represents the inequality gap.</div>""", unsafe_allow_html=True)
 
   # ── 5. GINI TRAJECTORY LINE ──────────────────────────────────────────────
   st.markdown(f"<div style='color:{theme.accent_primary}; font-weight:600; "
@@ -449,6 +783,7 @@ def render_inequality_tab(theme):
   fig_ts.update_yaxes(title_text="Gini", secondary_y=False)
   fig_ts.update_yaxes(title_text="Palma", secondary_y=True)
   st.plotly_chart(fig_ts, use_container_width=True)
+  st.markdown(f"""<div style="font-size:0.78rem; color:{theme.text_muted}; padding:0.3rem 0;">Gini {'rising' if gini_vals[-1] > gini_vals[0] else 'falling'} from {gini_vals[0]:.4f} to {gini_vals[-1]:.4f}; Palma {'rising' if palma_vals[-1] > palma_vals[0] else 'falling'} from {palma_vals[0]:.2f} to {palma_vals[-1]:.2f}. Dashed red line = Kenya benchmark Gini (0.408). Upward trend in both signals widening inequality.</div>""", unsafe_allow_html=True)
 
 
 def render_financial_tab(theme):
@@ -509,6 +844,7 @@ def render_financial_tab(theme):
     ))
     fig_npl_g.update_layout(**base_layout(theme, height=250, margin=dict(l=20, r=20, t=55, b=5)))
     st.plotly_chart(fig_npl_g, use_container_width=True)
+    st.markdown(f"""<div style="font-size:0.78rem; color:{theme.text_muted}; padding:0.3rem 0;">NPL ratio: <b>{npl:.1%}</b> — {'critical: above 10% threshold' if npl > 0.10 else 'elevated: above 5% caution zone' if npl > 0.05 else 'healthy: below 5%'}. Non-performing loans erode bank capital and restrict credit supply to the real economy.</div>""", unsafe_allow_html=True)
 
   with col_car:
     fig_car_g = go.Figure(go.Indicator(
@@ -537,6 +873,7 @@ def render_financial_tab(theme):
     ))
     fig_car_g.update_layout(**base_layout(theme, height=250, margin=dict(l=20, r=20, t=55, b=5)))
     st.plotly_chart(fig_car_g, use_container_width=True)
+    st.markdown(f"""<div style="font-size:0.78rem; color:{theme.text_muted}; padding:0.3rem 0;">Capital adequacy ratio: <b>{car:.1%}</b> — {'below CBK minimum of 14.5%: systemic risk' if car < 0.145 else 'above minimum but watch closely' if car < 0.20 else 'adequate buffer above regulatory floor'}. Higher CAR = more capacity to absorb loan losses without insolvency.</div>""", unsafe_allow_html=True)
 
   with col_fsi:
     fsi = research_econ.financial_stability_index()
@@ -560,6 +897,7 @@ def render_financial_tab(theme):
     ))
     fig_fsi_g.update_layout(**base_layout(theme, height=250, margin=dict(l=20, r=20, t=55, b=5)))
     st.plotly_chart(fig_fsi_g, use_container_width=True)
+    st.markdown(f"""<div style="font-size:0.78rem; color:{theme.text_muted}; padding:0.3rem 0;">Financial Stability Index aggregates NPL ratio, capital adequacy, and credit spread into a single score (0–100). Current: <b>{fsi * 100:.0f}/100</b>. Below 35 indicates stress; above 60 indicates resilience. Watch for rapid drops.</div>""", unsafe_allow_html=True)
 
   # ── 2. CREDIT CYCLE SCATTER ──────────────────────────────────────────────
   st.markdown(f"<div style='color:{theme.accent_warning}; font-weight:600; "
@@ -648,6 +986,7 @@ def render_financial_tab(theme):
           font=dict(color=theme.text_muted, size=12)),
     yaxis=dict(title="Value")))
   st.plotly_chart(fig_bs, use_container_width=True)
+  st.caption("The waterfall decomposes the banking sector's balance sheet. Green bars = assets; red bars = liabilities. The two total bars show gross assets and gross liabilities+capital — they should balance.")
 
   # ── 4. NPL / CAR / SPREAD TIME SERIES ───────────────────────────────────
   st.markdown(f"<div style='color:{theme.accent_warning}; font-weight:600; "
@@ -689,6 +1028,7 @@ def render_financial_tab(theme):
       fig_fin_ts.update_xaxes(gridcolor='rgba(255,255,255,0.03)', row=r, col=c)
       fig_fin_ts.update_yaxes(gridcolor='rgba(255,255,255,0.03)', row=r, col=c)
   st.plotly_chart(fig_fin_ts, use_container_width=True)
+  st.caption("Time series of key financial ratios. Rising NPL combined with falling CAR is an early warning of a credit crunch. Watch for sustained divergence between the two panels.")
 
 
 def render_open_economy_tab(theme):
@@ -746,6 +1086,7 @@ def render_open_economy_tab(theme):
     ))
     fig_reer_g.update_layout(**base_layout(theme, height=250, margin=dict(l=20, r=20, t=55, b=5)))
     st.plotly_chart(fig_reer_g, use_container_width=True)
+    st.markdown(f"""<div style="font-size:0.78rem; color:{theme.text_muted}; padding:0.3rem 0;">Real Effective Exchange Rate (REER): <b>{reer_now:.1f}</b>. Above 100 = currency overvalued vs trading partners (exports become less competitive). Below 100 = undervalued (cheaper exports, pricier imports).</div>""", unsafe_allow_html=True)
 
   with col_res:
     fig_res_g = go.Figure(go.Indicator(
@@ -770,6 +1111,7 @@ def render_open_economy_tab(theme):
     ))
     fig_res_g.update_layout(**base_layout(theme, height=250, margin=dict(l=20, r=20, t=55, b=5)))
     st.plotly_chart(fig_res_g, use_container_width=True)
+    st.markdown(f"""<div style="font-size:0.78rem; color:{theme.text_muted}; padding:0.3rem 0;">Foreign exchange reserves as months of import cover. Current: <b>{reserves_now:.1f} months</b>. Below 3 months is critical; 3–4 months is the CBK caution zone; above 4 months provides a comfortable buffer against external shocks.</div>""", unsafe_allow_html=True)
 
   with col_vuln:
     fig_vuln_g = go.Figure(go.Indicator(
@@ -792,6 +1134,7 @@ def render_open_economy_tab(theme):
     ))
     fig_vuln_g.update_layout(**base_layout(theme, height=250, margin=dict(l=20, r=20, t=55, b=5)))
     st.plotly_chart(fig_vuln_g, use_container_width=True)
+    st.markdown(f"""<div style="font-size:0.78rem; color:{theme.text_muted}; padding:0.3rem 0;">External vulnerability index aggregates exchange rate pressure, reserves adequacy, and current account balance into a single risk score (0–100). Current score: <b>{ext_vuln * 100:.0f}/100</b> — {'high exposure to external shocks' if ext_vuln > 0.6 else 'moderate exposure, monitor closely' if ext_vuln > 0.35 else 'resilient external position'}.</div>""", unsafe_allow_html=True)
 
   # ── 2. BALANCE OF PAYMENTS WATERFALL ─────────────────────────────────────
   st.markdown(f"<div style='color:{theme.accent_warning}; font-weight:600; "
@@ -824,6 +1167,7 @@ def render_open_economy_tab(theme):
           font=dict(color=theme.text_muted, size=13)),
     yaxis=dict(title="Value")))
   st.plotly_chart(fig_bop, use_container_width=True)
+  st.caption("Balance of Payments waterfall: green bars are inflows (exports, remittances, capital); red bars are outflows (imports, debt service). The final bar = net BoP — negative signals a current account deficit.")
 
   # ── 3. TWIN DEFICIT SCATTER ──────────────────────────────────────────────
   st.markdown(f"<div style='color:{theme.accent_primary}; font-weight:600; "
@@ -882,6 +1226,7 @@ def render_open_economy_tab(theme):
       yaxis=dict(title="Current Account (% GDP)"),
       legend=dict(orientation="h", y=1.08, x=0, bgcolor='rgba(0,0,0,0)')))
     st.plotly_chart(fig_twin, use_container_width=True)
+    st.caption("Twin deficit diagram: fiscal deficit (X-axis) vs current account deficit (Y-axis). Points in the lower-left quadrant have both deficits simultaneously — a classic vulnerability signal for emerging economies.")
 
   # ── 4. REER vs INFLATION TWIN PANEL ──────────────────────────────────────
   st.markdown(f"<div style='color:{theme.accent_warning}; font-weight:600; "
@@ -898,7 +1243,7 @@ def render_open_economy_tab(theme):
   fig_ri.add_trace(go.Scatter(
     x=list(range(min_ri)), y=reer_vals[:min_ri], name="REER",
     line=dict(color=PALETTE[1], width=3),
-    fill='tozeroy', fillcolor=PALETTE[1] + '14',
+    fill='tozeroy', fillcolor=_hex_rgba(PALETTE[1], 0.08),
   ), secondary_y=False)
   fig_ri.add_trace(go.Scatter(
     x=list(range(min_ri)), y=inflation_vals[:min_ri], name="Inflation (%)",
@@ -914,6 +1259,7 @@ def render_open_economy_tab(theme):
   fig_ri.update_yaxes(title_text="REER Index", secondary_y=False)
   fig_ri.update_yaxes(title_text="Inflation (%)", secondary_y=True)
   st.plotly_chart(fig_ri, use_container_width=True)
+  st.caption("REER and inflation often move together. Rising inflation erodes competitiveness (pushes REER up). Divergence between the two may signal exchange rate misalignment.")
 
   # ── 5. RESERVE ADEQUACY TRAJECTORY ───────────────────────────────────────
   st.markdown(f"<div style='color:{theme.accent_primary}; font-weight:600; "
@@ -941,6 +1287,7 @@ def render_open_economy_tab(theme):
           font=dict(color=theme.text_muted, size=13)),
     xaxis=dict(title="Quarter"), yaxis=dict(title="Months of Import Cover")))
   st.plotly_chart(fig_res, use_container_width=True)
+  st.markdown(f"""<div style="font-size:0.78rem; color:{theme.text_muted}; padding:0.3rem 0;">Reserve trajectory shows whether the buffer is building or eroding over time. Current cover: <b>{res_vals[-1]:.1f} months</b>. A declining trend toward the CBK minimum of 4 months warrants immediate policy attention.</div>""", unsafe_allow_html=True)
 
 
 def render_research_engine_tab(theme, SFCEconomy, SFCConfig, calibrate_from_data):
@@ -1090,6 +1437,45 @@ def render_research_engine_tab(theme, SFCEconomy, SFCConfig, calibrate_from_data
       legend=dict(orientation="h", y=-0.05, x=0.3, bgcolor='rgba(0,0,0,0)')),
   )
   st.plotly_chart(fig_radar, use_container_width=True)
+  st.markdown(f"""<div style="font-size:0.78rem; color:{theme.text_muted}; padding:0.3rem 0;">The macro health radar shows 6 dimensions simultaneously. A larger filled area = healthier economy overall. Inward spikes identify the weakest dimensions. The dotted ring marks the mid-point threshold (50/100) — any dimension below it warrants attention.</div>""", unsafe_allow_html=True)
+
+  try:
+    _g_weakest_dim_idx = int(np.argmin(radar_vals))
+    _g_weakest = radar_cats[_g_weakest_dim_idx].replace("\n", " ")
+    _g_weakest_val = radar_vals[_g_weakest_dim_idx]
+    _g_strongest_idx = int(np.argmax(radar_vals))
+    _g_strongest = radar_cats[_g_strongest_idx].replace("\n", " ")
+    _g_overall = float(np.mean(radar_vals))
+    _g_below_thresh = sum(1 for v in radar_vals if v < 50)
+  except Exception:
+    _g_weakest, _g_weakest_val, _g_strongest, _g_overall, _g_below_thresh = "?", 0, "?", 0, 0
+  _guide(theme,
+    method_html=(
+      "The <b>Multi-Module Health Radar</b> is a 6-dimensional spider/polar chart that simultaneously shows "
+      "the health of each major economic subsystem after the simulation run. Each axis is normalised to 0–100 "
+      "where 100 = ideal and 0 = worst case. The six dimensions are: "
+      "<b>Financial Stability</b> (bank solvency and credit health), "
+      "<b>External Resilience</b> (reserve adequacy and REER stability), "
+      "<b>Macro Balance</b> (inflation near target), "
+      "<b>Growth Momentum</b> (GDP expansion), "
+      "<b>Equality</b> (low Gini), and "
+      "<b>Sector Diversity</b> (no single sector dominance). "
+      "The dotted ring at 50 is the alert threshold — inward spikes below it identify vulnerabilities."
+    ),
+    interp_html=(
+      f"Overall economy health: <b>{_g_overall:.0f}/100</b>. "
+      f"<b>{_g_below_thresh}</b> dimension(s) below alert threshold (50). "
+      f"Weakest dimension: <b>{_g_weakest}</b> at <b>{_g_weakest_val:.0f}/100</b>. "
+      f"Strongest dimension: <b>{_g_strongest}</b>. "
+      + ("Economy is broadly healthy — all dimensions above alert threshold." if _g_below_thresh == 0
+         else f"Priority concern: {_g_weakest} is critically weak and needs targeted policy attention.")
+    ),
+    rec_html=(
+      f"Focus policy on <b>{_g_weakest}</b> — it is the binding constraint limiting overall health. "
+      "Improving the weakest dimension typically yields the highest marginal gain to overall resilience. "
+      "Use the specific module tabs (Financial, Open Economy, Inequality) to drill into the weakest dimensions."
+    ),
+  )
 
   # ── 2. GDP DECOMPOSITION WATERFALL ─────────────────────────────────────
   st.markdown(f"<div style='color:{theme.accent_warning}; font-weight:600; "
@@ -1132,6 +1518,40 @@ def render_research_engine_tab(theme, SFCEconomy, SFCConfig, calibrate_from_data
     title=dict(text="GDP Components (Waterfall)", font=dict(color=theme.text_muted, size=13)),
     yaxis=dict(title="Value")))
   st.plotly_chart(fig_wf, use_container_width=True)
+  st.caption("GDP decomposition waterfall: positive bars (green) = components adding to growth; negative bars (red) = drags on output. The final bar is net GDP.")
+
+  try:
+    _g_gdp_val = float(gdp)
+    _g_c_pct = hh_consumption / _g_gdp_val * 100
+    _g_i_pct = investment / _g_gdp_val * 100
+    _g_g_pct = gov_spending / _g_gdp_val * 100
+    _g_nx_pct = net_exports / _g_gdp_val * 100
+    _g_nx_label = "surplus" if net_exports > 0 else "deficit"
+    _g_dominant = "Consumption" if _g_c_pct >= _g_i_pct and _g_c_pct >= _g_g_pct else "Investment" if _g_i_pct >= _g_g_pct else "Government"
+  except Exception:
+    _g_gdp_val, _g_c_pct, _g_i_pct, _g_g_pct, _g_nx_pct, _g_nx_label, _g_dominant = 0, 0, 0, 0, 0, "unknown", "?"
+  _guide(theme,
+    method_html=(
+      "The <b>GDP Demand-Side Decomposition</b> breaks total output (Y) into its expenditure components: "
+      "<b>C</b> (household consumption), <b>I</b> (private investment, driven by credit), "
+      "<b>G</b> (government spending), and <b>NX</b> (net exports = exports − imports). "
+      "This follows the national income identity: Y ≡ C + I + G + NX. "
+      "Green waterfall bars add to GDP; red bars are drags. The final bar is total GDP."
+    ),
+    interp_html=(
+      f"GDP = <b>{_g_gdp_val:.1f}</b>. "
+      f"Consumption: {_g_c_pct:.1f}%, Investment: {_g_i_pct:.1f}%, "
+      f"Government: {_g_g_pct:.1f}%, Net Exports: {_g_nx_pct:+.1f}% ({_g_nx_label}). "
+      f"<b>{_g_dominant}</b> is the dominant demand driver. "
+      + ("Trade deficit is a drag on GDP — imports exceed exports." if net_exports < 0 else "")
+    ),
+    rec_html=(
+      f"To boost GDP, the most efficient lever is the largest component: {_g_dominant}. "
+      "If NX is negative (trade deficit), policies to boost exports or reduce import dependency "
+      "will improve GDP. "
+      "Monitor the I/GDP ratio — investment below 15% signals under-capitalisation and slowing future growth."
+    ),
+  )
 
   # ── 3. POLICY TRANSMISSION SANKEY ──────────────────────────────────────
   if trajectory and len(trajectory) > 2:
@@ -1165,14 +1585,23 @@ def render_research_engine_tab(theme, SFCEconomy, SFCConfig, calibrate_from_data
     sector_shares = summary.get("sectors", {"agriculture": 0.22, "manufacturing": 0.08,
                          "services": 0.53, "mining": 0.04, "construction": 0.13})
     for i, (name, share) in enumerate(sector_shares.items()):
-      flow_data.append((2, 4 + i, share * 10, PALETTE[4 + i]))
-    # Sectors → Households
+      palette_idx = (4 + i) % len(PALETTE)
+      flow_data.append((2, 4 + i, share * 10, PALETTE[palette_idx]))
+    # Sectors → Households (dynamic quintile weights from inequality module)
+    _q_incomes = (summary.get("inequality") or {}).get("quintile_incomes") or {}
+    _q1_w = max(0.01, float(_q_incomes.get("q1_bottom_20", 0.4)))
+    _q3_w = max(0.01, float(_q_incomes.get("q3_middle_20", 0.8)))
+    _q5_w = max(0.01, float(_q_incomes.get("q5_top_20", 1.2)))
+    _hh_total = _q1_w + _q3_w + _q5_w
+    _q1_norm = _q1_w / _hh_total * 3
+    _q3_norm = _q3_w / _hh_total * 3
+    _q5_norm = _q5_w / _hh_total * 3
     for i in range(5):
-      flow_data.append((4 + i, 9, 0.4, 'rgba(255,51,102,0.3)'))  # → Q1
-      flow_data.append((4 + i, 10, 0.8, 'rgba(245,213,71,0.3)')) # → Q3
-      flow_data.append((4 + i, 11, 1.2, 'rgba(0,255,136,0.3)'))  # → Q5
-    # Households → GDP
-    for hh_idx, hh_wt in [(9, 2), (10, 4), (11, 6)]:
+      flow_data.append((4 + i, 9, _q1_norm, 'rgba(255,51,102,0.3)'))  # → Q1
+      flow_data.append((4 + i, 10, _q3_norm, 'rgba(245,213,71,0.3)')) # → Q3
+      flow_data.append((4 + i, 11, _q5_norm, 'rgba(0,255,136,0.3)'))  # → Q5
+    # Households → GDP (proportional to quintile income share)
+    for hh_idx, hh_wt in [(9, _q1_norm * 2), (10, _q3_norm * 2), (11, _q5_norm * 2)]:
       flow_data.append((hh_idx, 12, hh_wt, PALETTE[1]))
 
     for s, t, v, c in flow_data:
@@ -1192,6 +1621,41 @@ def render_research_engine_tab(theme, SFCEconomy, SFCConfig, calibrate_from_data
       title=dict(text="Policy Transmission: Rate → Bank → Sectors → Households → GDP",
             font=dict(color=theme.text_muted, size=13))))
     st.plotly_chart(fig_sankey, use_container_width=True)
+    st.caption("This Sankey traces how a central bank rate change transmits through the economy: Rate → Bank capital → Credit supply → Sector investment → Household income → GDP. Wider ribbons = stronger transmission.")
+
+    try:
+      _g_rate = float(research_econ.economy.interest_rate) * 100
+      _g_npl_v = float(npl) * 100
+      _g_spread_v = float(spread) * 100
+      _g_q1_share = _q1_norm / (_q1_norm + _q3_norm + _q5_norm) * 100
+      _g_q5_share = _q5_norm / (_q1_norm + _q3_norm + _q5_norm) * 100
+    except Exception:
+      _g_rate, _g_npl_v, _g_spread_v, _g_q1_share, _g_q5_share = 0, 0, 0, 0, 0
+    _guide(theme,
+      method_html=(
+        "The <b>Policy Transmission Sankey</b> traces how a central bank interest rate decision propagates "
+        "through the economy. The flow goes: Policy Rate → Bank Capital (affected by rate cost) → "
+        "Credit Supply (bank lending capacity, reduced by NPL drag) → Sectors (credit allocated by sector share) → "
+        "Household quintiles (income distributed from sector output) → GDP. "
+        "Ribbon widths are proportional to flow magnitude — a thick ribbon between Policy Rate and NPL Drag "
+        "means credit quality is severely impaired. Household flows are dynamic: they use actual quintile "
+        "income data from the heterogeneous agents module."
+      ),
+      interp_html=(
+        f"Policy rate: <b>{_g_rate:.2f}%</b>. NPL ratio: <b>{_g_npl_v:.1f}%</b>. "
+        f"Credit spread: <b>{_g_spread_v:.2f}%</b>. "
+        f"Q1 (poorest) receives <b>{_g_q1_share:.1f}%</b> of household income flow; "
+        f"Q5 (richest) receives <b>{_g_q5_share:.1f}%</b>. "
+        + ("High NPL is choking credit supply — rate cuts will have limited pass-through." if _g_npl_v > 10
+           else "Credit quality is healthy — rate changes will transmit efficiently to the real economy.")
+      ),
+      rec_html=(
+        "If the NPL ribbon is thick, rate cuts alone won't stimulate investment — address credit quality first. "
+        "If Q5 captures a disproportionately large share of income flow, complement monetary policy with "
+        "targeted transfers to Q1. "
+        "The widest sector ribbon shows which industry receives the most credit — ensure this aligns with development priorities."
+      ),
+    )
 
   # ── 4. MACRO TRAJECTORY SPARKLINES ROW ────────────────────────────────
   if trajectory and len(trajectory) > 4:
@@ -1216,7 +1680,7 @@ def render_research_engine_tab(theme, SFCEconomy, SFCConfig, calibrate_from_data
       fig_spark.add_trace(go.Scatter(
         x=t_vals, y=vals, mode='lines', name=name,
         line=dict(color=color, width=2.5), showlegend=False,
-        fill='tozeroy', fillcolor=color.replace(')', ',0.08)').replace('rgb', 'rgba') if color.startswith('rgb') else color + '14',
+        fill='tozeroy', fillcolor=color.replace(')', ',0.08)').replace('rgb', 'rgba') if color.startswith('rgb') else _hex_rgba(color, 0.08),
       ), row=1, col=col)
       # Current value annotation
       if vals:
@@ -1233,6 +1697,43 @@ def render_research_engine_tab(theme, SFCEconomy, SFCConfig, calibrate_from_data
       fig_spark.update_xaxes(showticklabels=False, gridcolor='rgba(255,255,255,0.03)', row=1, col=i)
       fig_spark.update_yaxes(gridcolor='rgba(255,255,255,0.03)', row=1, col=i)
     st.plotly_chart(fig_spark, use_container_width=True)
+    st.caption("Six macro indicators at a glance. Look for synchronised downturns across multiple panels — that signals a broad recession. Upward trajectories in all four indicate a healthy expansion.")
+
+    try:
+      _g_gdp_growth_end = float(trajectory[-1].get("outcomes", {}).get("gdp_growth", 0)) * 100
+      _g_inflation_end = float(trajectory[-1].get("outcomes", {}).get("inflation", 0)) * 100
+      _g_unemp_end = float(trajectory[-1].get("outcomes", {}).get("unemployment", 0)) * 100
+      _g_rate_end = float(trajectory[-1].get("outcomes", {}).get("interest_rate", 0)) * 100
+      _g_gdp_trend_vals = [f.get("outcomes", {}).get("gdp_growth", 0) * 100 for f in trajectory]
+      _g_expanding = _g_gdp_growth_end > 0
+      _g_gdp_accel = len(_g_gdp_trend_vals) > 4 and _g_gdp_trend_vals[-1] > _g_gdp_trend_vals[-4]
+    except Exception:
+      _g_gdp_growth_end, _g_inflation_end, _g_unemp_end, _g_rate_end, _g_expanding, _g_gdp_accel = 0, 0, 0, 0, False, False
+    _guide(theme,
+      method_html=(
+        "The <b>Macro Trajectory Sparklines</b> show four key macroeconomic indicators over the full simulation "
+        "horizon as compact time-series: GDP Growth %, Inflation %, Unemployment %, and Interest Rate %. "
+        "These are the 'vitals' of the simulated economy — monitoring all four simultaneously reveals whether "
+        "the economy is in expansion, stagflation, deflation, or a healthy Goldilocks zone. "
+        "Each panel shows the terminal (final quarter) value as an annotation."
+      ),
+      interp_html=(
+        f"Terminal values — GDP growth: <b>{_g_gdp_growth_end:+.1f}%</b>, "
+        f"Inflation: <b>{_g_inflation_end:.1f}%</b>, "
+        f"Unemployment: <b>{_g_unemp_end:.1f}%</b>, "
+        f"Interest rate: <b>{_g_rate_end:.1f}%</b>. "
+        f"Economy is {'<b>expanding</b>' if _g_expanding else '<b>contracting</b>'}. "
+        f"GDP growth is {'<b>accelerating</b>' if _g_gdp_accel else '<b>decelerating</b>'} over the last 4 quarters. "
+        + ("Inflation above 8% is concerning; consider tightening." if _g_inflation_end > 8 else "")
+      ),
+      rec_html=(
+        "Look for synchronised downturns across all four panels — that signals a broad recession. "
+        "Healthy targets: GDP growth 5–7%, inflation 5–6% (Kenya target), unemployment below 10%, "
+        "real interest rate positive (rate > inflation). "
+        "If inflation and unemployment are both rising simultaneously, the economy is in stagflation — "
+        "require structural supply-side reform, not just monetary policy."
+      ),
+    )
 
   # ── 5. STRESS TEST PANEL ──────────────────────────────────────────────
   st.markdown("---")
@@ -1302,6 +1803,41 @@ def render_research_engine_tab(theme, SFCEconomy, SFCConfig, calibrate_from_data
         barmode='group',
         legend=dict(orientation="h", y=1.08, x=0, bgcolor='rgba(0,0,0,0)')))
       st.plotly_chart(fig_stress, use_container_width=True)
+      st.caption("Pre- and post-shock comparison. Red bars show deterioration after the stress event; green bars show resilience. Taller red bars identify the economy's most vulnerable pressure points.")
+
+      try:
+        _g_car_pre = float(fin_stress.get("pre_car", 0)) * 100 if fin_stress else 0
+        _g_car_post = float(fin_stress.get("post_car", 0)) * 100 if fin_stress else 0
+        _g_car_drop = _g_car_pre - _g_car_post
+        _g_car_ok = _g_car_post >= 14.5
+        _g_q1_impact = float(dist_stress.get("rate_shock_q1_impact", 0)) * 100 if dist_stress else 0
+        _g_q5_impact = float(dist_stress.get("rate_shock_q5_impact", 0)) * 100 if dist_stress else 0
+        _g_regressive_stress = _g_q5_impact > _g_q1_impact
+      except Exception:
+        _g_car_pre, _g_car_post, _g_car_drop, _g_car_ok, _g_q1_impact, _g_q5_impact, _g_regressive_stress = 0, 0, 0, True, 0, 0, False
+      _guide(theme,
+        method_html=(
+          "The <b>Combined Stress Test</b> applies simultaneous shocks to the economy and measures the impact "
+          "on key financial and distributional indicators: "
+          "<b>NPL shock</b> = sudden rise in non-performing loans (credit quality deterioration); "
+          "<b>Rate shock</b> = sudden interest rate hike (monetary tightening); "
+          "<b>FX shock</b> = currency depreciation (import cost inflation); "
+          "<b>Deposit run</b> = sudden withdrawal of bank deposits (liquidity crisis). "
+          "This is a standard bank stress test methodology (Basel III DFAST framework). "
+          "The CAR (Capital Adequacy Ratio) is the primary resilience indicator — CBK minimum is 14.5%."
+        ),
+        interp_html=(
+          f"Post-shock CAR: <b>{_g_car_post:.1f}%</b> (pre: {_g_car_pre:.1f}%, drop: {_g_car_drop:.1f}pp). "
+          f"CBK minimum: 14.5% — <b>{'PASSES' if _g_car_ok else 'FAILS'}</b>. "
+          f"Distributional impact: Q1 change <b>{_g_q1_impact:+.1f}%</b>, Q5 change <b>{_g_q5_impact:+.1f}%</b>. "
+          + ("Stress is <b>regressive</b> — the shock hits the poorest harder." if _g_regressive_stress else "Shock impact is broadly neutral across income groups.")
+        ),
+        rec_html=(
+          f"{'The bank system is resilient to this stress scenario.' if _g_car_ok else f'CRITICAL: Post-shock CAR ({_g_car_post:.1f}%) breaches CBK minimum (14.5%). Recapitalisation required.'} "
+          "Test with progressively larger shocks to find the failure threshold. "
+          "If stress is regressive, pre-position social safety nets for Q1 households before any policy tightening."
+        ),
+      )
 
   # Hint to check other tabs
   st.markdown(f"<div style='font-size:0.75rem; color:{theme.text_muted}; "

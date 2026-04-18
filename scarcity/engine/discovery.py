@@ -191,6 +191,9 @@ class HypothesisPool:
         self.capacity = capacity
         self.population: Dict[str, Hypothesis] = {}
         self.graveyard: List[Dict[str, Any]] = [] 
+        self.last_update_errors = 0
+        self.last_update_error_details: List[Dict[str, Any]] = []
+        self.total_update_errors = 0
         
         # vectorized backend
         self.vec_pool = VectorizedHypothesisPool(capacity=capacity)
@@ -211,6 +214,10 @@ class HypothesisPool:
         Args:
             row: The new data observation.
         """
+        # reset row-level error accounting
+        self.last_update_errors = 0
+        self.last_update_error_details = []
+
         # 1. identify active vectorized hypotheses
         # in a real heavy-load system, we'd cache these lists. for now, iterate.
         # to optimize, we maintain a list of 'vectorized_ids'.
@@ -241,7 +248,17 @@ class HypothesisPool:
                 
                 # still need to run evaluate/meta update logic
                 # but fit_step is no-op.
-                hyp.update(row) 
+                try:
+                    hyp.update(row)
+                except Exception as exc:
+                    self.last_update_errors += 1
+                    self.last_update_error_details.append(
+                        {
+                            "hypothesis_id": getattr(hyp.meta, "id", "unknown"),
+                            "stage": "vectorized_update",
+                            "error": str(exc),
+                        }
+                    )
             else:
                 legacy_hyps.append(hyp)
 
@@ -252,7 +269,17 @@ class HypothesisPool:
             idxs = np.array(vec_indices, dtype=np.int32)
             
             
-            self.vec_pool.engine.update_subset(idxs, X_batch, Y_batch)
+            try:
+                self.vec_pool.engine.update_subset(idxs, X_batch, Y_batch)
+            except Exception as exc:
+                self.last_update_errors += 1
+                self.last_update_error_details.append(
+                    {
+                        "hypothesis_id": "vectorized_batch",
+                        "stage": "vectorized_batch_update",
+                        "error": str(exc),
+                    }
+                )
         else:
              # DEBUG
              # logger.warning("No vectorized items found in this row.")
@@ -260,7 +287,19 @@ class HypothesisPool:
 
         # 3. update legacy
         for hyp in legacy_hyps:
-            hyp.update(row)
+            try:
+                hyp.update(row)
+            except Exception as exc:
+                self.last_update_errors += 1
+                self.last_update_error_details.append(
+                    {
+                        "hypothesis_id": getattr(hyp.meta, "id", "unknown"),
+                        "stage": "legacy_update",
+                        "error": str(exc),
+                    }
+                )
+
+        self.total_update_errors += self.last_update_errors
 
     def _kill(self, hid: str) -> None:
         if hid in self.population:

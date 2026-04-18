@@ -10,7 +10,7 @@ from __future__ import annotations
 
 import asyncio
 from dataclasses import dataclass, field
-from typing import Any, Dict, Optional
+from typing import Any, Dict, FrozenSet, Optional
 
 import numpy as np
 
@@ -22,6 +22,11 @@ from .scheduler import MetaScheduler, MetaSchedulerConfig
 from .validator import MetaPacketValidator, MetaValidatorConfig
 from .storage import MetaStorageManager, MetaStorageConfig
 from .telemetry_hooks import build_meta_metrics_snapshot, publish_meta_metrics
+
+# Known parameter namespaces — used to re-structure the flat prior before
+# publishing so engine._handle_meta_policy_update can route them correctly.
+_CONTROLLER_KEYS: FrozenSet[str] = frozenset({"tau", "gamma_diversity"})
+_EVALUATOR_KEYS: FrozenSet[str] = frozenset({"g_min", "lambda_ci"})
 
 
 @dataclass
@@ -134,11 +139,15 @@ class MetaLearningAgent:
 
         prior = self.optimizer.apply(aggregated_vector, keys, reward, drg_profile)
 
+        rollback_triggered = False
         if self.optimizer.should_rollback(reward):
             prior = self.optimizer.rollback()
+            rollback_triggered = True
 
         self._global_prior.update(prior)
         self.storage.save_prior(self._global_prior)
+
+        structured = self._structure_prior(self._global_prior)
 
         snapshot = build_meta_metrics_snapshot(
             reward=reward,
@@ -150,8 +159,29 @@ class MetaLearningAgent:
             storage_mb=self._estimate_storage_mb(),
         )
         await publish_meta_metrics(self.bus, snapshot)
-        await self.bus.publish("meta_prior_update", {"prior": self._global_prior, "meta": meta})
+
+        if rollback_triggered:
+            # Signal integrative layer to suppress its own rollback this cycle
+            await self.bus.publish("meta_rollback_active", {"source": "optimizer", "reward": reward})
+
+        await self.bus.publish("meta_prior_update", structured)
         await self.bus.publish("meta_update", {"prior": self._global_prior, "meta": meta})
+
+    def _structure_prior(self, flat_prior: Dict[str, float]) -> Dict[str, Any]:
+        """Re-split a flat prior dict into the controller/evaluator structure the engine expects."""
+        controller: Dict[str, float] = {}
+        evaluator: Dict[str, float] = {}
+        for key, value in flat_prior.items():
+            if key in _CONTROLLER_KEYS:
+                controller[key] = value
+            elif key in _EVALUATOR_KEYS:
+                evaluator[key] = value
+        structured: Dict[str, Any] = {}
+        if controller:
+            structured["controller"] = controller
+        if evaluator:
+            structured["evaluator"] = evaluator
+        return structured
 
     def _estimate_storage_mb(self) -> float:
         """Estimate the storage usage of meta-learning artifacts."""
