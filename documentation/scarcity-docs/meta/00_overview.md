@@ -88,6 +88,20 @@ Aggregates knowledge across domains:
 - Entropy-based diversity balancing
 - Outlier filtering
 
+### DomainServerMeta (`domain_server_meta.py`) — Phase 5a
+
+Bridges the federation layer and the meta pipeline:
+- Observes `DomainServer` state via duck typing (no circular imports)
+- Converts hit_rate, memory_size, and base_params into `DomainMetaUpdate` objects
+- Confidence-scaled delta vectors: higher-quality servers send stronger signals
+
+### CrossDomainMetaLearner (`cross_meta.py`) — Phase 5b
+
+Memory-backed upgrade to `CrossDomainMetaAggregator`:
+- Queries `GlobalMetaMemory` for a cross-domain prior each round
+- Blends statistical fallback with historical prior weighted by memory quality
+- Memory quality grows 0 → 0.8 as episodes accumulate (learning to learn)
+
 ### OnlineReptileOptimizer (`optimizer.py`)
 
 Meta-optimization algorithm:
@@ -154,12 +168,16 @@ If reward drops significantly after a change:
 | `integrative_config.py` | Configuration dataclasses |
 | `meta_learning.py` | MetaLearningAgent orchestrator |
 | `domain_meta.py` | Domain-specific learning |
-| `cross_meta.py` | Cross-domain aggregation |
+| `cross_meta.py` | CrossDomainMetaAggregator + CrossDomainMetaLearner (Phase 5b) |
 | `optimizer.py` | OnlineReptileOptimizer |
 | `scheduler.py` | Meta update scheduling |
 | `storage.py` | Prior persistence |
 | `validator.py` | Update validation |
 | `telemetry_hooks.py` | Metrics publishing |
+| `domain_server_meta.py` | DomainServerMeta — federation-to-meta bridge (Phase 5a) |
+| `encoder.py` | ContextEncoder — context embedding |
+| `memory.py` | EpisodicMemory — local adaptation episode buffer |
+| `adaptation.py` | AdaptationEngine — context-driven parameter retrieval |
 
 ---
 
@@ -245,3 +263,57 @@ Very different domains:
 - Cross-domain aggregation weighted low
 - Domain-specific priors dominate
 - Gradual transfer as similarity increases
+
+---
+
+## Phase 5 — Federated Meta-Learning Pipeline
+
+The Phase 5 components connect the federation layer to the meta pipeline via `HierarchicalFederation.run_full_meta_round()`:
+
+```
+DomainServerRegistry  (held by HierarchicalFederation)
+        │  one DomainServer per basket
+        │  each holds: base_params, hit_rate, memory_size, round_id
+        │
+        ▼
+DomainServerMeta.observe_registry(registry, performance_map)
+        │  duck-typed observation (no circular imports)
+        │  confidence = hit_rate_w × hit_rate + mem_w × log1p(mem) / log1p(ref)
+        │  delta = meta_lr(confidence) × (curr_params − prev_params)
+        │
+        ▼ List[DomainMetaUpdate]   (one per domain server)
+        │
+        ├──────────────────────────────────────────────────────┐
+        │                                                      │
+        ▼                                                      ▼
+CrossDomainMetaLearner.aggregate(updates)         GlobalMetaMemory.aggregate(registry)
+        │                                                      │
+        │  quality = clip(memory_size / ref_cap, 0, 0.8)      │
+        │  prior   = memory.suggest_prior("cross_domain", ctx) │
+        │  result  = (1−quality)×fallback + quality×prior      │
+        │                                                      │
+        ▼ (blended_vec, keys, meta)                           ▼ global_params dict
+        │                                                      │
+        └──────────────────────┬───────────────────────────────┘
+                               │
+                               ▼
+        run_full_meta_round() returns:
+        {
+            "global_params":  {param → float},
+            "cross_domain":   (vec, keys, {source, memory_quality, ...}),
+            "n_updates":      N,
+        }
+```
+
+### Memory Quality Progression
+
+Over successive rounds, `memory_quality` rises from 0 (pure fallback) toward 0.8 (80% prior-driven):
+
+```
+Rounds completed    memory_quality    cross_domain source
+─────────────────────────────────────────────────────────
+1                   0.00              fallback
+~10                 0.04–0.10         fallback / transitional
+~50                 0.20–0.40         memory_backed
+256+                0.80 (capped)     memory_backed
+```

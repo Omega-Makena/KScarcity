@@ -15,8 +15,10 @@ Complete documentation for the `scarcity.engine` module — the core relationshi
 | [04_evaluator.md](./04_evaluator.md) | Path scoring with bootstrap CIs |
 | [05_relationships.md](./05_relationships.md) | 10 core relationship types |
 | [06_relationships_extended.md](./06_relationships_extended.md) | 5 advanced relationship types |
+| [07_vectorized_core.md](./07_vectorized_core.md) | VectorizedRLS — batched parallel hypothesis fitting; robustness (Winsorizer, MAD, Huber) |
 | [08_store.md](./08_store.md) | HypergraphStore — Persistent edge storage |
 | [09_encoder.md](./09_encoder.md) | Feature encoding pipeline |
+| [10_simulation_exporter.md](./10_simulation_exporter.md) | PolicySimulator, Exporter, resource_profile, EconomicDiscoveryEngine |
 | [11_bandit_router.md](./11_bandit_router.md) | Multi-armed bandit path selection |
 | [12_arbitration.md](./12_arbitration.md) | Hypothesis conflict resolution |
 | [13_controller.md](./13_controller.md) | MetaController lifecycle state machine |

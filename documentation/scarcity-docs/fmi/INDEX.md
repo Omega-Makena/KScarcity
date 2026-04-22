@@ -9,6 +9,8 @@ Complete documentation for the `scarcity.fmi` module — Federated Metadata Inte
 | File | Topic |
 |------|-------|
 | [00_overview.md](./00_overview.md) | **Start here** — Packet types and aggregation |
+| [01_contracts.md](./01_contracts.md) | PacketType, PacketBase, MSP/POP/CCS, SchemaDefinition, FMIContractRegistry |
+| [02_pipeline.md](./02_pipeline.md) | FMIRouter, FMIAggregator, FMIEncoder, FMIEmitter, FMIValidator, FMIService, FMITelemetry |
 
 ---
 

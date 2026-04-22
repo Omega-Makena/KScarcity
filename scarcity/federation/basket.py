@@ -316,7 +316,163 @@ class BasketManager:
         """
         if not self.config.auto_refine:
             return {}
-        
-        # TODO: Implement k-means clustering on fingerprints
-        # For now, return empty (no refinement)
-        return {}
+
+        refined: Dict[str, List[str]] = {}
+        domains = list(self._domain_to_basket.keys())
+
+        for domain_id in domains:
+            base_basket_id = self._domain_to_basket[domain_id]
+            domain_clients = [
+                client for client in self._clients.values() if client.domain_id == domain_id
+            ]
+
+            # Refinement is only meaningful if we can form at least two viable baskets.
+            if len(domain_clients) < self.config.min_basket_size * 2:
+                continue
+
+            fingerprinted = [c for c in domain_clients if c.fingerprint is not None]
+            if len(fingerprinted) < self.config.min_basket_size * 2:
+                continue
+
+            matrix = np.stack([c.fingerprint for c in fingerprinted], axis=0).astype(np.float32)
+            if not np.isfinite(matrix).all():
+                continue
+
+            k_target = max(2, len(fingerprinted) // self.config.min_basket_size)
+            k = min(self.config.max_sub_baskets, max(2, k_target), len(fingerprinted))
+            assignments = self._kmeans_assign(matrix, k)
+            clusters = self._normalize_clusters(assignments, matrix, k)
+            viable = [cluster for cluster in clusters if len(cluster) >= self.config.min_basket_size]
+
+            # Keep domain untouched unless we can create at least two viable refined baskets.
+            if len(viable) < 2:
+                continue
+
+            # Remove old sub-baskets for this domain before rebuilding.
+            self._drop_domain_sub_baskets(base_basket_id)
+
+            # Clear current membership for all domain clients.
+            for client in domain_clients:
+                old_basket = self._baskets.get(client.basket_id)
+                if old_basket is not None:
+                    old_basket.remove_client(client.client_id)
+
+            # Build new sub-baskets and reassign clients.
+            for sub_index, member_indices in enumerate(viable, start=1):
+                sub_basket_id = f"{base_basket_id}_sub_{sub_index}"
+                basket = BasketInfo(
+                    basket_id=sub_basket_id,
+                    domain_id=domain_id,
+                    parent_basket_id=base_basket_id,
+                )
+                basket._client_ids = set()
+                self._baskets[sub_basket_id] = basket
+
+                member_ids: List[str] = []
+                for idx in member_indices:
+                    client = fingerprinted[idx]
+                    client.basket_id = sub_basket_id
+                    basket.add_client(client.client_id)
+                    member_ids.append(client.client_id)
+
+                self._update_basket_status(sub_basket_id)
+                refined[sub_basket_id] = member_ids
+
+            # Any domain client without fingerprint falls back to the base basket.
+            base_basket = self._baskets.get(base_basket_id)
+            if base_basket is None:
+                base_basket = BasketInfo(basket_id=base_basket_id, domain_id=domain_id)
+                base_basket._client_ids = set()
+                self._baskets[base_basket_id] = base_basket
+
+            fingerprinted_ids = {client.client_id for client in fingerprinted}
+            for client in domain_clients:
+                if client.client_id in fingerprinted_ids:
+                    continue
+                client.basket_id = base_basket_id
+                base_basket.add_client(client.client_id)
+
+            self._update_basket_status(base_basket_id)
+
+        return refined
+
+    def _kmeans_assign(self, matrix: np.ndarray, k: int, max_iter: int = 12) -> np.ndarray:
+        """Compute cluster assignments using a lightweight k-means loop."""
+        n = matrix.shape[0]
+        if k <= 1 or n <= 1:
+            return np.zeros(n, dtype=np.int32)
+
+        init_idx = self._rng.choice(n, size=k, replace=False)
+        centroids = matrix[init_idx].copy()
+
+        assignments = np.zeros(n, dtype=np.int32)
+        for _ in range(max_iter):
+            dists = np.linalg.norm(matrix[:, None, :] - centroids[None, :, :], axis=2)
+            new_assignments = np.argmin(dists, axis=1).astype(np.int32)
+
+            if np.array_equal(assignments, new_assignments):
+                break
+
+            assignments = new_assignments
+            for cluster_id in range(k):
+                members = matrix[assignments == cluster_id]
+                if len(members) == 0:
+                    refill_idx = int(self._rng.integers(0, n))
+                    centroids[cluster_id] = matrix[refill_idx]
+                else:
+                    centroids[cluster_id] = members.mean(axis=0)
+
+        return assignments
+
+    def _normalize_clusters(
+        self,
+        assignments: np.ndarray,
+        matrix: np.ndarray,
+        k: int,
+    ) -> List[List[int]]:
+        """Merge undersized clusters into nearest larger clusters."""
+        clusters: List[List[int]] = [np.where(assignments == cluster_id)[0].tolist() for cluster_id in range(k)]
+
+        if k <= 1:
+            return clusters
+
+        centroids: List[np.ndarray] = []
+        for members in clusters:
+            if members:
+                centroids.append(matrix[members].mean(axis=0))
+            else:
+                centroids.append(np.zeros(matrix.shape[1], dtype=np.float32))
+
+        min_size = self.config.min_basket_size
+        for cluster_id in range(k):
+            members = clusters[cluster_id]
+            if len(members) == 0 or len(members) >= min_size:
+                continue
+
+            candidates = [
+                target
+                for target in range(k)
+                if target != cluster_id and len(clusters[target]) >= min_size
+            ]
+            if not candidates:
+                continue
+
+            src_centroid = centroids[cluster_id]
+            target = min(
+                candidates,
+                key=lambda c: float(np.linalg.norm(src_centroid - centroids[c])),
+            )
+            clusters[target].extend(members)
+            clusters[cluster_id] = []
+
+        return clusters
+
+    def _drop_domain_sub_baskets(self, base_basket_id: str) -> None:
+        """Remove existing sub-baskets for a domain base basket."""
+        to_drop = [
+            basket_id
+            for basket_id, basket in self._baskets.items()
+            if basket.parent_basket_id == base_basket_id
+        ]
+        for basket_id in to_drop:
+            del self._baskets[basket_id]

@@ -17,6 +17,10 @@ Complete documentation for the `scarcity.federation` module — distributed, pri
 | [06_layers.md](./06_layers.md) | Layer 1 & 2 aggregation |
 | [07_secure_aggregation.md](./07_secure_aggregation.md) | Cryptographic secure sum |
 | [08_utilities.md](./08_utilities.md) | Packets, codec, trust, etc. |
+| [09_domain_server.md](./09_domain_server.md) | DomainServer / DomainServerRegistry — per-domain logical meta agent |
+| [10_global_meta_memory.md](./10_global_meta_memory.md) | GlobalMetaMemory — cross-domain episodic prior store |
+| [11_protocol_bridge.md](./11_protocol_bridge.md) | AdaptationRequest / AdaptationResponse / DomainSyncPacket |
+| [12_run_full_meta_round.md](./12_run_full_meta_round.md) | HierarchicalFederation.run_full_meta_round() — integrated meta round |
 
 ---
 

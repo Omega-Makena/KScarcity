@@ -9,6 +9,7 @@ Complete documentation for the `scarcity.analytics` module — policy terrain an
 | File | Topic |
 |------|-------|
 | [00_overview.md](./00_overview.md) | **Start here** — TerrainGenerator |
+| [01_utilities.md](./01_utilities.md) | TerrainGenerator — generate_surface() API, overlays, Plotly integration |
 
 ---
 

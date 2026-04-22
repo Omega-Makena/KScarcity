@@ -100,6 +100,123 @@ Multi-dimensional policy space. Policies represented as tensors for composition 
 
 ---
 
+## scarcity/federation/
+
+### Transport Layer
+
+### `transport.py` — BaseTransport / LoopbackTransport / SimulatedNetworkTransport
+
+| Symbol | Role |
+|-------|------|
+| `TransportConfig` | Protocol and reconnect configuration envelope |
+| `BaseTransport` | Shared lifecycle (`start`, `stop`) and handler dispatch contract |
+| `LoopbackTransport` | In-process transport for tests and single-node development |
+| `SimulatedNetworkTransport` | Delay-injected transport for latency-aware simulation |
+| `build_transport` | Protocol router (`loopback`, `sim`, `ws`) |
+
+### `ws_transport.py` — WebSocketTransport / WSTransportConfig
+
+Production distributed federation transport using websocket links.
+
+**Server-side behavior**
+- `start()` binds websocket server on `host:port`.
+- `_handle_connection()` parses JSON, enforces optional `auth_token`, then dispatches to registered handlers.
+- `connected_clients` tracks active inbound websocket clients.
+
+**Client-side behavior**
+- `send(topic, payload)` broadcasts to configured peers, or to inbound clients when no peers are configured.
+- `send_to(endpoint, topic, payload)` sends a targeted packet.
+- `_ensure_connection()` opens or reuses peer links with lock protection and reconnect timeout.
+- `_listen_peer()` keeps outbound peer links bidirectional by consuming inbound frames.
+- `connected_peers` tracks healthy outbound links.
+
+**Key configuration (`WSTransportConfig`)**
+
+| Param | Default | Purpose |
+|------|---------|---------|
+| `host` | `0.0.0.0` | Server bind host |
+| `port` | `8765` | Server bind port |
+| `peer_endpoints` | `None` | Outbound peer websocket URLs |
+| `ping_interval` | `20.0` | Keepalive cadence |
+| `ping_timeout` | `10.0` | Dead-peer timeout |
+| `max_message_size` | `10 MB` | Payload size guardrail |
+| `auth_token` | `None` | Optional shared-secret inbound gate |
+
+### Federation Transport Test Coverage
+
+- `scarcity/tests/test_audit_transport.py`: protocol selection assertions for `sim`, `loopback`, `ws`, and `websocket`.
+- `scarcity/tests/test_ws_transport.py`: websocket transport lifecycle, auth enforcement, dispatch path, retry path, and introspection properties.
+
+### Meta-Learning Layer (Phases 2–5)
+
+#### `domain_server.py` — DomainServer / DomainServerRegistry
+
+Per-domain logical meta agents. Each basket owns one `DomainServer` that holds a domain-specific base model and episodic memory.
+
+| Symbol | Role |
+|--------|------|
+| `DomainServerConfig` | `memory_capacity`, `reptile_lr`, `hit_decay`, `min_episodes_for_prior` |
+| `DomainServer` | `.update_base_params()`, `.adapt()`, `.record()`, `.suggest_prior()` |
+| `DomainServerRegistry` | Basket-keyed dict; `.get_or_create(domain_id, basket_id)` |
+
+Key attributes: `.base_params`, `.hit_rate`, `.memory_size`, `.round_id`
+
+#### `global_meta_memory.py` — GlobalMetaMemory
+
+Cross-domain episodic prior store. Aggregates domain base params after each round and answers prior queries.
+
+| Symbol | Role |
+|--------|------|
+| `GlobalMetaMemoryConfig` | `memory_capacity`, `min_domains_for_aggregate`, `retrieval_top_k`, `blend_alpha` |
+| `GlobalMetaMemory` | `.aggregate(registry, performance_map)`, `.suggest_prior(domain_id, context)`, `.memory_size` |
+
+#### `packets.py` — Phase 4 Protocol Bridge Additions
+
+Three new packet types for adaptation signalling (alongside existing `PathPack`, `EdgeDelta`, `PolicyPack`, `CausalSemanticPack`):
+
+| Packet | Topic | Purpose |
+|--------|-------|---------|
+| `AdaptationRequest` | `federation.adaptation_request` | Client → DomainServer warm-start query |
+| `AdaptationResponse` | `federation.adaptation_response` | DomainServer → Client prior reply |
+| `DomainSyncPacket` | `federation.domain_sync` | DomainServer → Global state snapshot |
+
+All have `.to_dict()` / `.from_dict()` round-trip. `serialise_packet()` routes to topic. `normalise_packets()` groups by type.
+
+Test coverage: `scarcity/tests/test_adaptation_packets.py`
+
+---
+
+## scarcity/meta/ — Phase 5 Additions
+
+#### `domain_server_meta.py` — DomainServerMeta
+
+Federation-to-meta bridge. Observes `DomainServer` instances via duck typing and converts state to `DomainMetaUpdate` objects.
+
+| Symbol | Role |
+|--------|------|
+| `DomainServerMetaConfig` | `hit_rate_weight`, `memory_weight`, `min_confidence`, `meta_lr_min/max`, `performance_gain_boost` |
+| `DomainServerMeta` | `.observe(server, performance)`, `.observe_registry(registry, performance_map)`, `.status()` |
+
+Confidence formula: `hit_rate_w × hit_rate + mem_w × log1p(mem) / log1p(ref) + gain_boost × gain`
+Delta formula: `meta_lr(confidence) × (curr_params − prev_params)`
+
+Test coverage: `scarcity/tests/test_domain_server_meta.py`
+
+#### `cross_meta.py` — CrossDomainMetaLearner (Phase 5b addition)
+
+Memory-backed cross-domain aggregation. Wraps `CrossDomainMetaAggregator` as fallback and blends with `GlobalMetaMemory` prior.
+
+| Symbol | Role |
+|--------|------|
+| `CrossDomainMetaLearnerConfig` | `memory_reference_capacity`, `max_memory_quality`, `fallback_method` |
+| `CrossDomainMetaLearner` | `.aggregate(updates, context)` → `(vec, keys, meta)` |
+
+Blend: `result = (1−quality) × fallback + quality × prior`. Quality grows 0 → 0.8 as episodes fill.
+
+Test coverage: `scarcity/tests/test_cross_domain_meta_learner.py`
+
+---
+
 ## kshiked/pulse/
 
 ### `sensor.py` — PulseSensor

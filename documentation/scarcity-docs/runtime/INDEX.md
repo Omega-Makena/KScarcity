@@ -9,6 +9,7 @@ Complete documentation for the `scarcity.runtime` module — EventBus and Teleme
 | File | Topic |
 |------|-------|
 | [00_overview.md](./00_overview.md) | **Start here** — EventBus and monitoring |
+| [01_utilities.md](./01_utilities.md) | EventBus API, LatencyTracker, ThroughputCounter, DriftMonitor, SystemProbe, Telemetry |
 
 ---
 

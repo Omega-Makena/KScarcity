@@ -17,15 +17,15 @@ from .discovery import HypothesisPool, Hypothesis, RelationshipType
 from .grouping import AdaptiveGrouper
 from .arbitration import HypothesisArbiter
 from .controller import MetaController
-from .algorithms_online import FunctionalLinearHypothesis, CorrelationalHypothesis, TemporalLagHypothesis, EquilibriumHypothesis
+from .algorithms_online import FunctionalLinearHypothesis, TemporalLagHypothesis
 
-# New production-quality hypothesis classes
+# All relationship types — v2 implementations with proper statistics
 from .relationships import (
     CausalHypothesis,
-    CorrelationalHypothesis as CorrelationalHypothesisV2,
+    CorrelationalHypothesis,
     TemporalHypothesis,
     FunctionalHypothesis,
-    EquilibriumHypothesis as EquilibriumHypothesisV2,
+    EquilibriumHypothesis,
     CompositionalHypothesis,
     CompetitiveHypothesis,
     SynergisticHypothesis,
@@ -39,6 +39,7 @@ from .relationships_extended import (
     SimilarityHypothesis,
     LogicalHypothesis,
 )
+from .types import Candidate
 
 logger = logging.getLogger(__name__)
 
@@ -121,10 +122,13 @@ class OnlineDiscoveryEngine:
         """
         fields = schema.get('fields', [])
         var_names = [f['name'] for f in fields] if fields else []
-        
+
         if not var_names:
             logger.warning("No variables found in schema.")
             return
+
+        # Build name→index mapping (used by get_candidate_paths bridge)
+        self._var_index = {name: idx for idx, name in enumerate(var_names)}
 
         self.grouper.initialize(var_names)
         
@@ -132,12 +136,12 @@ class OnlineDiscoveryEngine:
             import itertools
             for a, b in itertools.combinations(var_names, 2):
                 self.hypotheses.add(CorrelationalHypothesis(a, b))
-                self.hypotheses.add(FunctionalLinearHypothesis(a, b)) # A -> B
-                self.hypotheses.add(FunctionalLinearHypothesis(b, a)) # B -> A
-                
+                self.hypotheses.add(FunctionalLinearHypothesis(a, b))
+                self.hypotheses.add(FunctionalLinearHypothesis(b, a))
+
         for v in var_names:
-             self.hypotheses.add(TemporalLagHypothesis(v, v)) # Autoregression
-             self.hypotheses.add(EquilibriumHypothesis(v))
+            self.hypotheses.add(TemporalLagHypothesis(v, v))
+            self.hypotheses.add(EquilibriumHypothesis(v))
 
     def initialize_v2(self, schema: Dict[str, Any], use_causal: bool = True) -> None:
         """
@@ -157,14 +161,17 @@ class OnlineDiscoveryEngine:
             logger.warning("No variables found in schema.")
             return
         
+        # Build name→index mapping (used by get_candidate_paths bridge)
+        self._var_index = {name: idx for idx, name in enumerate(var_names)}
+
         self.grouper.initialize(var_names)
-        
+
         logger.info(f"Initializing V2 engine with {len(var_names)} variables")
         
         # 1. For each variable: Temporal (AR) and Equilibrium
         for v in var_names:
             self.hypotheses.add(TemporalHypothesis(v, lag=2))
-            self.hypotheses.add(EquilibriumHypothesisV2(v))
+            self.hypotheses.add(EquilibriumHypothesis(v))
         
         # 2. For variable pairs (limit to avoid explosion)
         import itertools
@@ -177,7 +184,7 @@ class OnlineDiscoveryEngine:
         
         for a, b in pairs:
             # Correlational (always)
-            self.hypotheses.add(CorrelationalHypothesisV2(a, b))
+            self.hypotheses.add(CorrelationalHypothesis(a, b))
             
             # Functional (linear relationship)
             self.hypotheses.add(FunctionalHypothesis(a, b, degree=1))
@@ -347,67 +354,78 @@ class OnlineDiscoveryEngine:
             if hid not in kept_ids:
                 self.hypotheses._kill(hid)
 
+    # Map of pair-level relationship types to constructors for exploration
+    _PAIR_EXPLORE_TYPES = [
+        lambda a, b: CausalHypothesis(a, b, lag=2),
+        lambda a, b: CausalHypothesis(b, a, lag=2),
+        lambda a, b: CompetitiveHypothesis(a, b),
+        lambda a, b: ProbabilisticHypothesis(a, b),
+        lambda a, b: GraphHypothesis(a, b),
+        lambda a, b: FunctionalHypothesis(a, b, degree=2),
+        lambda a, b: FunctionalHypothesis(b, a, degree=2),
+    ]
+
     def _explore_step(self) -> None:
         """
-        Active exploration: Generate new hypotheses based on emerging patterns.
-        
-        Called periodically to inject diversity into the hypothesis pool.
-        This helps discover relationships that weren't in the initial hypothesis set.
-        
-        Strategy:
-        1. Identify unexplored variable pairs (not covered by strong hypotheses)
-        2. Sample a few new pairs and create exploratory hypotheses
-        3. Optionally promote weak hypotheses that showed improvement
+        Active exploration: inject new diverse hypothesis types for under-explored
+        variable pairs.
+
+        Strategy (improved from v1 which only ever added CorrelationalHypothesis):
+        1. Identify variable pairs with no ACTIVE hypotheses
+        2. Sample unexplored pairs and rotate through diverse relationship types
+           (Causal, Competitive, Probabilistic, Graph, Functional-degree-2)
+        3. For triplets: add Synergistic and Mediating when enough vars exist
+        4. Soft-boost weakly-improving hypotheses to survive pruning
         """
-        # Get all variables from grouper
+        import itertools
+        import random
+
         all_vars = list(self.grouper.groups.keys()) if self.grouper.groups else []
-        
         if len(all_vars) < 2:
             return
-        
-        # Get existing strong hypotheses and their variable pairs
+
+        # Pairs already covered by strong hypotheses
         strongest = self.hypotheses.get_strongest(top_k=20)
-        existing_pairs = set()
+        covered = set()
         for h in strongest:
             if len(h.variables) >= 2:
-                existing_pairs.add(tuple(sorted(h.variables[:2])))
-        
-        # Generate all possible pairs
-        import itertools
+                covered.add(tuple(sorted(h.variables[:2])))
+
         all_pairs = list(itertools.combinations(all_vars, 2))
-        
-        # Find unexplored pairs
-        unexplored = [p for p in all_pairs if p not in existing_pairs]
-        
-        if not unexplored:
-            logger.debug(f"Explore step: No unexplored pairs remaining (step {self.step_count})")
-            return
-        
-        # Sample a few new pairs (limit exploration rate)
-        import random
-        n_new = min(3, len(unexplored))
-        new_pairs = random.sample(unexplored, n_new)
-        
-        # Create exploratory hypotheses for new pairs
-        for (v1, v2) in new_pairs:
-            # Add correlational hypothesis (low cost, baseline)
-            try:
-                hyp = CorrelationalHypothesisV2(v1, v2)
-                self.hypotheses.add(hyp)
-                logger.debug(f"Exploration: Added CorrelationalHypothesis for {v1} <-> {v2}")
-            except Exception as e:
-                logger.debug(f"Exploration: Failed to create hypothesis for {v1}, {v2}: {e}")
-        
-        # Optionally look for weak but improving hypotheses to keep alive
-        # This prevents premature killing of slow-to-converge relationships
-        all_hyps = list(self.hypotheses.population.values())
-        for h in all_hyps:
-            # Check if hypothesis is weak but showing improvement
-            if hasattr(h, 'is_improving') and h.is_improving():
-                if h.confidence < 0.3:
-                    # Give it a small confidence boost to survive longer
-                    h.confidence = min(0.4, h.confidence + 0.05)
-                    logger.debug(f"Exploration: Boosted improving hypothesis {h.meta.id}")
+        unexplored = [p for p in all_pairs if p not in covered]
+
+        if unexplored:
+            n_new = min(3, len(unexplored))
+            chosen = random.sample(unexplored, n_new)
+            # Rotate through diverse type constructors
+            explore_idx = self.step_count % len(self._PAIR_EXPLORE_TYPES)
+            for v1, v2 in chosen:
+                try:
+                    constructor = self._PAIR_EXPLORE_TYPES[explore_idx]
+                    self.hypotheses.add(constructor(v1, v2))
+                    explore_idx = (explore_idx + 1) % len(self._PAIR_EXPLORE_TYPES)
+                except Exception as exc:
+                    logger.debug(f"Exploration pair ({v1},{v2}) failed: {exc}")
+
+        # Triplet exploration: Synergistic and Mediating
+        if len(all_vars) >= 3:
+            triplets = list(itertools.combinations(all_vars, 3))
+            if triplets:
+                a, b, c = random.choice(triplets)
+                try:
+                    self.hypotheses.add(SynergisticHypothesis(a, b, c))
+                except Exception:
+                    pass
+                try:
+                    self.hypotheses.add(MediatingHypothesis(a, b, c))
+                except Exception:
+                    pass
+
+        # Soft-boost improving hypotheses
+        for h in list(self.hypotheses.population.values()):
+            if getattr(h, 'confidence', 1.0) < 0.3 and hasattr(h, 'is_improving') \
+                    and h.is_improving():
+                h.confidence = min(0.4, h.confidence + 0.05)
 
     def get_knowledge_graph(self) -> List[Dict[str, Any]]:
         """
@@ -421,3 +439,66 @@ class OnlineDiscoveryEngine:
         """
         strongest = self.hypotheses.get_strongest(top_k=50)
         return [h.to_dict() for h in strongest]
+
+    def get_candidate_paths(self, top_k: int = 30) -> List[Candidate]:
+        """
+        Bridge method: export top hypotheses as Candidate objects for MPIEOrchestrator.
+
+        Connects the two previously isolated discovery pipelines:
+            OnlineDiscoveryEngine (streaming hypothesis pool)
+            ↓  get_candidate_paths()
+            MPIEOrchestrator (path-based evaluator + bandit router)
+
+        Constructs Candidate objects using the integer variable index map built
+        during initialize() / initialize_v2(), matching the Candidate dataclass
+        expected by BanditRouter and Evaluator.
+
+        Args:
+            top_k: Maximum candidates to export.
+
+        Returns:
+            List of Candidate objects ready for Evaluator.score().
+        """
+        import hashlib
+
+        var_index = getattr(self, '_var_index', {})
+        candidates: List[Candidate] = []
+        strongest = self.hypotheses.get_strongest(top_k=top_k)
+
+        for hyp in strongest:
+            if len(hyp.variables) < 2:
+                continue
+            if getattr(hyp, 'confidence', 0.0) < 0.25:
+                continue
+
+            # Map variable names to integer indices
+            try:
+                var_indices = tuple(
+                    var_index[v] for v in hyp.variables[:2]
+                    if v in var_index
+                )
+            except KeyError:
+                continue
+            if len(var_indices) < 2:
+                continue
+
+            # Deterministic path_id from (vars, rel_type)
+            path_key = f"{var_indices}:{hyp.rel_type.value}"
+            path_id = hashlib.md5(path_key.encode()).hexdigest()[:16]
+
+            try:
+                cand = Candidate(
+                    path_id=path_id,
+                    vars=var_indices,
+                    lags=(0, 0),
+                    ops=('identity', 'identity'),
+                    root=var_indices[0],
+                    depth=1,
+                    domain=0,
+                    gen_reason=f'discovery:{hyp.rel_type.value}',
+                )
+                candidates.append(cand)
+            except Exception as exc:
+                logger.debug(f"Could not build Candidate for {hyp.meta.id}: {exc}")
+
+        return candidates

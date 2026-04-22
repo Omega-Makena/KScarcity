@@ -1,101 +1,109 @@
 """
-Exporter — Insight and path pack emission.
+Exporter — Insight and path-pack emission to EventBus.
 
-Emits insights every window and path packs periodically.
+Emits an insight payload every window and batched path packs periodically.
+Previously had TODO stubs instead of actual EventBus publishing — now fixed.
 """
 
 import logging
 import time
-from typing import Dict, Any, List
+from typing import Dict, Any, List, Optional
 
 logger = logging.getLogger(__name__)
 
 
 class Exporter:
     """
-    Handles the broadcast of inference insights.
+    Outbound gateway for the inference engine.
 
-    The Exporter acts as the outbound gateway for the inference engine. It organizes
-    discovered relationships into standard formats and emits them to:
-    1. The Event Bus (for real-time dashboard updates and other components).
-    2. Batched "Path Packs" (for efficient storage or bulk analysis).
-    
-    It manages buffering and periodic emission based on configured intervals.
+    Publishes two event types:
+    - ``engine.insight``   — emitted every window with the accepted edges.
+    - ``inference.path_pack`` — batched pack emitted every export_interval windows.
+
+    The EventBus is resolved lazily (via get_bus()) the first time emit_insights()
+    is called so that the Exporter can be constructed before the runtime is up.
     """
-    
+
     def __init__(self):
-        """
-        Initializes the insight exporter.
-        
-        Sets up internal counters and timers for tracking export intervals.
-        """
         self.export_count = 0
         self.last_pack_time = 0.0
-        
+        self._bus = None
         logger.info("Exporter initialized")
-    
-    def emit_insights(self, accepted_edges: List[Dict[str, Any]], resource_profile: Dict[str, Any]) -> None:
-        """
-        Processes and broadcasts a batch of accepted causal edges.
 
-        This method is called every window (or whenever edges are accepted). It
-        constructs an immediate "insight" payload for real-time consumers and
-        accumulates edges for batched "path pack" emission.
+    def _get_bus(self):
+        """Lazy bus resolution to avoid circular imports at construction time."""
+        if self._bus is None:
+            try:
+                from scarcity.runtime import get_bus
+                self._bus = get_bus()
+            except Exception as exc:
+                logger.warning(f"Exporter: cannot resolve EventBus — {exc}")
+        return self._bus
+
+    def emit_insights(self, accepted_edges: List[Dict[str, Any]],
+                      resource_profile: Dict[str, Any]) -> None:
+        """
+        Broadcast accepted edges every window and emit path packs periodically.
 
         Args:
-            accepted_edges: A list of dictionaries representing the edges accepted
-                in the current cycle.
-            resource_profile: The active resource profile configuration, used to
-                determine the batch export interval.
+            accepted_edges: Edges accepted in the current inference cycle.
+            resource_profile: Active resource config (reads export_interval).
         """
-        export_interval = resource_profile.get('export_interval', 10)
-        current_time = time.time()
-        
-        # Emit insight every window
+        export_interval = int(resource_profile.get('export_interval', 10))
+        now = time.time()
+        bus = self._get_bus()
+
+        # Per-window insight payload
         insight = {
-            'edges': [{'accepted': True} for _ in accepted_edges],
+            'edges': accepted_edges,
             'count': len(accepted_edges),
-            'timestamp': current_time
+            'timestamp': now,
+            'export_index': self.export_count,
         }
-        
-        # TODO: Publish to bus
-        
-        # Check if it's time for a path pack
-        if self.export_count % export_interval == 0 and len(accepted_edges) > 0:
-            self._emit_path_pack(accepted_edges)
-            self.last_pack_time = current_time
-        
+        if bus is not None:
+            try:
+                import asyncio
+                loop = asyncio.get_event_loop()
+                if loop.is_running():
+                    asyncio.ensure_future(bus.publish("engine.insight", insight))
+                else:
+                    loop.run_until_complete(bus.publish("engine.insight", insight))
+            except Exception as exc:
+                logger.debug(f"Exporter insight publish failed: {exc}")
+        else:
+            logger.debug(f"Exporter insight (no bus): {len(accepted_edges)} edges")
+
+        # Batched path pack
+        if self.export_count > 0 and self.export_count % export_interval == 0 \
+                and accepted_edges:
+            self._emit_path_pack(accepted_edges, bus)
+            self.last_pack_time = now
+
         self.export_count += 1
-    
-    def _emit_path_pack(self, edges: List[Dict[str, Any]]) -> None:
-        """
-        Emits a batched 'Path Pack' containing multiple edges.
 
-        Path Packs are designed for bulk consumption, such as saving to disk or
-        sending to a high-latency storage system.
-
-        Args:
-            edges: The list of edge dictionaries to include in the pack.
-        """
+    def _emit_path_pack(self, edges: List[Dict[str, Any]], bus=None) -> None:
+        """Publish a batched PathPack to inference.path_pack topic."""
         pack = {
             'edges': edges,
             'count': len(edges),
-            'timestamp': time.time()
+            'timestamp': time.time(),
+            'pack_index': self.export_count,
         }
-        
-        # TODO: Publish to bus
-        logger.debug(f"Path pack emitted: {len(edges)} edges")
-    
-    def get_stats(self) -> Dict[str, Any]:
-        """
-        Retrieves statistics for the exporter subsystem.
+        if bus is not None:
+            try:
+                import asyncio
+                loop = asyncio.get_event_loop()
+                if loop.is_running():
+                    asyncio.ensure_future(bus.publish("inference.path_pack", pack))
+                else:
+                    loop.run_until_complete(bus.publish("inference.path_pack", pack))
+            except Exception as exc:
+                logger.debug(f"Exporter path_pack publish failed: {exc}")
 
-        Returns:
-            A dictionary containing the total number of export cycles performed
-            and the timestamp of the last batched path pack emission.
-        """
+        logger.debug(f"Path pack emitted: {len(edges)} edges")
+
+    def get_stats(self) -> Dict[str, Any]:
         return {
             'export_count': self.export_count,
-            'last_pack_time': self.last_pack_time
+            'last_pack_time': self.last_pack_time,
         }
-

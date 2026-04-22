@@ -9,6 +9,7 @@
 | File | Description |
 |------|-------------|
 | [00_overview.md](00_overview.md) | Module purpose, architecture, key classes |
+| [01_utilities.md](01_utilities.md) | AccountGenerator, BehaviorSimulator, ContentGenerator, vocabulary, ScenarioManager, PolicyEventInjector, SyntheticPipeline |
 
 ## Quick Links
 

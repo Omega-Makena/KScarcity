@@ -217,6 +217,126 @@ class CausalSemanticPack:
         )
 
 
+# ---------------------------------------------------------------------------
+# Meta-learning / adaptation packets (Phase 4)
+# ---------------------------------------------------------------------------
+
+@dataclass
+class AdaptationRequest:
+    """
+    Sent by a DomainServer (or any caller) to request a warm-start prior from
+    the global meta-memory.
+
+    basket_id:   the requesting basket
+    domain_id:   human-readable domain label
+    context:     feature dict describing the current task context
+    round_id:    optional round for ordering
+    """
+    basket_id: str
+    domain_id: str
+    context: Dict[str, Any]
+    round_id: int = 0
+
+    def to_dict(self) -> Dict[str, Any]:
+        return {
+            "basket_id": self.basket_id,
+            "domain_id": self.domain_id,
+            "context": dict(self.context),
+            "round_id": self.round_id,
+        }
+
+    @staticmethod
+    def from_dict(payload: Dict[str, Any]) -> "AdaptationRequest":
+        return AdaptationRequest(
+            basket_id=payload["basket_id"],
+            domain_id=payload["domain_id"],
+            context=dict(payload.get("context", {})),
+            round_id=int(payload.get("round_id", 0)),
+        )
+
+
+@dataclass
+class AdaptationResponse:
+    """
+    Reply to an AdaptationRequest.
+
+    basket_id:     echoes the requesting basket
+    domain_id:     echoes the requesting domain
+    prior_params:  warm-start parameter dict (may be empty if no prior available)
+    source:        "global_memory" | "passthrough"
+    round_id:      echoes round from request
+    """
+    basket_id: str
+    domain_id: str
+    prior_params: Dict[str, float]
+    source: str
+    round_id: int = 0
+
+    def to_dict(self) -> Dict[str, Any]:
+        return {
+            "basket_id": self.basket_id,
+            "domain_id": self.domain_id,
+            "prior_params": dict(self.prior_params),
+            "source": self.source,
+            "round_id": self.round_id,
+        }
+
+    @staticmethod
+    def from_dict(payload: Dict[str, Any]) -> "AdaptationResponse":
+        return AdaptationResponse(
+            basket_id=payload["basket_id"],
+            domain_id=payload["domain_id"],
+            prior_params=dict(payload.get("prior_params", {})),
+            source=str(payload.get("source", "passthrough")),
+            round_id=int(payload.get("round_id", 0)),
+        )
+
+
+@dataclass
+class DomainSyncPacket:
+    """
+    Periodic snapshot broadcast from one DomainServer to the global coordinator.
+
+    basket_id:    source basket
+    domain_id:    source domain
+    base_params:  current REPTILE prior
+    performance:  caller-supplied metrics (gain, stability, …)
+    memory_size:  current episodic memory size
+    hit_rate:     adapter hit rate
+    round_id:     current domain round
+    """
+    basket_id: str
+    domain_id: str
+    base_params: Dict[str, float]
+    performance: Dict[str, float]
+    memory_size: int
+    hit_rate: float
+    round_id: int
+
+    def to_dict(self) -> Dict[str, Any]:
+        return {
+            "basket_id": self.basket_id,
+            "domain_id": self.domain_id,
+            "base_params": dict(self.base_params),
+            "performance": dict(self.performance),
+            "memory_size": self.memory_size,
+            "hit_rate": float(self.hit_rate),
+            "round_id": self.round_id,
+        }
+
+    @staticmethod
+    def from_dict(payload: Dict[str, Any]) -> "DomainSyncPacket":
+        return DomainSyncPacket(
+            basket_id=payload["basket_id"],
+            domain_id=payload["domain_id"],
+            base_params=dict(payload.get("base_params", {})),
+            performance=dict(payload.get("performance", {})),
+            memory_size=int(payload.get("memory_size", 0)),
+            hit_rate=float(payload.get("hit_rate", 0.0)),
+            round_id=int(payload.get("round_id", 0)),
+        )
+
+
 PacketType = Tuple[str, Dict[str, Any]]
 
 
@@ -241,6 +361,12 @@ def serialise_packet(packet: Any) -> PacketType:
         return ("federation.policy_pack", packet.to_dict())
     if isinstance(packet, CausalSemanticPack):
         return ("federation.causal_pack", packet.to_dict())
+    if isinstance(packet, AdaptationRequest):
+        return ("federation.adaptation_request", packet.to_dict())
+    if isinstance(packet, AdaptationResponse):
+        return ("federation.adaptation_response", packet.to_dict())
+    if isinstance(packet, DomainSyncPacket):
+        return ("federation.domain_sync", packet.to_dict())
     raise TypeError(f"Unsupported packet type: {type(packet)}")
 
 

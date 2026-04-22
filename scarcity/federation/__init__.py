@@ -6,7 +6,11 @@ model-free federation pipeline. Includes hierarchical federation with
 domain baskets, gossip learning, and two-layer aggregation.
 """
 
-from .packets import PathPack, EdgeDelta, PolicyPack, CausalSemanticPack
+from .packets import (
+    PathPack, EdgeDelta, PolicyPack, CausalSemanticPack,
+    AdaptationRequest, AdaptationResponse, DomainSyncPacket,
+    serialise_packet, normalise_packets,
+)
 from .aggregator import AggregationMethod, FederatedAggregator
 from .trust_scorer import TrustScorer
 from .privacy_guard import PrivacyGuard
@@ -53,6 +57,8 @@ from .secure_aggregation import (
     SecureAggCoordinator,
 )
 from .hierarchical import HierarchicalFederation, HierarchicalFederationConfig
+from .domain_server import DomainServer, DomainServerConfig, DomainServerRegistry
+from .global_meta_memory import GlobalMetaMemory, GlobalMetaMemoryConfig, DomainSnapshot
 
 __all__ = [
     # Original exports
@@ -60,6 +66,12 @@ __all__ = [
     "EdgeDelta",
     "PolicyPack",
     "CausalSemanticPack",
+    # Adaptation / meta-learning packets (Phase 4)
+    "AdaptationRequest",
+    "AdaptationResponse",
+    "DomainSyncPacket",
+    "serialise_packet",
+    "normalise_packets",
     "AggregationMethod",
     "FederatedAggregator",
     "TrustScorer",
@@ -104,4 +116,12 @@ __all__ = [
     "EphemeralKeyRecord",
     "SecureAggClient",
     "SecureAggCoordinator",
+    # Domain servers (meta-learning elevation)
+    "DomainServer",
+    "DomainServerConfig",
+    "DomainServerRegistry",
+    # Global meta-memory
+    "GlobalMetaMemory",
+    "GlobalMetaMemoryConfig",
+    "DomainSnapshot",
 ]

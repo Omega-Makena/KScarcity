@@ -10,6 +10,8 @@ Complete documentation for the `scarcity.meta` module — meta-learning and gove
 |------|-------|
 | [00_overview.md](./00_overview.md) | **Start here** — Architecture and concepts |
 | [01_utilities.md](./01_utilities.md) | All module files explained |
+| [02_domain_server_meta.md](./02_domain_server_meta.md) | DomainServerMeta — federation-to-meta bridge (Phase 5a) |
+| [03_cross_domain_meta_learner.md](./03_cross_domain_meta_learner.md) | CrossDomainMetaLearner — memory-backed aggregation (Phase 5b) |
 
 ---
 

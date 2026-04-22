@@ -9,6 +9,7 @@ Complete documentation for the `scarcity.governor` module — Dynamic Resource G
 | File | Topic |
 |------|-------|
 | [00_overview.md](./00_overview.md) | **Start here** — Architecture and control loop |
+| [01_utilities.md](./01_utilities.md) | Component reference — DRGConfig, Sensors, Profiler, Policies, Actuators, Registry, Monitor, Hooks |
 
 ---
 

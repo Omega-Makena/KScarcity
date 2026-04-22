@@ -275,9 +275,106 @@ await publish_meta_metrics(bus, snapshot)
 | `integrative_config.py` | Configuration classes |
 | `meta_learning.py` | Agent orchestrator |
 | `domain_meta.py` | Domain-specific learning |
-| `cross_meta.py` | Cross-domain aggregation |
+| `cross_meta.py` | Cross-domain aggregation (fallback + memory-backed) |
 | `optimizer.py` | Reptile meta-optimization |
 | `scheduler.py` | Update timing |
 | `storage.py` | Prior persistence |
 | `validator.py` | Update validation |
 | `telemetry_hooks.py` | Metrics publishing |
+| `domain_server_meta.py` | DomainServerMeta — Phase 5a bridge |
+| `encoder.py` | ContextEncoder |
+| `memory.py` | EpisodicMemory |
+| `adaptation.py` | AdaptationEngine |
+
+---
+
+## domain_server_meta.py — Federation-to-Meta Bridge (Phase 5a)
+
+### `DomainServerMetaConfig`
+
+```python
+@dataclass
+class DomainServerMetaConfig:
+    hit_rate_weight: float = 0.6
+    memory_weight: float = 0.4
+    memory_reference: int = 64
+    min_confidence: float = 0.05
+    meta_lr_min: float = 0.05
+    meta_lr_max: float = 0.2
+    performance_gain_boost: float = 0.05
+```
+
+### `DomainServerMeta`
+
+Observes `DomainServer` instances via duck typing and converts their state to `DomainMetaUpdate` objects:
+
+```python
+meta = DomainServerMeta(config=DomainServerMetaConfig())
+
+# Single server
+update = meta.observe(server, performance={"gain": 0.8})
+# update.confidence, update.vector, update.keys, update.score_delta
+
+# Whole registry
+updates = meta.observe_registry(registry, performance_map={"basket_hc": {"gain": 0.8}})
+
+# Telemetry
+print(meta.n_domains_tracked)
+print(meta.status())  # {"n_domains_tracked": N, "basket_ids": [...]}
+```
+
+**Confidence formula:**
+```
+confidence = hit_rate_w × hit_rate
+           + mem_w × log1p(memory_size) / log1p(memory_reference)
+           + gain_boost × max(0, performance["gain"])
+confidence = max(confidence, min_confidence)
+```
+
+**Delta formula:**
+```
+meta_lr = meta_lr_min + (meta_lr_max − meta_lr_min) × confidence
+delta   = meta_lr × (current_base_params − prev_base_params)
+```
+
+---
+
+## cross_meta.py — Phase 5b: CrossDomainMetaLearner
+
+### `CrossDomainMetaLearnerConfig`
+
+```python
+@dataclass
+class CrossDomainMetaLearnerConfig:
+    fallback_method: str = "trimmed_mean"
+    fallback_trim_alpha: float = 0.1
+    fallback_min_confidence: float = 0.05
+    memory_reference_capacity: int = 256
+    min_memory_quality: float = 0.0
+    max_memory_quality: float = 0.8
+```
+
+### `CrossDomainMetaLearner`
+
+Memory-backed wrapper around `CrossDomainMetaAggregator`:
+
+```python
+learner = CrossDomainMetaLearner(
+    config=CrossDomainMetaLearnerConfig(memory_reference_capacity=64),
+    global_meta_memory=gmm,  # GlobalMetaMemory instance
+)
+
+result_vec, keys, meta = learner.aggregate(updates)
+# meta["source"]            → "memory_backed" | "fallback"
+# meta["memory_quality"]    → blend weight used (0.0 – 0.8)
+# meta["prior_keys_matched"] → int
+```
+
+**Blend formula:**
+```
+quality     = clip(memory_size / reference_capacity, 0, max_memory_quality)
+prior_vec   = memory.suggest_prior("cross_domain", context)
+result_vec  = (1 − quality) × fallback_vec + quality × prior_vec
+```
+
+Falls back to pure `CrossDomainMetaAggregator` when `global_meta_memory` is `None`, memory is empty, or `suggest_prior()` returns `None`.

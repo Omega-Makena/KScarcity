@@ -119,6 +119,59 @@ class TestBasketManager:
         assert len(peers) == 1
         assert "client_2" in peers
 
+    def test_refine_baskets_creates_sub_baskets(self):
+        """Auto-refine should split a domain into viable fingerprint-based sub-baskets."""
+        config = BasketConfig(
+            auto_refine=True,
+            min_basket_size=2,
+            max_sub_baskets=3,
+            fingerprint_dim=4,
+            fingerprint_noise=0.0,
+        )
+        manager = BasketManager(config)
+
+        features = [
+            np.array([2.0, 2.0, 2.0, 2.0]),
+            np.array([1.9, 2.1, 2.0, 2.0]),
+            np.array([2.1, 1.9, 2.0, 2.0]),
+            np.array([-2.0, -2.0, -2.0, -2.0]),
+            np.array([-1.9, -2.1, -2.0, -2.0]),
+            np.array([-2.1, -1.9, -2.0, -2.0]),
+        ]
+
+        base_basket = manager.register_client("client_0", "healthcare", features=features[0])
+        for idx in range(1, 6):
+            manager.register_client(f"client_{idx}", "healthcare", features=features[idx])
+
+        refined = manager.refine_baskets()
+
+        assert refined
+        total_assigned = sum(len(members) for members in refined.values())
+        assert total_assigned == 6
+
+        for basket_id, members in refined.items():
+            assert basket_id.startswith(base_basket + "_sub_")
+            assert len(members) >= config.min_basket_size
+
+        for idx in range(6):
+            client = manager.get_client(f"client_{idx}")
+            assert client is not None
+            assert client.basket_id in refined
+
+    def test_refine_baskets_requires_fingerprints(self):
+        """Auto-refine should skip domains when fingerprints are unavailable."""
+        config = BasketConfig(auto_refine=True, min_basket_size=2)
+        manager = BasketManager(config)
+
+        manager.register_client("client_1", "finance")
+        manager.register_client("client_2", "finance")
+        manager.register_client("client_3", "finance")
+        manager.register_client("client_4", "finance")
+
+        refined = manager.refine_baskets()
+
+        assert refined == {}
+
 
 class TestLocalDPMechanism:
     """Tests for local differential privacy."""

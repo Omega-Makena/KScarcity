@@ -168,6 +168,8 @@ For each basket:
 | `scheduler.py` | Federation round scheduling |
 | `codec.py` | Serialization/deserialization |
 | `transport.py` | Network transport abstraction |
+| `domain_server.py` | DomainServer / DomainServerRegistry — per-domain logical meta agent |
+| `global_meta_memory.py` | GlobalMetaMemory — cross-domain episodic prior store |
 
 ---
 
@@ -229,3 +231,42 @@ federation.submit_update("client_1", update)
 ```
 
 The federation layer wraps the engine — it doesn't replace it.
+
+---
+
+## Phase 5 — Meta-Learning Integration
+
+### Domain Server Layer
+
+Each basket now owns a `DomainServer` — a logical agent (not a network process) that:
+- Holds a **domain-specific base model** (pretrained parameter initialization)
+- Maintains an **episodic memory buffer** of past adaptation episodes
+- Responds to warm-start prior requests from clients via `suggest_prior()`
+
+Servers are created and held in `DomainServerRegistry`, accessed via `HierarchicalFederation.get_domain_server()`.
+
+### Global Meta Memory
+
+`GlobalMetaMemory` aggregates domain base params across all servers after each federation round, stores the aggregation as a cross-domain episode, and answers prior queries from `CrossDomainMetaLearner`. As episodes accumulate, the quality of retrieved priors improves.
+
+### Integrated Meta Round
+
+`HierarchicalFederation.run_full_meta_round(performance_map=None)` runs the complete meta-learning pipeline in a single call:
+
+```
+DomainServerMeta.observe_registry()   → List[DomainMetaUpdate]
+CrossDomainMetaLearner.aggregate()    → (blended_vec, keys, meta)
+GlobalMetaMemory.aggregate()          → global_params dict
+```
+
+Returns `{"global_params": ..., "cross_domain": (...), "n_updates": N}`.
+
+### New Protocol Packets
+
+Three new packet types in `packets.py` carry adaptation signals between layers:
+
+| Packet | Topic | Direction |
+|--------|-------|-----------|
+| `AdaptationRequest` | `federation.adaptation_request` | Client → DomainServer |
+| `AdaptationResponse` | `federation.adaptation_response` | DomainServer → Client |
+| `DomainSyncPacket` | `federation.domain_sync` | DomainServer → Global |

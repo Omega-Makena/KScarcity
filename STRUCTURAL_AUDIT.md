@@ -472,4 +472,5 @@ All configurable parameters identified as hardcoded defaults (all are overridabl
 
 ---
 
-*This audit covered approximately 120 Python source files across 14 top-level modules. No modifications were made to any file during this audit.*
+*This audit covered approximately 120 Python source files across 14 top-level modules. No modifications were made to any file during this audit.* all the  bugs and errors found in the audit where fixed
+

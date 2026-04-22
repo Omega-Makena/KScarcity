@@ -40,6 +40,10 @@ from .layers import (
     GlobalMetaModel
 )
 from .secure_aggregation import IdentityKeyPair
+from .domain_server import DomainServer, DomainServerConfig, DomainServerRegistry
+from .global_meta_memory import GlobalMetaMemory, GlobalMetaMemoryConfig
+from ..meta.domain_server_meta import DomainServerMeta, DomainServerMetaConfig
+from ..meta.cross_meta import CrossDomainMetaLearner, CrossDomainMetaLearnerConfig
 
 
 @dataclass
@@ -59,6 +63,14 @@ class HierarchicalFederationConfig:
     # Operational settings
     auto_aggregate: bool = True           # Auto-run aggregation when triggers fire
     vector_dim: int = 64                  # Default vector dimension
+
+    # Meta-learning (Phase 2 + 3)
+    domain_server: DomainServerConfig = field(default_factory=DomainServerConfig)
+    global_meta: GlobalMetaMemoryConfig = field(default_factory=GlobalMetaMemoryConfig)
+
+    # True meta-learner (Phase 5)
+    domain_server_meta: DomainServerMetaConfig = field(default_factory=DomainServerMetaConfig)
+    cross_domain_meta: CrossDomainMetaLearnerConfig = field(default_factory=CrossDomainMetaLearnerConfig)
 
 
 class HierarchicalFederation:
@@ -129,7 +141,18 @@ class HierarchicalFederation:
         )
         
         self.meta_model = GlobalMetaModel()
-        
+
+        # Meta-learning stack (Phase 2 + 3 — additive)
+        self.domain_registry = DomainServerRegistry(self.config.domain_server)
+        self.global_meta_memory = GlobalMetaMemory(self.config.global_meta)
+
+        # True meta-learner (Phase 5 — additive)
+        self.domain_server_meta = DomainServerMeta(self.config.domain_server_meta)
+        self.cross_domain_learner = CrossDomainMetaLearner(
+            self.config.cross_domain_meta,
+            self.global_meta_memory,
+        )
+
         # State tracking
         self._round_id: int = 0
         self._global_model: Optional[np.ndarray] = None
@@ -373,6 +396,88 @@ class HierarchicalFederation:
         
         return global_model
     
+    # ------------------------------------------------------------------
+    # Meta-learning API (Phase 2 + 3)
+    # ------------------------------------------------------------------
+
+    def get_domain_server(self, domain_id: str, basket_id: str) -> DomainServer:
+        """
+        Return (or lazily create) the DomainServer for this basket.
+
+        Args:
+            domain_id: e.g. "healthcare"
+            basket_id: from BasketManager (or any stable string)
+        """
+        return self.domain_registry.get_or_create(domain_id, basket_id)
+
+    def run_meta_round(
+        self,
+        performance_map: Optional[Dict[str, Dict[str, float]]] = None,
+    ) -> Dict[str, float]:
+        """
+        Aggregate all active DomainServers into the global meta-memory.
+
+        Call this after Layer2 aggregation completes to let the global memory
+        learn cross-domain invariants.
+
+        Args:
+            performance_map: basket_id → {metric: value} — caller-supplied
+                             performance measurements for this round.
+
+        Returns:
+            Updated global_params dict (robust median across all domains).
+        """
+        return self.global_meta_memory.aggregate(
+            self.domain_registry, performance_map
+        )
+
+    def suggest_prior(
+        self,
+        domain_id: str,
+        context: Optional[Dict[str, Any]] = None,
+    ) -> Optional[Dict[str, float]]:
+        """
+        Warm-start prior for a new or cold DomainServer.
+
+        Queries the global meta-memory for the most relevant cross-domain
+        episode.  Returns None if the global memory is empty.
+        """
+        return self.global_meta_memory.suggest_prior(domain_id, context or {})
+
+    def run_full_meta_round(
+        self,
+        performance_map: Optional[Dict[str, Dict[str, float]]] = None,
+    ) -> Dict[str, Any]:
+        """
+        Full Phase-5 meta-learning round.
+
+        Steps:
+        1. Observe all DomainServers → DomainMetaUpdates
+        2. Run CrossDomainMetaLearner.aggregate() (memory-backed blending)
+        3. Also run GlobalMetaMemory.aggregate() for global_params update
+
+        Args:
+            performance_map: basket_id → {metric: value}
+
+        Returns:
+            dict with keys:
+                global_params   — from GlobalMetaMemory (robust median)
+                cross_domain    — (result_vec, keys, meta) from CrossDomainMetaLearner
+                n_updates       — number of domain updates fed in
+        """
+        updates = self.domain_server_meta.observe_registry(
+            self.domain_registry, performance_map
+        )
+        cross_vec, cross_keys, cross_meta = self.cross_domain_learner.aggregate(updates)
+        global_params = self.global_meta_memory.aggregate(
+            self.domain_registry, performance_map
+        )
+        return {
+            "global_params": global_params,
+            "cross_domain": (cross_vec, cross_keys, cross_meta),
+            "n_updates": len(updates),
+        }
+
     def get_global_model(self) -> Optional[np.ndarray]:
         """Get current global model."""
         return self._global_model

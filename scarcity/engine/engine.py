@@ -52,10 +52,10 @@ class MPIEOrchestrator:
                 used for all asynchronous communication between components.
         """
         self.bus = bus if bus else get_bus()
-        
+
         # Get default resource profile
         self.last_resource_profile = self._get_default_profile()
-        
+
         # Initialize subsystems
         rng = np.random.default_rng()
         self.controller = BanditRouter(drg=self.last_resource_profile, rng=rng)
@@ -63,7 +63,12 @@ class MPIEOrchestrator:
         self.evaluator = Evaluator(drg=self.last_resource_profile, rng=rng)
         self.store = HypergraphStore()
         self.exporter = Exporter()
-        
+
+        # Discovery engine bridge: set via attach_discovery_engine() to close
+        # the feedback loop between OnlineDiscoveryEngine (hypothesis pool) and
+        # MPIEOrchestrator (path-based evaluator).
+        self._discovery_engine = None
+
         # Bounded state
         self.profile_history = deque(maxlen=3)
         
@@ -83,6 +88,22 @@ class MPIEOrchestrator:
         }
         
         logger.info("MPIE Orchestrator initialized with full Controller⇆Evaluator contract")
+
+    def attach_discovery_engine(self, engine) -> None:
+        """
+        Attach an OnlineDiscoveryEngine to close the two-pipeline feedback loop.
+
+        Once attached, each data window will inject the discovery engine's top
+        hypothesis-derived candidates into the BanditRouter's proposal pool.
+        This ensures statistically discovered relationships (Granger causal,
+        equilibrium, synergistic, etc.) directly inform path selection in MPIE.
+
+        Args:
+            engine: An OnlineDiscoveryEngine instance (duck-typed — any object
+                    that exposes get_candidate_paths(top_k) → List[Candidate]).
+        """
+        self._discovery_engine = engine
+        logger.info("Discovery engine attached to MPIE orchestrator")
     
     async def start(self) -> None:
         """
@@ -186,6 +207,25 @@ class MPIEOrchestrator:
             if candidates and not isinstance(candidates[0], Candidate):
                 logger.error("BanditRouter returned non-Candidate proposals; skipping window.")
                 return
+
+            # Step 2b: Inject candidates from OnlineDiscoveryEngine (bridge).
+            # Merges hypothesis-derived paths into the BanditRouter proposal pool,
+            # closing the feedback loop between the two previously isolated engines.
+            if self._discovery_engine is not None:
+                try:
+                    discovery_candidates = self._discovery_engine.get_candidate_paths(top_k=30)
+                    existing_ids = {c.path_id for c in candidates}
+                    new_from_discovery = [
+                        c for c in discovery_candidates
+                        if c.path_id not in existing_ids
+                    ]
+                    candidates = candidates + new_from_discovery
+                    if new_from_discovery:
+                        logger.debug(
+                            f"Bridge: injected {len(new_from_discovery)} discovery candidates")
+                except Exception as exc:
+                    logger.warning(f"Discovery engine bridge error: {exc}")
+
             candidate_lookup = {cand.path_id: cand for cand in candidates}
             
             # Step 3: Extract window tensor
