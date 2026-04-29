@@ -1,0 +1,60 @@
+======================================================================
+SCARCITY — SCIENTIFIC JUSTIFICATION BENCHMARK
+======================================================================
+
+Q1. Non-IID Verification (Jensen-Shannon Divergence)
+  Mean JSD across all indicator pairs: 0.295
+  High divergence pairs (JSD > 0.3): 28 of 57
+  Near-IID pairs (JSD < 0.1): 7 of 57
+  Verdict: CONFIRMED non-IID
+  Top 5 most heterogeneous indicators:
+    broad_money                  Tanzania vs Uganda: JSD=0.500  (high divergence (non-IID))
+    electricity_access           Kenya vs Uganda: JSD=0.500  (high divergence (non-IID))
+    electricity_access           Tanzania vs Uganda: JSD=0.500  (high divergence (non-IID))
+    govt_debt                    Kenya vs Tanzania: JSD=0.500  (high divergence (non-IID))
+    govt_debt                    Kenya vs Uganda: JSD=0.500  (high divergence (non-IID))
+
+Q2. Online vs Batch Learning
+  Online Scarcity outperforms batch AR1 in 6/84 folds (7%)
+  Verdict: Batch competitive
+  Kenya: final fold — online MAE=1.11032 vs batch MAE=0.85819
+  Tanzania: final fold — online MAE=1.14012 vs batch MAE=0.87728
+  Uganda: final fold — online MAE=1.10317 vs batch MAE=0.87769
+
+Q3. Meta-learning Warm-start — Uganda final confidence by pioneer rows
+    0 pioneer rows: final conf=0.1838  (warm-start conf=0.0000)
+    5 pioneer rows: final conf=0.1239  (warm-start conf=0.2290)
+   10 pioneer rows: final conf=0.1434  (warm-start conf=0.1754)
+   20 pioneer rows: final conf=0.1840  (warm-start conf=0.1353)
+   30 pioneer rows: final conf=0.2208  (warm-start conf=0.2303)
+  Gain from 0 to max pioneers: +0.0369 (20.1%)
+
+Q4. FL Justification — federation advantage by data availability
+    Fraction    Local avg      Fed avg    Advantage
+         20%       0.1946       0.1433      -0.0512
+         40%       0.1290       0.2663      +0.1373
+         60%       0.1363       0.4080      +0.2718
+         80%       0.1562       0.4031      +0.2469
+        100%       0.1832       0.4425      +0.2593
+  Verdict: Federation most valuable at low data fractions (early in stream)
+
+Q5. Ethiopia (unseen domain) — newcomer generalisation
+  Pioneer rows used: 102 (KEN+TZA+UGA)
+  ETH cold final conf: 0.16955
+  ETH warm final conf: 0.219
+  Warm advantage:      0.04945
+  Verdict: Generalises to unseen domain
+
+Q6. DRG Buffer Size — high-frequency stream (200 synthetic obs)
+    Buffer   Final conf    Memory cost
+        10       0.2932             10 (rows)
+        25       0.2932             25 (rows)
+        50       0.2990             50 (rows)
+       100       0.3040            100 (rows)
+       200       0.3105            200 (rows)
+  Range: 0.2932 to 0.3105 (no meaningful trade-off at this frequency)
+
+Q7. Data Scarcity Curve — graceful degradation
+    Years    AR1 MAE   Scarcity MAE    Scarcity better
+
+======================================================================

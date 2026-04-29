@@ -1,0 +1,91 @@
+{
+  "summary": {
+    "run_id": "a00a8787-1cd1-47e8-9672-a56a8ac28085",
+    "total_specs": 1,
+    "succeeded": 1,
+    "failed": 0,
+    "started_at": "2026-04-27T00:15:42.508250",
+    "finished_at": "2026-04-27T00:15:42.527776",
+    "duration_sec": 0.019526,
+    "status": "success",
+    "fail_policy": "continue",
+    "parallelism": "none"
+  },
+  "metadata": {
+    "run_id": "a00a8787-1cd1-47e8-9672-a56a8ac28085",
+    "runtime": {
+      "refute_random_common_cause": false,
+      "refute_placebo_treatment": false,
+      "refute_data_subset": false,
+      "refutation_simulations": 100,
+      "n_jobs": 1,
+      "seed": 42,
+      "confidence_level": 0.95,
+      "estimator_method": null,
+      "estimator_params": {},
+      "parallelism": "none",
+      "fail_policy": "continue",
+      "chunk_size": 1,
+      "time_series_policy": "none",
+      "blas_thread_policy": {
+        "OMP_NUM_THREADS": 1,
+        "MKL_NUM_THREADS": 1,
+        "OPENBLAS_NUM_THREADS": 1,
+        "NUMEXPR_NUM_THREADS": 1,
+        "VECLIB_MAXIMUM_THREADS": 1
+      },
+      "dot_path": null,
+      "artifact_root": "C:\\Users\\omegam\\OneDrive - Innova Limited\\scace4\\artifacts\\harness\\causal",
+      "run_id": "a00a8787-1cd1-47e8-9672-a56a8ac28085",
+      "export_graphs": true
+    },
+    "python_version": "3.11.9",
+    "platform": "Windows-10-10.0.26200-SP0",
+    "dowhy_version": "0.14",
+    "econml_version": "0.16.0",
+    "data_signature": {
+      "rows": 34,
+      "columns": [
+        "year",
+        "gdp_growth",
+        "inflation",
+        "unemployment",
+        "exports_gdp",
+        "imports_gdp",
+        "current_account",
+        "govt_consumption",
+        "tax_revenue",
+        "govt_debt",
+        "real_interest_rate",
+        "broad_money",
+        "private_credit",
+        "urban_population",
+        "school_enrollment",
+        "life_expectancy",
+        "electricity_access",
+        "internet_users"
+      ],
+      "dtypes": {
+        "year": "int64",
+        "gdp_growth": "float64",
+        "inflation": "float64",
+        "unemployment": "float64",
+        "exports_gdp": "float64",
+        "imports_gdp": "float64",
+        "current_account": "float64",
+        "govt_consumption": "float64",
+        "tax_revenue": "float64",
+        "govt_debt": "float64",
+        "real_interest_rate": "float64",
+        "broad_money": "float64",
+        "private_credit": "float64",
+        "urban_population": "float64",
+        "school_enrollment": "float64",
+        "life_expectancy": "float64",
+        "electricity_access": "float64",
+        "internet_users": "float64"
+      },
+      "hash": "1293482da23f99e2ce2cb210da7808262d4613ffedfc458f054944e4df9ac299"
+    }
+  }
+}

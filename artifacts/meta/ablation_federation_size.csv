@@ -1,0 +1,9 @@
+benchmark,config,focus_country,peers,n_peers,avg_confidence,active_hyp,total_steps
+federation_size,local,UGA,none,0,0.151823,63,29
+federation_size,fed_ken,UGA,KEN,1,0.342318,49,58
+federation_size,fed_tza,UGA,TZA,1,0.346248,48,58
+federation_size,fed_ken_tza,UGA,KEN+TZA,2,0.359571,53,87
+federation_size,local,KEN,none,0,0.159007,63,29
+federation_size,fed_tza,KEN,TZA,1,0.315319,45,58
+federation_size,fed_uga,KEN,UGA,1,0.336375,48,58
+federation_size,fed_all,KEN,TZA+UGA,2,0.365965,54,87

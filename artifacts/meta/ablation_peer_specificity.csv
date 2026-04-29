@@ -1,0 +1,13 @@
+benchmark,focus,focus_code,peers_added,n_peers,avg_confidence,gain_over_local
+peer_specificity,Kenya,KEN,none,0,0.159007,0.0
+peer_specificity,Kenya,KEN,Tanzania,1,0.309189,0.150181
+peer_specificity,Kenya,KEN,Uganda,1,0.336375,0.177368
+peer_specificity,Kenya,KEN,Tanzania+Uganda,2,0.365965,0.206957
+peer_specificity,Tanzania,TZA,none,0,0.150696,0.0
+peer_specificity,Tanzania,TZA,Kenya,1,0.327959,0.177262
+peer_specificity,Tanzania,TZA,Uganda,1,0.348804,0.198108
+peer_specificity,Tanzania,TZA,Kenya+Uganda,2,0.356105,0.205409
+peer_specificity,Uganda,UGA,none,0,0.151823,0.0
+peer_specificity,Uganda,UGA,Kenya,1,0.342318,0.190495
+peer_specificity,Uganda,UGA,Tanzania,1,0.346248,0.194425
+peer_specificity,Uganda,UGA,Kenya+Tanzania,2,0.359571,0.207748

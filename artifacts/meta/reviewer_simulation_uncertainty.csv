@@ -1,0 +1,6 @@
+avg_conf,s3_total,can_simulate,s3_inflation_match_rate,s1_total,s1_electricity_match_rate,seed,s3_matched,s1_matched
+0.4457,4,True,0.0,3,0.3333,0,0,1
+0.4316,4,True,0.0,3,0.3333,1,0,1
+0.4529,4,True,0.0,3,0.3333,2,0,1
+0.4425,4,True,0.0,3,0.0,3,0,0
+0.438,4,True,0.0,3,0.0,4,0,0

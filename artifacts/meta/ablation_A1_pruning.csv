@@ -1,0 +1,10 @@
+config,country,avg_conf,n_active,n_tentative,n_decaying,n_dead,n_total,can_simulate
+standard,Kenya,0.4023,5,25,0,93,30,1
+standard,Tanzania,0.3926,2,25,0,96,27,1
+standard,Uganda,0.3745,2,25,0,96,27,1
+no_pruning,Kenya,0.1469,19,15,0,89,34,0
+no_pruning,Tanzania,0.1073,19,15,0,89,34,0
+no_pruning,Uganda,0.1103,19,15,0,89,34,0
+tight,Kenya,0.3752,1,54,0,68,55,1
+tight,Tanzania,0.0,0,52,0,71,52,0
+tight,Uganda,0.0,0,51,0,72,51,0

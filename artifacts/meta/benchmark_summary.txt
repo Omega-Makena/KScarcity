@@ -1,0 +1,43 @@
+===========================================================================
+SCARCITY — EMPIRICAL BENCHMARK RESULTS
+Env : Python 3.11.9 | numpy 2.3.5 | scipy 1.15.3 | platform Windows
+Seeds: 20   Countries: Kenya, Tanzania, Uganda
+Protocol: rolling leave-one-year-out, normalised MAE; AR(1) baselines (Hamilton 1994)
+===========================================================================
+
+Table 1. Prediction Accuracy (normalised MAE, lower = better)
+  Note: MAE < 1.0 means the model beats a naive z-score predictor.
+  Method                  MAE    ±std             95% CI     R²       p       d  sig
+  ------------------------------------------------------------------------
+  random               1.2126  0.0656  [1.19598,1.22919] -1.03182     0.0 11.0778    *
+  mean                 0.9815  0.0364  [0.97225,0.99065] -0.50463     0.0 10.6771    *
+  local_ar1            0.5349  0.0242    [0.52877,0.541] 0.26431     0.0 -7.6655    *
+  fedavg_ar1           0.6868  0.0142  [0.68317,0.69036] 0.05792     nan     nan     
+  oracle_ar1           0.5624  0.0591  [0.54747,0.57738] 0.31318     0.0 -2.8929    *
+  scarcity_local       0.4930  0.0390  [0.48311,0.50283] 0.38003     0.0 -6.6084    *
+  scarcity_fed         0.4930  0.0390  [0.48311,0.50283] 0.38003     0.0 -6.6084    *
+  * p < 0.05 vs FedAvg-AR1 (Welch t-test, two-tailed)
+
+Table 2. Discovery Quality (Scarcity only — no supervised equivalent)
+  Method                 Conf@end   Steps→0.25   Comm rounds
+  ----------------------------------------------------------
+  scarcity_local          0.20532          1.0           0.0
+  scarcity_fed            0.29783          3.0          34.0
+
+Table 3. Top-5 Hardest Indicators to Predict (AR1 MAE)
+  Indicator                 Country       MAE(mean)   MAE(AR1)   Difficulty
+  ------------------------------------------------------------------------
+  exports_gdp               Uganda          1.77806    3.15828       1.7762
+  real_interest_rate        Uganda          1.20635    2.75516       2.2839
+  school_enrollment         Uganda          1.95979    2.46684       1.2587
+  govt_consumption          Tanzania         1.7192    2.21665       1.2893
+  private_credit            Kenya           1.67319    2.15688       1.2891
+
+Limitations:
+  [1] Annual data (≤29 obs/node) limits generalisation; results may differ for higher-frequency domains (daily, weekly).
+  [2] FedAvg-AR1 is the federation baseline; Flower/SCAFFOLD or async-FedAvg would be stronger comparisons for future work.
+  [3] Scarcity's prediction uses lag-1 (last observed value); a dedicated prediction head using high-confidence hypotheses would improve MAE.
+  [4] Synthetic data (--dry-run) uses a random-walk generator; real WB API data may show different cross-country correlation structure.
+  [5] Federation simulation shares raw data rows as a proxy for parameter sharing; full ws_transport.py evaluation is future work.
+  [6] No differential privacy budget is measured or enforced in this benchmark.
+  [7] World Bank indicators have known measurement gaps, especially for Uganda before 2000; missing values are dropped silently.

@@ -30,7 +30,7 @@ except ImportError:
     _SCIPY = False
 
 from .discovery import Hypothesis, RelationshipType
-from .relationships import _f_pvalue, _t_pvalue, _rls_step
+from .relationships import _f_pvalue, _t_pvalue, _rls_step, _not_ready
 
 logger = logging.getLogger(__name__)
 
@@ -123,8 +123,8 @@ class MediatingHypothesis(Hypothesis):
 
     def evaluate(self, row: Dict[str, float]) -> Dict[str, float]:
         n = self._n
-        if n < 30:
-            return {'fit_score': 0.5, 'confidence': 0.5, 'evidence': n, 'stability': 0.5}
+        if n < 20:
+            return _not_ready(n)
 
         # Sobel test: SE(a·b) = √(b²·Var(a) + a²·Var(b))
         sobel_se = float(np.sqrt(
@@ -137,11 +137,13 @@ class MediatingHypothesis(Hypothesis):
             self.sobel_z = 0.0
             self.sobel_p = 1.0
 
+        # Lowered threshold (Fix #5): p<0.20 and relaxed path-coefficient guards
+        # (>0.01) to detect indirect effects in short annual macro series (n~44).
         has_mediation = (
-            abs(self.a_path) > 0.05 and
-            abs(self.b_path) > 0.05 and
+            abs(self.a_path) > 0.01 and
+            abs(self.b_path) > 0.01 and
             abs(self.c_prime) < abs(self.c_path) and
-            self.sobel_p < 0.05
+            self.sobel_p < 0.20
         )
         full_mediation = has_mediation and abs(self.c_prime) < 0.05
         fit = min(1.0, abs(self.indirect_effect) * 2.0) if has_mediation else 0.2
@@ -160,6 +162,7 @@ class MediatingHypothesis(Hypothesis):
             'sobel_p': self.sobel_p,
             'has_mediation': has_mediation,
             'full_mediation': full_mediation,
+            'ready': True,
         }
 
     def predict_value(self, row: Dict[str, float]) -> Optional[Tuple[str, float]]:
@@ -251,7 +254,7 @@ class ModeratingHypothesis(Hypothesis):
     def evaluate(self, row: Dict[str, float]) -> Dict[str, float]:
         n = self._n
         if n < 30:
-            return {'fit_score': 0.5, 'confidence': 0.5, 'evidence': n, 'stability': 0.5}
+            return _not_ready(n)
 
         if len(self._rss_full) >= 10:
             rss_f = float(np.sum(self._rss_full))
@@ -276,10 +279,18 @@ class ModeratingHypothesis(Hypothesis):
             'interaction_f_stat': self.interaction_f_stat,
             'interaction_p_value': self.interaction_p_value,
             'has_moderation': has_mod,
+            'ready': True,
         }
 
     def predict_value(self, row: Dict[str, float]) -> Optional[Tuple[str, float]]:
-        return None
+        if self._n < 30:
+            return None
+        if self.predictor not in row or self.moderator not in row:
+            return None
+        xc = row[self.predictor] - self._mean_x
+        zc = row[self.moderator] - self._mean_z
+        feat = np.array([1.0, xc, zc, xc * zc])
+        return (self.target, float(np.dot(feat, self._coef_full)))
 
 
 # ===========================================================================
@@ -368,7 +379,7 @@ class GraphHypothesis(Hypothesis):
     def evaluate(self, row: Dict[str, float]) -> Dict[str, float]:
         n = len(self.buffer_x)
         if n < 30:
-            return {'fit_score': 0.5, 'confidence': 0.5, 'evidence': n, 'stability': 0.5}
+            return _not_ready(n)
 
         X = np.array(self.buffer_x)
         Y = np.array(self.buffer_y)
@@ -396,6 +407,7 @@ class GraphHypothesis(Hypothesis):
             'pearson_r': self.pearson_r,
             'nonlinear_excess': self.nonlinear_excess,
             'has_graph_structure': has_graph,
+            'ready': True,
         }
 
     def predict_value(self, row: Dict[str, float]) -> Optional[Tuple[str, float]]:
@@ -510,7 +522,7 @@ class SimilarityHypothesis(Hypothesis):
     def evaluate(self, row: Dict[str, float]) -> Dict[str, float]:
         n = len(self.buffer)
         if not self._initialized or n < 20:
-            return {'fit_score': 0.5, 'confidence': 0.5, 'evidence': n, 'stability': 0.5}
+            return _not_ready(n)
 
         points = np.array(list(self.buffer))
         self.silhouette_approx = self._silhouette_approx(points)
@@ -541,6 +553,7 @@ class SimilarityHypothesis(Hypothesis):
             'center_drift': self.center_drift,
             'n_clusters': self.n_clusters,
             'cluster_sizes': self.cluster_counts.tolist(),
+            'ready': True,
         }
 
     def predict_value(self, row: Dict[str, float]) -> Optional[Tuple[str, float]]:
@@ -634,7 +647,7 @@ class LogicalHypothesis(Hypothesis):
     def evaluate(self, row: Dict[str, float]) -> Dict[str, float]:
         n = len(self.buf_x1)
         if n < 20:
-            return {'fit_score': 0.5, 'confidence': 0.5, 'evidence': n, 'stability': 0.5}
+            return _not_ready(n)
 
         self.best_rule = max(self.rule_ema, key=self.rule_ema.__getitem__)
         self.best_accuracy = self.rule_ema[self.best_rule]
@@ -680,6 +693,7 @@ class LogicalHypothesis(Hypothesis):
             'threshold_2': self._thresh2,
             'threshold_y': self._thresh_y,
             'all_rule_scores': dict(self.rule_ema),
+            'ready': True,
         }
 
     def predict_value(self, row: Dict[str, float]) -> Optional[Tuple[str, float]]:

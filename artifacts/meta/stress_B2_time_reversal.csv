@@ -1,0 +1,3 @@
+variant,avg_conf,n_active,n_tentative,n_decaying,n_dead,n_total
+forward,0.4023,5,25,0,93,30
+reversed,0.6456,5,25,0,93,30

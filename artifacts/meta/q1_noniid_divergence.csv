@@ -1,0 +1,58 @@
+indicator,country_a,country_b,jsd,interpretation,n_obs_a,n_obs_b
+broad_money,Tanzania,Uganda,0.5,high divergence (non-IID),34,34
+electricity_access,Kenya,Uganda,0.5,high divergence (non-IID),34,34
+electricity_access,Tanzania,Uganda,0.5,high divergence (non-IID),34,34
+govt_debt,Kenya,Tanzania,0.5,high divergence (non-IID),34,34
+govt_debt,Kenya,Uganda,0.5,high divergence (non-IID),34,34
+internet_users,Kenya,Tanzania,0.5,high divergence (non-IID),34,34
+internet_users,Tanzania,Uganda,0.5,high divergence (non-IID),34,34
+mobile_subscriptions,Kenya,Tanzania,0.5,high divergence (non-IID),34,34
+mobile_subscriptions,Kenya,Uganda,0.5,high divergence (non-IID),34,34
+private_credit,Kenya,Uganda,0.5,high divergence (non-IID),34,34
+trade_gdp,Kenya,Uganda,0.5,high divergence (non-IID),34,34
+trade_gdp,Tanzania,Uganda,0.5,high divergence (non-IID),34,34
+broad_money,Kenya,Uganda,0.4853,high divergence (non-IID),34,34
+exports_gdp,Tanzania,Uganda,0.4797,high divergence (non-IID),34,34
+current_account,Tanzania,Uganda,0.4695,high divergence (non-IID),34,34
+exports_gdp,Kenya,Tanzania,0.4496,high divergence (non-IID),34,34
+internet_users,Kenya,Uganda,0.4417,high divergence (non-IID),34,34
+tax_revenue,Tanzania,Uganda,0.4236,high divergence (non-IID),34,34
+private_credit,Kenya,Tanzania,0.4227,high divergence (non-IID),34,34
+school_enrollment,Tanzania,Uganda,0.4191,high divergence (non-IID),34,34
+school_enrollment,Kenya,Tanzania,0.4178,high divergence (non-IID),34,34
+broad_money,Kenya,Tanzania,0.4138,high divergence (non-IID),34,34
+govt_consumption,Kenya,Tanzania,0.4113,high divergence (non-IID),34,34
+current_account,Kenya,Tanzania,0.3716,high divergence (non-IID),34,34
+unemployment,Kenya,Tanzania,0.3358,high divergence (non-IID),34,34
+mobile_subscriptions,Tanzania,Uganda,0.3262,high divergence (non-IID),34,34
+electricity_access,Kenya,Tanzania,0.3234,high divergence (non-IID),34,34
+urban_population,Kenya,Tanzania,0.3032,high divergence (non-IID),34,34
+tax_revenue,Kenya,Uganda,0.2683,moderate divergence,34,34
+govt_consumption,Kenya,Uganda,0.2566,moderate divergence,34,34
+imports_gdp,Kenya,Tanzania,0.2449,moderate divergence,34,34
+life_expectancy,Tanzania,Uganda,0.2358,moderate divergence,34,34
+urban_population,Tanzania,Uganda,0.2325,moderate divergence,34,34
+inflation,Tanzania,Uganda,0.231,moderate divergence,34,34
+unemployment,Tanzania,Uganda,0.203,moderate divergence,34,34
+govt_debt,Tanzania,Uganda,0.2015,moderate divergence,34,34
+real_interest_rate,Kenya,Tanzania,0.1787,moderate divergence,34,34
+life_expectancy,Kenya,Uganda,0.1759,moderate divergence,34,34
+govt_consumption,Tanzania,Uganda,0.1729,moderate divergence,34,34
+inflation,Kenya,Tanzania,0.1569,moderate divergence,34,34
+private_credit,Tanzania,Uganda,0.1524,moderate divergence,34,34
+unemployment,Kenya,Uganda,0.1515,moderate divergence,34,34
+exports_gdp,Kenya,Uganda,0.149,low divergence (near-IID),34,34
+gdp_growth,Tanzania,Uganda,0.1425,low divergence (near-IID),34,34
+real_interest_rate,Kenya,Uganda,0.1409,low divergence (near-IID),34,34
+current_account,Kenya,Uganda,0.1382,low divergence (near-IID),34,34
+gdp_growth,Kenya,Uganda,0.1322,low divergence (near-IID),34,34
+imports_gdp,Kenya,Uganda,0.1194,low divergence (near-IID),34,34
+tax_revenue,Kenya,Tanzania,0.1129,low divergence (near-IID),34,34
+school_enrollment,Kenya,Uganda,0.1,low divergence (near-IID),34,34
+gdp_growth,Kenya,Tanzania,0.0939,low divergence (near-IID),34,34
+urban_population,Kenya,Uganda,0.0907,low divergence (near-IID),34,34
+imports_gdp,Tanzania,Uganda,0.0812,low divergence (near-IID),34,34
+inflation,Kenya,Uganda,0.0428,low divergence (near-IID),34,34
+trade_gdp,Kenya,Tanzania,0.0428,low divergence (near-IID),34,34
+life_expectancy,Kenya,Tanzania,0.0419,low divergence (near-IID),34,34
+real_interest_rate,Tanzania,Uganda,0.0131,low divergence (near-IID),34,34

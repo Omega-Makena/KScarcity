@@ -1,0 +1,191 @@
+{
+  "stage": "7",
+  "name": "dowhy_benchmark",
+  "status": "PASS",
+  "target": "DoWhy sign accuracy computed and comparable to online engine",
+  "result": {
+    "n_evaluated": 22,
+    "n_correct": 16,
+    "causal_sign_accuracy": 0.7273,
+    "pairs": [
+      {
+        "ate": -0.009855,
+        "sign": -1,
+        "source": "private_credit",
+        "target": "gdp_growth",
+        "expected_sign": 1,
+        "sign_correct": false
+      },
+      {
+        "ate": 0.009063,
+        "sign": 1,
+        "source": "exports_gdp",
+        "target": "gdp_growth",
+        "expected_sign": 1,
+        "sign_correct": true
+      },
+      {
+        "ate": -0.062571,
+        "sign": -1,
+        "source": "exports_gdp",
+        "target": "tax_revenue",
+        "expected_sign": 1,
+        "sign_correct": false
+      },
+      {
+        "ate": 0.904574,
+        "sign": 1,
+        "source": "gdp_growth",
+        "target": "tax_revenue",
+        "expected_sign": 1,
+        "sign_correct": true
+      },
+      {
+        "ate": -0.695961,
+        "sign": -1,
+        "source": "gdp_growth",
+        "target": "unemployment",
+        "expected_sign": -1,
+        "sign_correct": true
+      },
+      {
+        "ate": -0.014144,
+        "sign": -1,
+        "source": "inflation",
+        "target": "exports_gdp",
+        "expected_sign": -1,
+        "sign_correct": true
+      },
+      {
+        "ate": 0.554982,
+        "sign": 1,
+        "source": "inflation",
+        "target": "real_interest_rate",
+        "expected_sign": 1,
+        "sign_correct": true
+      },
+      {
+        "ate": 0.01954,
+        "sign": 1,
+        "source": "govt_debt",
+        "target": "real_interest_rate",
+        "expected_sign": 1,
+        "sign_correct": true
+      },
+      {
+        "ate": -0.368199,
+        "sign": -1,
+        "source": "govt_debt",
+        "target": "private_credit",
+        "expected_sign": -1,
+        "sign_correct": true
+      },
+      {
+        "ate": -0.013085,
+        "sign": -1,
+        "source": "real_interest_rate",
+        "target": "private_credit",
+        "expected_sign": -1,
+        "sign_correct": true
+      },
+      {
+        "ate": 0.015801,
+        "sign": 1,
+        "source": "real_interest_rate",
+        "target": "broad_money",
+        "expected_sign": -1,
+        "sign_correct": false
+      },
+      {
+        "ate": -0.167221,
+        "sign": -1,
+        "source": "real_interest_rate",
+        "target": "gdp_growth",
+        "expected_sign": -1,
+        "sign_correct": true
+      },
+      {
+        "ate": 1.135435,
+        "sign": 1,
+        "source": "private_credit",
+        "target": "broad_money",
+        "expected_sign": 1,
+        "sign_correct": true
+      },
+      {
+        "ate": 0.031068,
+        "sign": 1,
+        "source": "electricity_access",
+        "target": "gdp_growth",
+        "expected_sign": 1,
+        "sign_correct": true
+      },
+      {
+        "ate": 0.662527,
+        "sign": 1,
+        "source": "electricity_access",
+        "target": "internet_users",
+        "expected_sign": 1,
+        "sign_correct": true
+      },
+      {
+        "ate": -0.14901,
+        "sign": -1,
+        "source": "electricity_access",
+        "target": "private_credit",
+        "expected_sign": 1,
+        "sign_correct": false
+      },
+      {
+        "ate": -0.031964,
+        "sign": -1,
+        "source": "internet_users",
+        "target": "gdp_growth",
+        "expected_sign": 1,
+        "sign_correct": false
+      },
+      {
+        "ate": -0.104765,
+        "sign": -1,
+        "source": "gdp_growth",
+        "target": "life_expectancy",
+        "expected_sign": 1,
+        "sign_correct": false
+      },
+      {
+        "ate": 0.118089,
+        "sign": 1,
+        "source": "gdp_growth",
+        "target": "school_enrollment",
+        "expected_sign": 1,
+        "sign_correct": true
+      },
+      {
+        "ate": -0.419864,
+        "sign": -1,
+        "source": "unemployment",
+        "target": "gdp_growth",
+        "expected_sign": -1,
+        "sign_correct": true
+      },
+      {
+        "ate": 0.715471,
+        "sign": 1,
+        "source": "life_expectancy",
+        "target": "school_enrollment",
+        "expected_sign": 1,
+        "sign_correct": true
+      },
+      {
+        "ate": 0.049728,
+        "sign": 1,
+        "source": "urban_population",
+        "target": "gdp_growth",
+        "expected_sign": 1,
+        "sign_correct": true
+      }
+    ]
+  },
+  "wallclock_s": 8.423,
+  "timestamp": "2026-04-27T00:06:24.287942+00:00"
+}

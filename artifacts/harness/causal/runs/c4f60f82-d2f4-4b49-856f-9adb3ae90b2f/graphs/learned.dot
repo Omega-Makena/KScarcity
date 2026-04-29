@@ -1,0 +1,4 @@
+digraph LearnedGraph {
+  rankdir=LR;
+  "urban_population" -> "gdp_growth";
+}

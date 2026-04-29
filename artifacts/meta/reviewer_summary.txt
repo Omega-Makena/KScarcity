@@ -1,0 +1,25 @@
+REVIEWER ADDITIONS BENCHMARK SUMMARY
+=====================================
+Generated: 2026-04-23 09:31:36
+
+R1: RIDGE-LAG BASELINE
+----------------------------------------
+  Local-AR1                                 MAE=0.8598  features/indicator=1
+  Ridge-Lag (alpha=10)                      MAE=1.0258  features/indicator=18
+  Ridge-Lag vs AR1: 1.0258 vs 0.8598 (WORSE by 0.1660)
+
+R2: TEMPORAL INSTABILITY
+----------------------------------------
+  AR1-fixed (pre-2008 params, 2008-2023 test): MAE=0.9197
+  AR1-rolling (standard rolling fold):          MAE=0.8822
+  Scarcity conf@2007: 0.0987 | conf@2023: 0.1644 | change: +66.5%
+
+R3: SIMULATION UNCERTAINTY
+----------------------------------------
+  S1 Electricity: mean=0.200 ± std=0.163 (5 seeds)
+  S3 Inflation:   mean=0.000 ± std=0.000 (5 seeds)
+  avg_conf:       mean=0.442 ± std=0.007
+
+R4: REPRODUCIBILITY AUDIT
+----------------------------------------
+  See reviewer_reproducibility.txt for full audit.

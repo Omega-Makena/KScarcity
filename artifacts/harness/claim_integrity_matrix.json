@@ -1,0 +1,240 @@
+{
+  "claims": {
+    "Data heterogeneity (non-IID)": {
+      "overall": "PASS",
+      "evidence": [
+        {
+          "stage": "1.1",
+          "status": "PASS",
+          "name": "non_iid_verification"
+        }
+      ]
+    },
+    "Low false-positive rate on null data": {
+      "overall": "FAIL",
+      "evidence": [
+        {
+          "stage": "1.2",
+          "status": "FAIL",
+          "name": "run_stage_1_2"
+        }
+      ]
+    },
+    "Temporal ordering sensitivity": {
+      "overall": "FAIL",
+      "evidence": [
+        {
+          "stage": "1.3",
+          "status": "FAIL",
+          "name": "run_stage_1_3"
+        }
+      ]
+    },
+    "Engine outperforms naive Pearson baseline": {
+      "overall": "FAIL",
+      "evidence": [
+        {
+          "stage": "1.4",
+          "status": "FAIL",
+          "name": "correlation_sign_baseline"
+        }
+      ]
+    },
+    "Correct sign discovery on GT pairs": {
+      "overall": "PASS",
+      "evidence": [
+        {
+          "stage": "2.1",
+          "status": "PASS",
+          "name": "four_condition_matrix"
+        },
+        {
+          "stage": "2.2",
+          "status": "PASS",
+          "name": "discovery_baselines"
+        },
+        {
+          "stage": "2.3",
+          "status": "PASS",
+          "name": "discovery_comparison"
+        }
+      ]
+    },
+    "Federation improves discovery quality": {
+      "overall": "WARN",
+      "evidence": [
+        {
+          "stage": "3.1",
+          "status": "WARN",
+          "name": "evidence_sharing_ablation"
+        },
+        {
+          "stage": "3.2",
+          "status": "WARN",
+          "name": "hierarchical_vs_simple"
+        }
+      ]
+    },
+    "Differential privacy utility tradeoff": {
+      "overall": "PASS",
+      "evidence": [
+        {
+          "stage": "3.3",
+          "status": "PASS",
+          "name": "dp_utility_privacy"
+        }
+      ]
+    },
+    "Byzantine robustness of aggregation": {
+      "overall": "PASS",
+      "evidence": [
+        {
+          "stage": "3.4",
+          "status": "PASS",
+          "name": "byzantine_robustness"
+        }
+      ]
+    },
+    "SFC accounting identity holds": {
+      "overall": "PASS",
+      "evidence": [
+        {
+          "stage": "4.1",
+          "status": "PASS",
+          "name": "sfc_identity_check"
+        }
+      ]
+    },
+    "Simulation directional validity": {
+      "overall": "PASS",
+      "evidence": [
+        {
+          "stage": "4.2",
+          "status": "PASS",
+          "name": "directional_validation"
+        }
+      ]
+    },
+    "Null shocks do not spuriously match": {
+      "overall": "PASS",
+      "evidence": [
+        {
+          "stage": "4.3",
+          "status": "PASS",
+          "name": "null_shock_falsification"
+        }
+      ]
+    },
+    "Live data corrects pretrain inversions": {
+      "overall": "FAIL",
+      "evidence": [
+        {
+          "stage": "5.1",
+          "status": "FAIL",
+          "name": "run_stage_5_1"
+        }
+      ]
+    },
+    "More data improves accuracy monotonically": {
+      "overall": "WARN",
+      "evidence": [
+        {
+          "stage": "5.2",
+          "status": "WARN",
+          "name": "pioneer_row_sweep"
+        }
+      ]
+    },
+    "MetaIntegrativeLayer policy correctness": {
+      "overall": "PASS",
+      "evidence": [
+        {
+          "stage": "5.3",
+          "status": "PASS",
+          "name": "meta_policy_verification"
+        }
+      ]
+    },
+    "DRG assurance levels correctly assigned": {
+      "overall": "PASS",
+      "evidence": [
+        {
+          "stage": "6.1",
+          "status": "PASS",
+          "name": "assurance_level_test"
+        }
+      ]
+    },
+    "System self-regulates under pressure": {
+      "overall": "WARN",
+      "evidence": [
+        {
+          "stage": "6.2",
+          "status": "WARN",
+          "name": "self_regulation_loop"
+        }
+      ]
+    },
+    "Causal pipeline sign accuracy": {
+      "overall": "PASS",
+      "evidence": [
+        {
+          "stage": "7",
+          "status": "PASS",
+          "name": "dowhy_benchmark"
+        }
+      ]
+    },
+    "EventBus wiring completeness": {
+      "overall": "PASS",
+      "evidence": [
+        {
+          "stage": "8.1",
+          "status": "PASS",
+          "name": "eventbus_audit"
+        }
+      ]
+    },
+    "Federated prediction no worse than local": {
+      "overall": "WARN",
+      "evidence": [
+        {
+          "stage": "9",
+          "status": "WARN",
+          "name": "prediction_mae"
+        }
+      ]
+    },
+    "Adaptive system beats frozen baseline": {
+      "overall": "PASS",
+      "evidence": [
+        {
+          "stage": "10",
+          "status": "PASS",
+          "name": "regime_transfer"
+        }
+      ]
+    },
+    "Federation degrades gracefully under sparsity": {
+      "overall": "PASS",
+      "evidence": [
+        {
+          "stage": "11.1",
+          "status": "PASS",
+          "name": "sparsity_sweep"
+        }
+      ]
+    },
+    "Buffer size monotonically improves MAE": {
+      "overall": "PASS",
+      "evidence": [
+        {
+          "stage": "11.2",
+          "status": "PASS",
+          "name": "buffer_sweep"
+        }
+      ]
+    }
+  },
+  "n_stages_run": 26
+}

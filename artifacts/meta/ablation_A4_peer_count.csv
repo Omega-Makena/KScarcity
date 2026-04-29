@@ -1,0 +1,5 @@
+variant,n_peers,avg_conf,n_active,n_tentative,n_decaying,n_dead,n_total
+no_peers,0,0.473,4,25,0,94,29
+one_peer_KEN,1,0.5065,7,35,0,166,42
+one_peer_TZA,1,0.5422,3,35,0,170,38
+two_peers,2,0.5297,5,18,0,270,23

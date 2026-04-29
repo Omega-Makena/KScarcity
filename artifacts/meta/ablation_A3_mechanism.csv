@@ -1,0 +1,10 @@
+mechanism,country,avg_conf,n_active,n_tentative,n_decaying,n_dead,n_total
+isolated,Kenya,0.4023,5,25,0,93,30
+isolated,Tanzania,0.3926,2,25,0,96,27
+isolated,Uganda,0.3745,2,25,0,96,27
+evidence_sharing,Kenya,0.5313,7,35,0,166,42
+evidence_sharing,Tanzania,0.3884,7,35,0,166,42
+evidence_sharing,Uganda,0.4463,7,35,0,166,42
+pooled_centralised,Kenya,0.5029,6,18,0,269,24
+pooled_centralised,Tanzania,0.5029,6,18,0,269,24
+pooled_centralised,Uganda,0.5029,6,18,0,269,24

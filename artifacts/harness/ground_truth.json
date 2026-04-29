@@ -1,0 +1,215 @@
+{
+  "version": "1.0",
+  "description": "25 economic relationships with known signs from established theory.",
+  "sources": [
+    "IMF Article IV Consultation, Kenya 2019/2022",
+    "World Bank WDI documentation",
+    "Mankiw, Macroeconomics (10th ed.) Chapters 14, 17",
+    "Levine (2005) finance-growth nexus review",
+    "Standard IS-LM / AS-AD framework"
+  ],
+  "pairs": [
+    {
+      "source": "private_credit",
+      "target": "gdp_growth",
+      "expected_sign": 1,
+      "category": "unambiguous",
+      "basket": "macro",
+      "reference": "Levine 2005; finance-growth nexus"
+    },
+    {
+      "source": "exports_gdp",
+      "target": "gdp_growth",
+      "expected_sign": 1,
+      "category": "unambiguous",
+      "basket": "macro",
+      "reference": "Mankiw ch.11; open-economy multiplier"
+    },
+    {
+      "source": "exports_gdp",
+      "target": "current_account",
+      "expected_sign": 1,
+      "category": "identity",
+      "basket": "macro",
+      "reference": "National accounts identity"
+    },
+    {
+      "source": "exports_gdp",
+      "target": "tax_revenue",
+      "expected_sign": 1,
+      "category": "unambiguous",
+      "basket": "macro",
+      "reference": "IMF SSA Fiscal Monitor 2021"
+    },
+    {
+      "source": "gdp_growth",
+      "target": "tax_revenue",
+      "expected_sign": 1,
+      "category": "unambiguous",
+      "basket": "macro",
+      "reference": "Mankiw ch.17; automatic stabilisers"
+    },
+    {
+      "source": "gdp_growth",
+      "target": "unemployment",
+      "expected_sign": -1,
+      "category": "unambiguous",
+      "basket": "macro",
+      "reference": "Okun's Law"
+    },
+    {
+      "source": "inflation",
+      "target": "exports_gdp",
+      "expected_sign": -1,
+      "category": "unambiguous",
+      "basket": "macro",
+      "reference": "REER competitiveness; IMF Art.IV Kenya 2022"
+    },
+    {
+      "source": "inflation",
+      "target": "current_account",
+      "expected_sign": -1,
+      "category": "contested",
+      "basket": "macro",
+      "reference": "Import costs rise; trade balance worsens",
+      "contest_reason": "Sign depends on Marshall-Lerner elasticities: negative via import cost channel, but currency depreciation from inflation can improve exports. Empirical sign varies by country and horizon."
+    },
+    {
+      "source": "govt_consumption",
+      "target": "gdp_growth",
+      "expected_sign": 1,
+      "category": "contested",
+      "basket": "macro",
+      "reference": "Keynesian fiscal multiplier",
+      "contest_reason": "Keynesian multiplier predicts positive, but Ricardian equivalence and crowding-out (higher rates reducing private investment) predict near-zero or negative. Sign depends on debt level, monetary regime, and openness."
+    },
+    {
+      "source": "inflation",
+      "target": "real_interest_rate",
+      "expected_sign": 1,
+      "category": "unambiguous",
+      "basket": "financial",
+      "reference": "Taylor rule; CBK reaction function"
+    },
+    {
+      "source": "govt_debt",
+      "target": "real_interest_rate",
+      "expected_sign": 1,
+      "category": "unambiguous",
+      "basket": "financial",
+      "reference": "Crowding-out; Mankiw ch.17"
+    },
+    {
+      "source": "govt_debt",
+      "target": "private_credit",
+      "expected_sign": -1,
+      "category": "unambiguous",
+      "basket": "financial",
+      "reference": "Crowding-out via bond market"
+    },
+    {
+      "source": "real_interest_rate",
+      "target": "private_credit",
+      "expected_sign": -1,
+      "category": "unambiguous",
+      "basket": "financial",
+      "reference": "Standard credit channel; IS curve"
+    },
+    {
+      "source": "real_interest_rate",
+      "target": "broad_money",
+      "expected_sign": -1,
+      "category": "unambiguous",
+      "basket": "financial",
+      "reference": "Monetary contraction reduces M2"
+    },
+    {
+      "source": "real_interest_rate",
+      "target": "gdp_growth",
+      "expected_sign": -1,
+      "category": "unambiguous",
+      "basket": "financial",
+      "reference": "Investment channel; Mankiw ch.14"
+    },
+    {
+      "source": "private_credit",
+      "target": "broad_money",
+      "expected_sign": 1,
+      "category": "unambiguous",
+      "basket": "financial",
+      "reference": "Money multiplier; credit expansion"
+    },
+    {
+      "source": "electricity_access",
+      "target": "gdp_growth",
+      "expected_sign": 1,
+      "category": "unambiguous",
+      "basket": "infrastructure",
+      "reference": "IMF Art.IV Kenya 2022 sec.III; WB WDI"
+    },
+    {
+      "source": "electricity_access",
+      "target": "internet_users",
+      "expected_sign": 1,
+      "category": "unambiguous",
+      "basket": "infrastructure",
+      "reference": "Digital infrastructure co-location"
+    },
+    {
+      "source": "electricity_access",
+      "target": "private_credit",
+      "expected_sign": 1,
+      "category": "unambiguous",
+      "basket": "infrastructure",
+      "reference": "Electrification enables bankable projects"
+    },
+    {
+      "source": "internet_users",
+      "target": "gdp_growth",
+      "expected_sign": 1,
+      "category": "unambiguous",
+      "basket": "infrastructure",
+      "reference": "Digital economy productivity"
+    },
+    {
+      "source": "gdp_growth",
+      "target": "life_expectancy",
+      "expected_sign": 1,
+      "category": "unambiguous",
+      "basket": "human_capital",
+      "reference": "Preston curve; income-health relationship"
+    },
+    {
+      "source": "gdp_growth",
+      "target": "school_enrollment",
+      "expected_sign": 1,
+      "category": "unambiguous",
+      "basket": "human_capital",
+      "reference": "Income -> education demand"
+    },
+    {
+      "source": "unemployment",
+      "target": "gdp_growth",
+      "expected_sign": -1,
+      "category": "unambiguous",
+      "basket": "human_capital",
+      "reference": "Okun's law (reverse)"
+    },
+    {
+      "source": "life_expectancy",
+      "target": "school_enrollment",
+      "expected_sign": 1,
+      "category": "unambiguous",
+      "basket": "human_capital",
+      "reference": "Longer horizon -> more education investment"
+    },
+    {
+      "source": "urban_population",
+      "target": "gdp_growth",
+      "expected_sign": 1,
+      "category": "unambiguous",
+      "basket": "human_capital",
+      "reference": "Agglomeration economies; urbanisation-growth"
+    }
+  ]
+}

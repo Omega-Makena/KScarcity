@@ -1,0 +1,4 @@
+digraph LearnedGraph {
+  rankdir=LR;
+  "life_expectancy" -> "school_enrollment";
+}

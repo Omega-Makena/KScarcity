@@ -409,8 +409,12 @@ EventBus: "data_window"
           │  After store.update_edges(...), MPIE publishes        │
           │  EventBus: "engine.insight" when accepted edges exist │
           │                                                       │
-          │  Exporter.emit_insights(...) handles counter/path-pack│
-          │  cadence; bus publish hooks are currently TODO        │
+          │  Exporter.emit_insights(...):                         │
+          │  · publishes "engine.insight" every window            │
+          │  · publishes "inference.path_pack" every              │
+          │    export_interval windows (batched edges)            │
+          │  · lazy bus resolution (get_bus()) avoids circular    │
+          │    imports at construction time                       │
           └───────────────────────────┬──────────────────────────┘
                                       │
           ┌───────────────────────────▼──────────────────────────┐
@@ -435,9 +439,20 @@ EventBus: "data_window"
     New observation
          │
          ▼
-    Hypothesis.fit_step(X, y)  ← online update (RLS / EMA)
-    Hypothesis.evaluate()      → confidence, stability, evidence
+    Hypothesis.fit_step(X, y)  ← online update (RLS / EMA / Welford)
+    Hypothesis.evaluate()      → fit_score, confidence, stability,
+                                  evidence, ready
 
+         │
+         ├─ [ready: False — buffer not yet full]
+         │   _not_ready() sentinel:
+         │   {confidence: 0.0, fit_score: 0.0, stability: 0.0,
+         │    evidence: n, ready: False}
+         │   → blocked by get_candidate_paths() confidence < 0.25 gate
+         │   → never enters proposal pool during cold start
+         │
+         └─ [ready: True — buffer full]
+             → normal evaluate() result with ready: True
          │
          ▼
     MetaController.manage_lifecycle(pool)
@@ -463,14 +478,32 @@ EventBus: "data_window"
     · loser → DECAYING
 ```
 
-### 2.4 EventBus Topics
+### 2.4 Buffer Size and Data Frequency
+
+`OnlineDiscoveryEngine(buffer_size=N)` controls the observation window for all 15
+hypothesis types. `buffer_size` is threaded through every constructor call in
+`initialize_v2()` and `_explore_step()`.
+
+```
+buffer_size guidelines
+──────────────────────────────────────────────────────────────────
+50–80    Tick / high-frequency data    cold-start resolves quickly
+150      Default (mixed data)          balanced sensitivity
+200–300  Monthly macro series          stable distribution tests
+```
+
+Internally, window-batch types store the last `buffer_size` observations in a
+`deque(maxlen=buffer_size)`. Truly-online types (RLS, Welford, Kalman) use it
+only for the `_not_ready()` cold-start count check.
+
+### 2.5 EventBus Topics
 
 ```
  SUBSCRIBED                         PUBLISHED
  ─────────────────────              ─────────────────────────
  "data_window"           ──────►   "engine.insight"
- "resource_profile"      ──────►   "processing_metrics"
- "meta_policy_update"
+ "resource_profile"      ──────►   "inference.path_pack"
+ "meta_policy_update"    ──────►   "processing_metrics"
  "meta_prior_update"
  "fmi.meta_prior_update"
  "fmi.meta_policy_hint"
@@ -482,7 +515,7 @@ Implementation notes:
 - "meta_prior_update" and "fmi.meta_prior_update" are routed through `_handle_meta_policy_update()`.
 - "fmi.telemetry" is currently handled as a no-op hook.
 
-### 2.5 Causal Modelling Pipeline (Structural Inference)
+### 2.6 Causal Modelling Pipeline (Structural Inference)
 
 ```
 scarcity/causal/
@@ -943,6 +976,7 @@ Topic                     Published By              Consumed By
 "processing_metrics"      MPIEOrchestrator          MetaLearningAgent
                                                     MetaSupervisor (DRG)
 "engine.insight"          Exporter (MPIEOrch.)      K-SHIELD causal graph
+"inference.path_pack"     Exporter (MPIEOrch.)      Federation / consumers (batched edges)
 "telemetry"               Engine internals          MetaSupervisor
 "federation.policy_pack"  Aegis Federation nodes    MetaLearningAgent
 "federation.path_pack"    Federation agents         Federation peers/coord.

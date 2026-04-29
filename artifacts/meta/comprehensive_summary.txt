@@ -1,0 +1,39 @@
+====================================================================
+SCARCITY — COMPREHENSIVE BENCHMARK RESULTS
+Sections: Ablations / Stress Tests / Failure Modes / Calibration / Lifecycle / DRG
+====================================================================
+
+--- Section A ---
+A1 Lifecycle mgmt: standard avg_conf=0.390 | no-pruning avg_conf=0.121 | delta=-0.268
+A2 At gate=0.25: 46.3% of hypotheses qualify for simulation
+A3 Mechanism [evidence_sharing]: avg_conf=0.455
+A3 Mechanism [isolated]: avg_conf=0.390
+A3 Mechanism [pooled_centralised]: avg_conf=0.503
+A4 Peers=0 [no_peers]: avg_conf=0.473, n_active=4
+A4 Peers=1 [one_peer_KEN]: avg_conf=0.506, n_active=7
+A4 Peers=1 [one_peer_TZA]: avg_conf=0.542, n_active=3
+A4 Peers=2 [two_peers]: avg_conf=0.530, n_active=5
+
+--- Section B ---
+B1 Permutation: mean conf drop=+0.105 when time order destroyed (negative = real structure, positive = artefact)
+B2 Time reversal: forward=0.402, reversed=0.646, delta=+0.243
+B3 Null world: false positive rate=0.410, avg_conf=0.481 (should be near 0 if well-calibrated)
+B4 Shock falsification: real shock propagated 3 steps, falsified shock propagated 3 steps
+
+--- Section C ---
+C1 Early overconfidence: conf@steps3-7=0.000 vs conf@final5=0.409 (monotone increasing)
+C2 Conflict oscillation: 0/25 hypotheses oscillated ACTIVE↔DECAYING (>1 state change)
+C3 Structural break: pre=0.229 | during_break=0.417 | post=0.413 — conf resilient
+
+--- Section D ---
+D1 Calibration: 0/8 confidence bins well-calibrated (|conf_midpoint - survival_rate| < 0.10)
+D1 Brier score analog = 0.5410 (0=perfect, 0.25=random)
+
+--- Section E ---
+E1 Lifecycle: 123 hypotheses created, 0 pruned, avg lifetime=9.4 steps, max=34 steps
+
+--- Section F ---
+F1 n=  10: 111 obs/s | p95=13.6ms | mem_delta=150KB
+F1 n=  34: 159 obs/s | p95=13.0ms | mem_delta=218KB
+F1 n= 100: 204 obs/s | p95=10.6ms | mem_delta=349KB
+F1 n= 500: 126 obs/s | p95=15.6ms | mem_delta=696KB

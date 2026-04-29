@@ -21,10 +21,11 @@ class MetaController:
     It ensures that only robust hypotheses remain active while weaker ones are
     pruned or put on probation.
     """
-    def __init__(self, 
+    def __init__(self,
                  confidence_threshold: float = 0.7,
                  stability_threshold: float = 0.6,
-                 min_evidence: int = 20):
+                 min_evidence: int = 20,
+                 kill_threshold: float = 0.10):
         """
         Initializes the meta-controller with lifecycle thresholds.
 
@@ -39,6 +40,7 @@ class MetaController:
         self.conf_thresh = confidence_threshold
         self.stab_thresh = stability_threshold
         self.min_evidence = min_evidence
+        self.kill_threshold = kill_threshold
 
     def manage_lifecycle(self, pool: HypothesisPool) -> None:
         """
@@ -73,8 +75,8 @@ class MetaController:
                 if evid > self.min_evidence:
                     if conf > self.conf_thresh and stab > self.stab_thresh:
                         new_state = HypothesisState.ACTIVE
-                    elif conf < 0.3:
-                         dead_ids.append(hid) # Kill early failure
+                    elif conf < self.kill_threshold:
+                        dead_ids.append(hid)  # Kill early failure
             
             elif current_state == HypothesisState.ACTIVE:
                 if conf < (self.conf_thresh - 0.1) or stab < (self.stab_thresh - 0.1):
@@ -83,8 +85,8 @@ class MetaController:
             elif current_state == HypothesisState.DECAYING:
                 if conf > self.conf_thresh and stab > self.stab_thresh:
                     new_state = HypothesisState.ACTIVE # Recovered
-                elif conf < 0.2:
-                    dead_ids.append(hid) # Dead
+                elif conf < self.kill_threshold:
+                    dead_ids.append(hid)  # Dead
             
             # Apply transition
             if new_state != current_state:

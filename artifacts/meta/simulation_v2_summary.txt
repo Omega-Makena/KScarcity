@@ -1,0 +1,43 @@
+========================================================================
+SCARCITY -- ECONOMIC POLICY SIMULATION v2
+  6 shocks x up to 6 predictions each = 31 testable directions
+  5 seeds x n_rows=60 synthetic Kenya-like observations
+========================================================================
+
+Condition: LOCAL
+  Avg hypotheses in pool : 106.0
+  Determined predictions : 47 / 155  (108 indeterminate)
+  Direction matches      : 42 / 47  (89.4%)
+  95% Clopper-Pearson CI : [76.9%, 96.5%]
+
+  Shock                                              k/n      n       %
+  ------------------------------------------------------------------
+  Electricity access +20 pp  (infrastructure inves  10/13     13     77%
+  Government debt +15 pp GDP  (fiscal expansion)     5/6       6     83%
+  Inflation shock +5 pp  (external price pressure)   5/5       5    100%
+  Private credit +5 pp GDP  (FDI / capital availab   7/7       7    100%
+  Exports -10 pp GDP  (drought / commodity shock)    9/10     10     90%
+  Real interest rate +3 pp  (monetary tightening)    6/6       6    100%
+
+Condition: FEDERATED
+  Avg hypotheses in pool : 105.8
+  Determined predictions : 43 / 155  (112 indeterminate)
+  Direction matches      : 40 / 43  (93.0%)
+  95% Clopper-Pearson CI : [80.9%, 98.5%]
+
+  Shock                                              k/n      n       %
+  ------------------------------------------------------------------
+  Electricity access +20 pp  (infrastructure inves   9/10     10     90%
+  Government debt +15 pp GDP  (fiscal expansion)     5/6       6     83%
+  Inflation shock +5 pp  (external price pressure)   5/5       5    100%
+  Private credit +5 pp GDP  (FDI / capital availab   7/7       7    100%
+  Exports -10 pp GDP  (drought / commodity shock)    9/10     10     90%
+  Real interest rate +3 pp  (monetary tightening)    5/5       5    100%
+
+------------------------------------------------------------------------
+Interpretation:
+  Direction match rate = fraction of theoretically-predicted effects
+  where the engine correctly identified the sign (+/-) of response.
+  Random guessing = 50%. Naive AR(1) baseline ~ 52%.
+  Target: 75%+ accuracy with CI lower bound > 60%.
+------------------------------------------------------------------------

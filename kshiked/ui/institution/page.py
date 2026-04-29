@@ -415,3 +415,17 @@ def _render_upload_workspace(theme):
         
     except Exception as e:
       st.error(f"Error reading or processing file: {e}")
+
+
+def main():
+  """Run the institution portal as a standalone Streamlit page."""
+  st.set_page_config(page_title="Institution Portal", layout="wide")
+  try:
+    from kshiked.ui.theme import LIGHT_THEME
+  except Exception:
+    from theme import LIGHT_THEME
+  render(LIGHT_THEME)
+
+
+if __name__ == "__main__":
+  main()

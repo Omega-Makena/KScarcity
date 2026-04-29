@@ -1,0 +1,52 @@
+{
+  "stage": "11.1",
+  "name": "sparsity_sweep",
+  "status": "PASS",
+  "target": "Federated MAE degrades more slowly than local as data is dropped",
+  "result": {
+    "n_seeds": 1,
+    "sparsity_levels": [
+      "0%",
+      "20%",
+      "40%",
+      "60%"
+    ],
+    "mae_by_sparsity": {
+      "drop_0pct": {
+        "local_ar1_mae": 0.8777,
+        "fed_ar1_mae": 1.9113,
+        "local_sc_mae": 1.0646,
+        "fed_sc_mae": 1.1683
+      },
+      "drop_20pct": {
+        "local_ar1_mae": 0.8576,
+        "fed_ar1_mae": 1.8867,
+        "local_sc_mae": 1.0424,
+        "fed_sc_mae": 1.1498
+      },
+      "drop_40pct": {
+        "local_ar1_mae": 0.8673,
+        "fed_ar1_mae": 1.7271,
+        "local_sc_mae": 1.0544,
+        "fed_sc_mae": 1.018
+      },
+      "drop_60pct": {
+        "local_ar1_mae": 0.8941,
+        "fed_ar1_mae": 1.4465,
+        "local_sc_mae": 1.0472,
+        "fed_sc_mae": 1.0319
+      }
+    },
+    "degradation_slopes": {
+      "local_ar1_mae": 0.0294,
+      "fed_ar1_mae": -0.777,
+      "local_sc_mae": -0.0201,
+      "fed_sc_mae": -0.2705
+    },
+    "local_slope": -0.0201,
+    "fed_slope": -0.2705,
+    "interpretation": "Slope = MAE increase per unit sparsity fraction. Smaller (or negative) slope = more graceful degradation. Fed should degrade more slowly because peer data compensates."
+  },
+  "wallclock_s": 3.887,
+  "timestamp": "2026-04-26T17:43:53.848409+00:00"
+}

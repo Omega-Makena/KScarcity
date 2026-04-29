@@ -1,0 +1,23 @@
+15:58:48  INFO     benchmark.proper — Scarcity Proper Benchmark
+15:58:48  INFO     benchmark.proper —   Python 3.11.9 | numpy 2.3.5 | scipy 1.15.3 | platform Windows
+15:58:48  INFO     benchmark.proper —   Seeds=20  Live=True  Range=1995-2023
+15:58:48  INFO     benchmark.proper — Loading Kenya (KEN) ...
+15:59:09  WARNING  experiment.east_africa — WB fetch failed KEN/NY.GDP.MKTP.KD.ZG: HTTPSConnectionPool(host='api.worldbank.org', port=443): Read timed out. (read timeout=20)
+15:59:46  WARNING  experiment.east_africa — WB fetch failed KEN/SL.UEM.TOTL.ZS: HTTPSConnectionPool(host='api.worldbank.org', port=443): Read timed out. (read timeout=20)
+16:00:06  WARNING  experiment.east_africa — WB fetch failed KEN/NE.EXP.GNFS.ZS: HTTPSConnectionPool(host='api.worldbank.org', port=443): Read timed out. (read timeout=20)
+16:00:27  WARNING  experiment.east_africa — WB fetch failed KEN/NE.IMP.GNFS.ZS: HTTPSConnectionPool(host='api.worldbank.org', port=443): Read timed out. (read timeout=20)
+16:00:48  WARNING  experiment.east_africa — WB fetch failed KEN/NE.TRD.GNFS.ZS: HTTPSConnectionPool(host='api.worldbank.org', port=443): Read timed out. (read timeout=20)
+16:01:09  WARNING  experiment.east_africa — WB fetch failed KEN/BN.CAB.XOKA.GD.ZS: HTTPSConnectionPool(host='api.worldbank.org', port=443): Read timed out. (read timeout=20)
+16:01:30  WARNING  experiment.east_africa — WB fetch failed KEN/NE.CON.GOVT.ZS: HTTPSConnectionPool(host='api.worldbank.org', port=443): Read timed out. (read timeout=20)
+16:01:51  WARNING  experiment.east_africa — WB fetch failed KEN/GC.TAX.TOTL.GD.ZS: HTTPSConnectionPool(host='api.worldbank.org', port=443): Read timed out. (read timeout=20)
+16:02:12  WARNING  experiment.east_africa — WB fetch failed KEN/GC.DOD.TOTL.GD.ZS: HTTPSConnectionPool(host='api.worldbank.org', port=443): Read timed out. (read timeout=20)
+16:02:33  WARNING  experiment.east_africa — WB fetch failed KEN/FR.INR.RINR: HTTPSConnectionPool(host='api.worldbank.org', port=443): Read timed out. (read timeout=20)
+16:02:54  WARNING  experiment.east_africa — WB fetch failed KEN/FM.LBL.BMNY.GD.ZS: HTTPSConnectionPool(host='api.worldbank.org', port=443): Read timed out. (read timeout=20)
+16:03:15  WARNING  experiment.east_africa — WB fetch failed KEN/FS.AST.PRVT.GD.ZS: HTTPSConnectionPool(host='api.worldbank.org', port=443): Read timed out. (read timeout=20)
+16:03:36  WARNING  experiment.east_africa — WB fetch failed KEN/SP.URB.TOTL.IN.ZS: HTTPSConnectionPool(host='api.worldbank.org', port=443): Read timed out. (read timeout=20)
+16:03:57  WARNING  experiment.east_africa — WB fetch failed KEN/SE.PRM.ENRR: HTTPSConnectionPool(host='api.worldbank.org', port=443): Read timed out. (read timeout=20)
+16:04:18  WARNING  experiment.east_africa — WB fetch failed KEN/SP.DYN.LE00.IN: HTTPSConnectionPool(host='api.worldbank.org', port=443): Read timed out. (read timeout=20)
+16:04:39  WARNING  experiment.east_africa — WB fetch failed KEN/EG.ELC.ACCS.ZS: HTTPSConnectionPool(host='api.worldbank.org', port=443): Read timed out. (read timeout=20)
+16:04:59  WARNING  experiment.east_africa — WB fetch failed KEN/IT.NET.USER.ZS: HTTPSConnectionPool(host='api.worldbank.org', port=443): Read timed out. (read timeout=20)
+16:05:20  WARNING  experiment.east_africa — WB fetch failed KEN/IT.CEL.SETS.P2: HTTPSConnectionPool(host='api.worldbank.org', port=443): Read timed out. (read timeout=20)
+16:05:21  ERROR    benchmark.proper — No data for KEN.

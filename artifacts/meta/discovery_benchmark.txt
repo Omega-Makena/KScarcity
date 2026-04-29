@@ -1,0 +1,245 @@
+==============================================================================
+SCARCITY — RELATIONSHIP DISCOVERY BENCHMARK
+  Data         : LIVE World Bank API
+  Pretrain     : LIVE World Bank API
+  Country      : KEN  (1980-2023, 44 obs)
+  Peers        : TZA, UGA
+  Pretrain     : 12 SSA countries  1995-2009  (180 rows)
+  Ground truth : 25 theory-grounded relationships
+==============================================================================
+
+Evaluation: perturb source variable by +1 std, check predicted target sign.
+Metrics:
+  Discovery rate  = engine gives non-zero prediction for this relationship
+  Sign accuracy   = of discovered, fraction with correct +/- direction
+  Overall recall  = sign-correct / all ground-truth relationships
+
+  A. Cold-start, no federation
+    Ground-truth relationships : 25
+    Discovered (non-zero delta): 21 / 25  (84%)
+    Sign correct (of discovered): 11 / 21  (52%)
+    Conf-weighted sign accuracy : 76%
+    Overall recall             : 11 / 25  (44%)
+    Structural-only recall     : 8 / 19  (42%)
+
+    Per-basket breakdown:
+      macro                 disc=7/9  correct=2/7  (29%)
+      financial             disc=5/7  correct=5/5  (100%)
+      infrastructure        disc=4/4  correct=1/4  (25%)
+      human_capital         disc=5/5  correct=3/5  (60%)
+
+    Relationship detail (source → target):
+      Source                 Target                  Exp  Got      Delta   Conf  Status
+      ----------------------------------------------------------------------------------
+      inflation              real_interest_rate         +    +    +1.4531  0.205  CORRECT
+      real_interest_rate     private_credit             -    -    -1.7575  0.445  CORRECT
+      real_interest_rate     broad_money           *    -    -    -2.3365  0.423  CORRECT
+      real_interest_rate     gdp_growth                 -    -    -0.4181  0.220  CORRECT
+      private_credit         broad_money           *    +    +    +1.5713  0.720  CORRECT
+      govt_debt              real_interest_rate         +            —     0.000  NOT FOUND
+      govt_debt              private_credit             -            —     0.000  NOT FOUND
+      gdp_growth             life_expectancy            +    +    +0.3545  0.568  CORRECT
+      unemployment           gdp_growth                 -    -    -0.2225  0.290  CORRECT
+      life_expectancy        school_enrollment          +    +    +1.5213  0.677  CORRECT
+      gdp_growth             school_enrollment          +    -    -0.8134  0.000  WRONG SIGN
+      urban_population       gdp_growth                 +    -    -0.3441  0.000  WRONG SIGN
+      electricity_access     internet_users             +    +    +3.7603  0.496  CORRECT
+      electricity_access     gdp_growth                 +    -    -0.3768  0.000  WRONG SIGN
+      electricity_access     private_credit             +    -    -2.2860  0.000  WRONG SIGN
+      internet_users         gdp_growth                 +    -    -0.3813  0.000  WRONG SIGN
+      gdp_growth             unemployment               -    -    -1.6000  0.290  CORRECT
+      inflation              current_account       *    -    -    -0.2381  0.107  CORRECT
+      private_credit         gdp_growth                 +    -    -0.3298  0.000  WRONG SIGN
+      exports_gdp            gdp_growth                 +    -    -0.4042  0.134  WRONG SIGN
+      exports_gdp            current_account       *    +    -    -0.3115  0.239  WRONG SIGN
+      inflation              exports_gdp                -    +    +3.1978  0.737  WRONG SIGN
+      govt_consumption       gdp_growth                 +    -    -0.3907  0.274  WRONG SIGN
+      exports_gdp            tax_revenue           *    +            —     0.000  NOT FOUND
+      gdp_growth             tax_revenue           *    +            —     0.000  NOT FOUND
+      (* = accounting identity target; excluded from structural recall)
+
+  B. Cold-start + federation (KEN+TZA+UGA)
+    Ground-truth relationships : 25
+    Discovered (non-zero delta): 21 / 25  (84%)
+    Sign correct (of discovered): 11 / 21  (52%)
+    Conf-weighted sign accuracy : 75%
+    Overall recall             : 11 / 25  (44%)
+    Structural-only recall     : 8 / 19  (42%)
+
+    Per-basket breakdown:
+      macro                 disc=7/9  correct=2/7  (29%)
+      financial             disc=5/7  correct=5/5  (100%)
+      infrastructure        disc=4/4  correct=1/4  (25%)
+      human_capital         disc=5/5  correct=3/5  (60%)
+
+    Relationship detail (source → target):
+      Source                 Target                  Exp  Got      Delta   Conf  Status
+      ----------------------------------------------------------------------------------
+      inflation              real_interest_rate         +    +    +1.3834  0.202  CORRECT
+      real_interest_rate     private_credit             -    -    -1.6824  0.404  CORRECT
+      real_interest_rate     broad_money           *    -    -    -2.4081  0.391  CORRECT
+      real_interest_rate     gdp_growth                 -    -    -0.4266  0.002  CORRECT
+      private_credit         broad_money           *    +    +    +1.6528  0.636  CORRECT
+      govt_debt              real_interest_rate         +            —     0.000  NOT FOUND
+      govt_debt              private_credit             -            —     0.000  NOT FOUND
+      gdp_growth             life_expectancy            +    +    +0.3625  0.508  CORRECT
+      unemployment           gdp_growth                 -    -    -0.2260  0.264  CORRECT
+      life_expectancy        school_enrollment          +    +    +1.3911  0.582  CORRECT
+      gdp_growth             school_enrollment          +    -    -1.1225  0.002  WRONG SIGN
+      urban_population       gdp_growth                 +    -    -0.3837  0.000  WRONG SIGN
+      electricity_access     internet_users             +    +    +3.0786  0.457  CORRECT
+      electricity_access     gdp_growth                 +    -    -0.4215  0.000  WRONG SIGN
+      electricity_access     private_credit             +    -    -2.1768  0.000  WRONG SIGN
+      internet_users         gdp_growth                 +    -    -0.4215  0.000  WRONG SIGN
+      gdp_growth             unemployment               -    -    -1.5795  0.264  CORRECT
+      inflation              current_account       *    -    -    -0.0492  0.100  CORRECT
+      private_credit         gdp_growth                 +    -    -0.3859  0.000  WRONG SIGN
+      exports_gdp            gdp_growth                 +    -    -0.4523  0.125  WRONG SIGN
+      exports_gdp            current_account       *    +    -    -0.1641  0.221  WRONG SIGN
+      inflation              exports_gdp                -    +    +2.9515  0.639  WRONG SIGN
+      govt_consumption       gdp_growth                 +    -    -0.4387  0.250  WRONG SIGN
+      exports_gdp            tax_revenue           *    +            —     0.000  NOT FOUND
+      gdp_growth             tax_revenue           *    +            —     0.000  NOT FOUND
+      (* = accounting identity target; excluded from structural recall)
+
+  C. Pretrained, no federation
+    Ground-truth relationships : 25
+    Discovered (non-zero delta): 23 / 25  (92%)
+    Sign correct (of discovered): 11 / 23  (48%)
+    Conf-weighted sign accuracy : 11%
+    Overall recall             : 11 / 25  (44%)
+    Structural-only recall     : 8 / 19  (42%)
+
+    Per-basket breakdown:
+      macro                 disc=9/9  correct=5/9  (56%)
+      financial             disc=5/7  correct=2/5  (40%)
+      infrastructure        disc=4/4  correct=2/4  (50%)
+      human_capital         disc=5/5  correct=2/5  (40%)
+
+    Relationship detail (source → target):
+      Source                 Target                  Exp  Got      Delta   Conf  Status
+      ----------------------------------------------------------------------------------
+      real_interest_rate     private_credit             -    -    -7.3417  0.000  CORRECT
+      real_interest_rate     broad_money           *    -    -    -3.6104  0.237  CORRECT
+      inflation              real_interest_rate         +    -    -1.0068  0.733  WRONG SIGN
+      real_interest_rate     gdp_growth                 -    +    +0.0365  0.000  WRONG SIGN
+      private_credit         broad_money           *    +    -    -1.6026  0.734  WRONG SIGN
+      govt_debt              real_interest_rate         +            —     0.000  NOT FOUND
+      govt_debt              private_credit             -            —     0.000  NOT FOUND
+      unemployment           gdp_growth                 -    -    -0.0355  0.156  CORRECT
+      urban_population       gdp_growth                 +    +    +0.0278  0.000  CORRECT
+      gdp_growth             life_expectancy            +    -    -3.5144  0.000  WRONG SIGN
+      gdp_growth             school_enrollment          +    -    -3.0187  0.465  WRONG SIGN
+      life_expectancy        school_enrollment          +    -    -4.0280  0.000  WRONG SIGN
+      electricity_access     gdp_growth                 +    +    +0.0365  0.000  CORRECT
+      internet_users         gdp_growth                 +    +    +0.0365  0.000  CORRECT
+      electricity_access     internet_users             +    -    -5.6521  0.719  WRONG SIGN
+      electricity_access     private_credit             +    -    -7.4589  0.000  WRONG SIGN
+      private_credit         gdp_growth                 +    +    +0.0365  0.000  CORRECT
+      exports_gdp            gdp_growth                 +    +    +0.0365  0.000  CORRECT
+      exports_gdp            tax_revenue           *    +    +    +0.1004  0.000  CORRECT
+      inflation              current_account       *    -    -    -0.7431  0.000  CORRECT
+      govt_consumption       gdp_growth                 +    +    +0.0365  0.007  CORRECT
+      exports_gdp            current_account       *    +    -    -0.9840  0.140  WRONG SIGN
+      gdp_growth             tax_revenue           *    +    -    -0.0501  0.167  WRONG SIGN
+      gdp_growth             unemployment               -    +    +0.1604  0.156  WRONG SIGN
+      inflation              exports_gdp                -    +    +2.5123  0.000  WRONG SIGN
+      (* = accounting identity target; excluded from structural recall)
+
+  D. Pretrained + federation (KEN+TZA+UGA)
+    Ground-truth relationships : 25
+    Discovered (non-zero delta): 23 / 25  (92%)
+    Sign correct (of discovered): 5 / 23  (22%)
+    Conf-weighted sign accuracy : 9%
+    Overall recall             : 5 / 25  (20%)
+    Structural-only recall     : 3 / 19  (16%)
+
+    Per-basket breakdown:
+      macro                 disc=9/9  correct=1/9  (11%)
+      financial             disc=5/7  correct=3/5  (60%)
+      infrastructure        disc=4/4  correct=0/4  (0%)
+      human_capital         disc=5/5  correct=1/5  (20%)
+
+    Relationship detail (source → target):
+      Source                 Target                  Exp  Got      Delta   Conf  Status
+      ----------------------------------------------------------------------------------
+      real_interest_rate     private_credit             -    -    -7.4401  0.000  CORRECT
+      real_interest_rate     broad_money           *    -    -    -3.7152  0.242  CORRECT
+      real_interest_rate     gdp_growth                 -    -    -2.7660  0.000  CORRECT
+      inflation              real_interest_rate         +    -    -1.1658  0.727  WRONG SIGN
+      private_credit         broad_money           *    +    -    -1.6911  0.728  WRONG SIGN
+      govt_debt              real_interest_rate         +            —     0.000  NOT FOUND
+      govt_debt              private_credit             -            —     0.000  NOT FOUND
+      unemployment           gdp_growth                 -    -    -2.8786  0.095  CORRECT
+      gdp_growth             life_expectancy            +    -    -1.6377  0.000  WRONG SIGN
+      gdp_growth             school_enrollment          +    -    -2.9563  0.481  WRONG SIGN
+      life_expectancy        school_enrollment          +    -    -2.4032  0.000  WRONG SIGN
+      urban_population       gdp_growth                 +    -    -2.7595  0.369  WRONG SIGN
+      electricity_access     gdp_growth                 +    -    -2.3496  0.000  WRONG SIGN
+      electricity_access     internet_users             +    -    -5.8632  0.721  WRONG SIGN
+      electricity_access     private_credit             +    -    -7.5753  0.000  WRONG SIGN
+      internet_users         gdp_growth                 +    -    -2.4657  0.000  WRONG SIGN
+      inflation              current_account       *    -    -    -0.3829  0.000  CORRECT
+      private_credit         gdp_growth                 +    -    -2.7788  0.003  WRONG SIGN
+      exports_gdp            gdp_growth                 +    -    -2.0848  0.000  WRONG SIGN
+      exports_gdp            current_account       *    +    -    -0.3829  0.000  WRONG SIGN
+      exports_gdp            tax_revenue           *    +    -    -0.4818  0.000  WRONG SIGN
+      gdp_growth             tax_revenue           *    +    -    -0.4393  0.102  WRONG SIGN
+      gdp_growth             unemployment               -    +    +0.2175  0.173  WRONG SIGN
+      inflation              exports_gdp                -    +    +0.3307  0.000  WRONG SIGN
+      govt_consumption       gdp_growth                 +    -    -2.7788  0.000  WRONG SIGN
+      (* = accounting identity target; excluded from structural recall)
+
+------------------------------------------------------------------------------
+Summary comparison:
+
+  Condition                                       Disc%  SignAcc%   Recall%  StrRecall%
+  ----------------------------------------------------------------------------------
+  A. Cold-start, no federation                     84.0      52.4      44.0        42.1
+  B. Cold-start + federation (KEN+TZA+UGA)         84.0      52.4      44.0        42.1
+  C. Pretrained, no federation                     92.0      47.8      44.0        42.1
+  D. Pretrained + federation (KEN+TZA+UGA)         92.0      21.7      20.0        15.8
+------------------------------------------------------------------------------
+Multi-step (mediated) discovery: X → M → Y chains
+
+  A. Cold-start, no federation
+    3 chains found, 1 matching ground-truth pairs
+      Source             Mediator           Target                    IE       p   Conf  GT?
+      ------------------------------------------------------------------------------
+      gdp_growth         life_expectancy    school_enrollment    +0.2226  0.0003  0.487  MATCH(+)
+      broad_money        private_credit     real_interest_rate   -0.2434  0.0007  0.213  no-gt
+      gdp_growth         private_credit     real_interest_rate   +0.0925  0.0014  0.100  no-gt
+
+  B. Cold-start + federation (KEN+TZA+UGA)
+    3 chains found, 1 matching ground-truth pairs
+      Source             Mediator           Target                    IE       p   Conf  GT?
+      ------------------------------------------------------------------------------
+      gdp_growth         life_expectancy    school_enrollment    +0.2226  0.0003  0.440  MATCH(+)
+      broad_money        private_credit     real_interest_rate   -0.2434  0.0006  0.204  no-gt
+      gdp_growth         private_credit     real_interest_rate   +0.0925  0.0004  0.097  no-gt
+
+  C. Pretrained, no federation
+    (no significant mediation chains found)
+
+  D. Pretrained + federation (KEN+TZA+UGA)
+    1 chains found, 1 matching ground-truth pairs
+      Source             Mediator           Target                    IE       p   Conf  GT?
+      ------------------------------------------------------------------------------
+      gdp_growth         life_expectancy    school_enrollment    +1.1868  0.0000  0.704  MATCH(+)
+
+
+------------------------------------------------------------------------------
+Interpretation:
+  Evaluation method:
+    Primary  — step-function lag sweep (4 steps, conf>=0.10 ensemble).
+               Source held +1std; dominant signed response across lags used.
+               Epsilon threshold: |delta| > 1e-4 (near-zero = NOT FOUND).
+    Fallback — direct hypothesis scan (CorrelationalHypothesis p<0.10,
+               CausalHypothesis forward p<0.10, FunctionalHypothesis).
+  Conf-weighted sign accuracy weights each discovery by hypothesis confidence.
+  Structural recall excludes accounting-identity targets (current_account,
+    tax_revenue, broad_money) where the sign is constrained by definition.
+  Discovery rate 80%+ = engine finds signals for most known relationships.
+  Sign accuracy  70%+ = engine correctly identifies +/- for most found.
+  Overall recall 60%+ = engine correctly maps most of the known structure.
+------------------------------------------------------------------------------

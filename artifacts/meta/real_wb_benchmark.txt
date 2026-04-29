@@ -1,0 +1,96 @@
+========================================================================
+SCARCITY -- REAL WORLD BANK DATA BENCHMARK
+  Data source  : LIVE World Bank API
+  Kenya years  : 1995-2023  (29 observations)
+  Peers        : TZA, UGA
+  Warmup years : 15
+========================================================================
+
+PROTOCOL 1: Rolling Leave-One-Year-Out Direction Forecast
+  Prediction: direction of ACTUAL annual change for each indicator.
+  Baseline: AR(1) (predict same direction as last year's change).
+
+  LOCAL  (Kenya only)
+    Total direction tests    : 200
+    Determined (engine made call) : 173 / 200  (86.5%)
+    Direction accuracy       : 81 / 173  (46.8%)
+    95% CI                   : [39.2%, 54.5%]
+    AR(1) baseline accuracy  : 112 / 198  (56.6%)
+    Engine lift vs AR(1)     : -9.7 pp
+    Per-year accuracy (determined only):
+      2010  engine=5/6  AR(1)=6/13
+      2011  engine=3/9  AR(1)=9/13
+      2012  engine=5/11  AR(1)=6/13
+      2013  engine=3/12  AR(1)=8/13
+      2014  engine=5/12  AR(1)=10/13
+      2015  engine=6/13  AR(1)=7/13
+      2016  engine=6/13  AR(1)=10/15
+      2017  engine=9/14  AR(1)=10/15
+      2018  engine=5/14  AR(1)=7/15
+      2019  engine=5/14  AR(1)=9/15
+      2020  engine=6/13  AR(1)=7/15
+      2021  engine=9/14  AR(1)=8/15
+      2022  engine=8/14  AR(1)=7/15
+      2023  engine=6/14  AR(1)=8/15
+
+  FEDERATED (KEN+TZA+UGA)
+    Total direction tests    : 200
+    Determined (engine made call) : 176 / 200  (88.0%)
+    Direction accuracy       : 79 / 176  (44.9%)
+    95% CI                   : [37.4%, 52.6%]
+    AR(1) baseline accuracy  : 112 / 198  (56.6%)
+    Engine lift vs AR(1)     : -11.7 pp
+    Per-year accuracy (determined only):
+      2010  engine=4/8  AR(1)=6/13
+      2011  engine=5/10  AR(1)=9/13
+      2012  engine=5/12  AR(1)=6/13
+      2013  engine=3/12  AR(1)=8/13
+      2014  engine=5/12  AR(1)=10/13
+      2015  engine=6/13  AR(1)=7/13
+      2016  engine=6/13  AR(1)=10/15
+      2017  engine=9/14  AR(1)=10/15
+      2018  engine=5/14  AR(1)=7/15
+      2019  engine=4/13  AR(1)=9/15
+      2020  engine=6/14  AR(1)=7/15
+      2021  engine=9/14  AR(1)=8/15
+      2022  engine=7/13  AR(1)=7/15
+      2023  engine=5/14  AR(1)=8/15
+
+------------------------------------------------------------------------
+PROTOCOL 2: Shock Simulation on Real Baseline
+  Baseline: mean of last 5 Kenya data years.
+  Shocks: 6 policy shocks x theory-predicted directions.
+
+  LOCAL
+    Hypotheses in pool      : 911
+    Determined predictions  : 6 / 31  (25 indeterminate)
+    Direction matches       : 2 / 6  (33.3%)
+    95% CI                  : [4.3%, 77.7%]
+    Per-shock:
+      Electricity access +20 pp  (infrastructure investmen  0/0  0%
+      Government debt +15 pp GDP  (fiscal expansion)        0/0  0%
+      Inflation shock +5 pp  (external price pressure)      0/2  0%
+      Private credit +5 pp GDP  (FDI / capital availabilit  1/2  50%
+      Exports -10 pp GDP  (drought / commodity shock)       0/0  0%
+      Real interest rate +3 pp  (monetary tightening)       1/2  50%
+
+  FEDERATED
+    Hypotheses in pool      : 911
+    Determined predictions  : 9 / 31  (22 indeterminate)
+    Direction matches       : 4 / 9  (44.4%)
+    95% CI                  : [13.7%, 78.8%]
+    Per-shock:
+      Electricity access +20 pp  (infrastructure investmen  0/0  0%
+      Government debt +15 pp GDP  (fiscal expansion)        0/0  0%
+      Inflation shock +5 pp  (external price pressure)      1/4  25%
+      Private credit +5 pp GDP  (FDI / capital availabilit  0/2  0%
+      Exports -10 pp GDP  (drought / commodity shock)       2/2  100%
+      Real interest rate +3 pp  (monetary tightening)       1/1  100%
+
+------------------------------------------------------------------------
+Notes:
+  Protocol 1 tests out-of-sample forecasting on real annual macro data.
+  Protocol 2 tests theory alignment using the engine's learned relationships.
+  Random direction guessing = 50%.  AR(1) baseline ~ 52-55%.
+  Target: engine accuracy > AR(1) with 95% CI lower bound > 60%.
+------------------------------------------------------------------------

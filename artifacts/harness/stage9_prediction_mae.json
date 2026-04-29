@@ -1,0 +1,49 @@
+{
+  "stage": "9",
+  "name": "prediction_mae",
+  "status": "WARN",
+  "target": "ScarcityFed normalised MAE <= LocalAR1 MAE (rolling leave-one-year-out)",
+  "result": {
+    "n_seeds": 2,
+    "methods": {
+      "fedavg_ar1": {
+        "mean_mae": 1.7698,
+        "std_mae": 0.0181,
+        "n_seeds": 2
+      },
+      "local_ar1": {
+        "mean_mae": 0.8795,
+        "std_mae": 0.0068,
+        "n_seeds": 2
+      },
+      "mean": {
+        "mean_mae": 0.8397,
+        "std_mae": 0.0106,
+        "n_seeds": 2
+      },
+      "oracle_ar1": {
+        "mean_mae": 0.9955,
+        "std_mae": 0.0164,
+        "n_seeds": 2
+      },
+      "scarcity_fed": {
+        "mean_mae": 1.2292,
+        "std_mae": 0.0361,
+        "n_seeds": 2
+      },
+      "scarcity_local": {
+        "mean_mae": 1.0504,
+        "std_mae": 0.0132,
+        "n_seeds": 2
+      }
+    },
+    "scarcity_fed_mae": 1.2292,
+    "local_ar1_mae": 0.8795,
+    "oracle_ar1_mae": 0.9955,
+    "gap_vs_ar1_pp": -0.3497,
+    "gap_vs_oracle_pp": 0.2337,
+    "interpretation": "Positive gap_vs_ar1 = Scarcity is better than AR(1). Positive gap_vs_oracle = Scarcity is worse than Oracle (expected). ScarcityFed should sit between AR(1) and Oracle."
+  },
+  "wallclock_s": 4.556,
+  "timestamp": "2026-04-26T17:41:05.709197+00:00"
+}

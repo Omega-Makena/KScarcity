@@ -1,0 +1,4 @@
+digraph LearnedGraph {
+  rankdir=LR;
+  "govt_debt" -> "private_credit";
+}

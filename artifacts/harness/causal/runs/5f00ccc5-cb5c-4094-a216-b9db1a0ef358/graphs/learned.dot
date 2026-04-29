@@ -1,0 +1,4 @@
+digraph LearnedGraph {
+  rankdir=LR;
+  "exports_gdp" -> "gdp_growth";
+}

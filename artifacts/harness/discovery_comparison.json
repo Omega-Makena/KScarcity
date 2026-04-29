@@ -1,0 +1,68 @@
+{
+  "table": [
+    {
+      "method": "pearson_lag1",
+      "ua_conf_weighted_accuracy": null,
+      "ua_sign_accuracy": 0.6364,
+      "discovery_rate": null,
+      "n_evaluated": 22,
+      "skipped": null,
+      "error": null
+    },
+    {
+      "method": "batch_granger",
+      "ua_conf_weighted_accuracy": null,
+      "ua_sign_accuracy": 1.0,
+      "discovery_rate": null,
+      "n_evaluated": 4,
+      "skipped": null,
+      "error": null
+    },
+    {
+      "method": "var_sign",
+      "ua_conf_weighted_accuracy": null,
+      "ua_sign_accuracy": 0.6364,
+      "discovery_rate": null,
+      "n_evaluated": 22,
+      "skipped": null,
+      "error": null
+    },
+    {
+      "method": "engine_A_cold_no_fed",
+      "ua_conf_weighted_accuracy": 0.638,
+      "ua_sign_accuracy": 0.5,
+      "ua_overall_recall": 0.5,
+      "discovery_rate": 1.0,
+      "n_discovered": 22,
+      "n_sign_correct": 11
+    },
+    {
+      "method": "engine_B_cold_fed",
+      "ua_conf_weighted_accuracy": 0.633,
+      "ua_sign_accuracy": 0.5,
+      "ua_overall_recall": 0.5,
+      "discovery_rate": 1.0,
+      "n_discovered": 22,
+      "n_sign_correct": 11
+    },
+    {
+      "method": "engine_C_pretrain_no_fed",
+      "ua_conf_weighted_accuracy": 0.7257,
+      "ua_sign_accuracy": 0.5882,
+      "ua_overall_recall": 0.4545,
+      "discovery_rate": 0.7727,
+      "n_discovered": 17,
+      "n_sign_correct": 10
+    },
+    {
+      "method": "engine_D_pretrain_fed",
+      "ua_conf_weighted_accuracy": 0.7059,
+      "ua_sign_accuracy": 0.5882,
+      "ua_overall_recall": 0.4545,
+      "discovery_rate": 0.7727,
+      "n_discovered": 17,
+      "n_sign_correct": 10
+    }
+  ],
+  "n_pairs": 22
+}

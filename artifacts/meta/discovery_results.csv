@@ -1,0 +1,101 @@
+condition,source,target,basket,expected_sign,delta,pred_sign,discovered,sign_correct,confidence,cite
+"A. Cold-start, no federation",private_credit,gdp_growth,macro,1,-0.329832,-1,True,False,0.0,Levine 2005; finance-growth nexus
+"A. Cold-start, no federation",exports_gdp,gdp_growth,macro,1,-0.404188,-1,True,False,0.134,Mankiw ch.11; open-economy multiplier
+"A. Cold-start, no federation",exports_gdp,current_account,macro,1,-0.311477,-1,True,False,0.239,National accounts identity
+"A. Cold-start, no federation",exports_gdp,tax_revenue,macro,1,,,False,False,0.0,IMF SSA Fiscal Monitor 2021
+"A. Cold-start, no federation",gdp_growth,tax_revenue,macro,1,,,False,False,0.0,Mankiw ch.17; automatic stabilisers
+"A. Cold-start, no federation",gdp_growth,unemployment,macro,-1,-1.599978,-1,True,True,0.29,Okun's Law
+"A. Cold-start, no federation",inflation,exports_gdp,macro,-1,3.197769,1,True,False,0.737,REER competitiveness; IMF Art.IV Kenya 2022
+"A. Cold-start, no federation",inflation,current_account,macro,-1,-0.238052,-1,True,True,0.107,Import costs rise; trade balance worsens
+"A. Cold-start, no federation",govt_consumption,gdp_growth,macro,1,-0.390682,-1,True,False,0.274,Keynesian fiscal multiplier
+"A. Cold-start, no federation",inflation,real_interest_rate,financial,1,1.453141,1,True,True,0.205,Taylor rule; CBK reaction function
+"A. Cold-start, no federation",govt_debt,real_interest_rate,financial,1,,,False,False,0.0,Crowding-out; Mankiw ch.17
+"A. Cold-start, no federation",govt_debt,private_credit,financial,-1,,,False,False,0.0,Crowding-out via bond market
+"A. Cold-start, no federation",real_interest_rate,private_credit,financial,-1,-1.757515,-1,True,True,0.445,Standard credit channel; IS curve
+"A. Cold-start, no federation",real_interest_rate,broad_money,financial,-1,-2.33647,-1,True,True,0.423,Monetary contraction reduces M2
+"A. Cold-start, no federation",real_interest_rate,gdp_growth,financial,-1,-0.418123,-1,True,True,0.22,Investment channel; Mankiw ch.14
+"A. Cold-start, no federation",private_credit,broad_money,financial,1,1.571273,1,True,True,0.72,Money multiplier; credit expansion
+"A. Cold-start, no federation",electricity_access,gdp_growth,infrastructure,1,-0.376827,-1,True,False,0.0,IMF Art.IV Kenya 2022 sec.III; WB WDI
+"A. Cold-start, no federation",electricity_access,internet_users,infrastructure,1,3.760279,1,True,True,0.496,Digital infrastructure co-location
+"A. Cold-start, no federation",electricity_access,private_credit,infrastructure,1,-2.285995,-1,True,False,0.0,Electrification enables bankable projects
+"A. Cold-start, no federation",internet_users,gdp_growth,infrastructure,1,-0.381289,-1,True,False,0.0,Digital economy productivity
+"A. Cold-start, no federation",gdp_growth,life_expectancy,human_capital,1,0.354484,1,True,True,0.568,Preston curve; income-health relationship
+"A. Cold-start, no federation",gdp_growth,school_enrollment,human_capital,1,-0.813405,-1,True,False,0.0,Income → education demand
+"A. Cold-start, no federation",unemployment,gdp_growth,human_capital,-1,-0.222512,-1,True,True,0.29,Okun's law (reverse)
+"A. Cold-start, no federation",life_expectancy,school_enrollment,human_capital,1,1.521267,1,True,True,0.677,Longer horizon → more education investment
+"A. Cold-start, no federation",urban_population,gdp_growth,human_capital,1,-0.344064,-1,True,False,0.0,Agglomeration economies; urbanisation-growth
+B. Cold-start + federation (KEN+TZA+UGA),private_credit,gdp_growth,macro,1,-0.385925,-1,True,False,0.0,Levine 2005; finance-growth nexus
+B. Cold-start + federation (KEN+TZA+UGA),exports_gdp,gdp_growth,macro,1,-0.452259,-1,True,False,0.125,Mankiw ch.11; open-economy multiplier
+B. Cold-start + federation (KEN+TZA+UGA),exports_gdp,current_account,macro,1,-0.164099,-1,True,False,0.221,National accounts identity
+B. Cold-start + federation (KEN+TZA+UGA),exports_gdp,tax_revenue,macro,1,,,False,False,0.0,IMF SSA Fiscal Monitor 2021
+B. Cold-start + federation (KEN+TZA+UGA),gdp_growth,tax_revenue,macro,1,,,False,False,0.0,Mankiw ch.17; automatic stabilisers
+B. Cold-start + federation (KEN+TZA+UGA),gdp_growth,unemployment,macro,-1,-1.579485,-1,True,True,0.264,Okun's Law
+B. Cold-start + federation (KEN+TZA+UGA),inflation,exports_gdp,macro,-1,2.951541,1,True,False,0.639,REER competitiveness; IMF Art.IV Kenya 2022
+B. Cold-start + federation (KEN+TZA+UGA),inflation,current_account,macro,-1,-0.049191,-1,True,True,0.1,Import costs rise; trade balance worsens
+B. Cold-start + federation (KEN+TZA+UGA),govt_consumption,gdp_growth,macro,1,-0.438705,-1,True,False,0.25,Keynesian fiscal multiplier
+B. Cold-start + federation (KEN+TZA+UGA),inflation,real_interest_rate,financial,1,1.383431,1,True,True,0.202,Taylor rule; CBK reaction function
+B. Cold-start + federation (KEN+TZA+UGA),govt_debt,real_interest_rate,financial,1,,,False,False,0.0,Crowding-out; Mankiw ch.17
+B. Cold-start + federation (KEN+TZA+UGA),govt_debt,private_credit,financial,-1,,,False,False,0.0,Crowding-out via bond market
+B. Cold-start + federation (KEN+TZA+UGA),real_interest_rate,private_credit,financial,-1,-1.682423,-1,True,True,0.404,Standard credit channel; IS curve
+B. Cold-start + federation (KEN+TZA+UGA),real_interest_rate,broad_money,financial,-1,-2.408116,-1,True,True,0.391,Monetary contraction reduces M2
+B. Cold-start + federation (KEN+TZA+UGA),real_interest_rate,gdp_growth,financial,-1,-0.426601,-1,True,True,0.002,Investment channel; Mankiw ch.14
+B. Cold-start + federation (KEN+TZA+UGA),private_credit,broad_money,financial,1,1.652836,1,True,True,0.636,Money multiplier; credit expansion
+B. Cold-start + federation (KEN+TZA+UGA),electricity_access,gdp_growth,infrastructure,1,-0.421499,-1,True,False,0.0,IMF Art.IV Kenya 2022 sec.III; WB WDI
+B. Cold-start + federation (KEN+TZA+UGA),electricity_access,internet_users,infrastructure,1,3.07858,1,True,True,0.457,Digital infrastructure co-location
+B. Cold-start + federation (KEN+TZA+UGA),electricity_access,private_credit,infrastructure,1,-2.17678,-1,True,False,0.0,Electrification enables bankable projects
+B. Cold-start + federation (KEN+TZA+UGA),internet_users,gdp_growth,infrastructure,1,-0.421487,-1,True,False,0.0,Digital economy productivity
+B. Cold-start + federation (KEN+TZA+UGA),gdp_growth,life_expectancy,human_capital,1,0.362503,1,True,True,0.508,Preston curve; income-health relationship
+B. Cold-start + federation (KEN+TZA+UGA),gdp_growth,school_enrollment,human_capital,1,-1.1225,-1,True,False,0.002,Income → education demand
+B. Cold-start + federation (KEN+TZA+UGA),unemployment,gdp_growth,human_capital,-1,-0.226043,-1,True,True,0.264,Okun's law (reverse)
+B. Cold-start + federation (KEN+TZA+UGA),life_expectancy,school_enrollment,human_capital,1,1.391062,1,True,True,0.582,Longer horizon → more education investment
+B. Cold-start + federation (KEN+TZA+UGA),urban_population,gdp_growth,human_capital,1,-0.383692,-1,True,False,0.0,Agglomeration economies; urbanisation-growth
+"C. Pretrained, no federation",private_credit,gdp_growth,macro,1,0.036503,1,True,True,0.0,Levine 2005; finance-growth nexus
+"C. Pretrained, no federation",exports_gdp,gdp_growth,macro,1,0.036503,1,True,True,0.0,Mankiw ch.11; open-economy multiplier
+"C. Pretrained, no federation",exports_gdp,current_account,macro,1,-0.984016,-1,True,False,0.14,National accounts identity
+"C. Pretrained, no federation",exports_gdp,tax_revenue,macro,1,0.100383,1,True,True,0.0,IMF SSA Fiscal Monitor 2021
+"C. Pretrained, no federation",gdp_growth,tax_revenue,macro,1,-0.050059,-1,True,False,0.167,Mankiw ch.17; automatic stabilisers
+"C. Pretrained, no federation",gdp_growth,unemployment,macro,-1,0.160403,1,True,False,0.156,Okun's Law
+"C. Pretrained, no federation",inflation,exports_gdp,macro,-1,2.512297,1,True,False,0.0,REER competitiveness; IMF Art.IV Kenya 2022
+"C. Pretrained, no federation",inflation,current_account,macro,-1,-0.743104,-1,True,True,0.0,Import costs rise; trade balance worsens
+"C. Pretrained, no federation",govt_consumption,gdp_growth,macro,1,0.036503,1,True,True,0.007,Keynesian fiscal multiplier
+"C. Pretrained, no federation",inflation,real_interest_rate,financial,1,-1.006826,-1,True,False,0.733,Taylor rule; CBK reaction function
+"C. Pretrained, no federation",govt_debt,real_interest_rate,financial,1,,,False,False,0.0,Crowding-out; Mankiw ch.17
+"C. Pretrained, no federation",govt_debt,private_credit,financial,-1,,,False,False,0.0,Crowding-out via bond market
+"C. Pretrained, no federation",real_interest_rate,private_credit,financial,-1,-7.341721,-1,True,True,0.0,Standard credit channel; IS curve
+"C. Pretrained, no federation",real_interest_rate,broad_money,financial,-1,-3.610358,-1,True,True,0.237,Monetary contraction reduces M2
+"C. Pretrained, no federation",real_interest_rate,gdp_growth,financial,-1,0.036503,1,True,False,0.0,Investment channel; Mankiw ch.14
+"C. Pretrained, no federation",private_credit,broad_money,financial,1,-1.602623,-1,True,False,0.734,Money multiplier; credit expansion
+"C. Pretrained, no federation",electricity_access,gdp_growth,infrastructure,1,0.036503,1,True,True,0.0,IMF Art.IV Kenya 2022 sec.III; WB WDI
+"C. Pretrained, no federation",electricity_access,internet_users,infrastructure,1,-5.652125,-1,True,False,0.719,Digital infrastructure co-location
+"C. Pretrained, no federation",electricity_access,private_credit,infrastructure,1,-7.458947,-1,True,False,0.0,Electrification enables bankable projects
+"C. Pretrained, no federation",internet_users,gdp_growth,infrastructure,1,0.036503,1,True,True,0.0,Digital economy productivity
+"C. Pretrained, no federation",gdp_growth,life_expectancy,human_capital,1,-3.514382,-1,True,False,0.0,Preston curve; income-health relationship
+"C. Pretrained, no federation",gdp_growth,school_enrollment,human_capital,1,-3.018665,-1,True,False,0.465,Income → education demand
+"C. Pretrained, no federation",unemployment,gdp_growth,human_capital,-1,-0.035542,-1,True,True,0.156,Okun's law (reverse)
+"C. Pretrained, no federation",life_expectancy,school_enrollment,human_capital,1,-4.028049,-1,True,False,0.0,Longer horizon → more education investment
+"C. Pretrained, no federation",urban_population,gdp_growth,human_capital,1,0.027828,1,True,True,0.0,Agglomeration economies; urbanisation-growth
+D. Pretrained + federation (KEN+TZA+UGA),private_credit,gdp_growth,macro,1,-2.778777,-1,True,False,0.003,Levine 2005; finance-growth nexus
+D. Pretrained + federation (KEN+TZA+UGA),exports_gdp,gdp_growth,macro,1,-2.084757,-1,True,False,0.0,Mankiw ch.11; open-economy multiplier
+D. Pretrained + federation (KEN+TZA+UGA),exports_gdp,current_account,macro,1,-0.382891,-1,True,False,0.0,National accounts identity
+D. Pretrained + federation (KEN+TZA+UGA),exports_gdp,tax_revenue,macro,1,-0.481764,-1,True,False,0.0,IMF SSA Fiscal Monitor 2021
+D. Pretrained + federation (KEN+TZA+UGA),gdp_growth,tax_revenue,macro,1,-0.439325,-1,True,False,0.102,Mankiw ch.17; automatic stabilisers
+D. Pretrained + federation (KEN+TZA+UGA),gdp_growth,unemployment,macro,-1,0.217546,1,True,False,0.173,Okun's Law
+D. Pretrained + federation (KEN+TZA+UGA),inflation,exports_gdp,macro,-1,0.330711,1,True,False,0.0,REER competitiveness; IMF Art.IV Kenya 2022
+D. Pretrained + federation (KEN+TZA+UGA),inflation,current_account,macro,-1,-0.382891,-1,True,True,0.0,Import costs rise; trade balance worsens
+D. Pretrained + federation (KEN+TZA+UGA),govt_consumption,gdp_growth,macro,1,-2.778777,-1,True,False,0.0,Keynesian fiscal multiplier
+D. Pretrained + federation (KEN+TZA+UGA),inflation,real_interest_rate,financial,1,-1.165813,-1,True,False,0.727,Taylor rule; CBK reaction function
+D. Pretrained + federation (KEN+TZA+UGA),govt_debt,real_interest_rate,financial,1,,,False,False,0.0,Crowding-out; Mankiw ch.17
+D. Pretrained + federation (KEN+TZA+UGA),govt_debt,private_credit,financial,-1,,,False,False,0.0,Crowding-out via bond market
+D. Pretrained + federation (KEN+TZA+UGA),real_interest_rate,private_credit,financial,-1,-7.440073,-1,True,True,0.0,Standard credit channel; IS curve
+D. Pretrained + federation (KEN+TZA+UGA),real_interest_rate,broad_money,financial,-1,-3.71521,-1,True,True,0.242,Monetary contraction reduces M2
+D. Pretrained + federation (KEN+TZA+UGA),real_interest_rate,gdp_growth,financial,-1,-2.766009,-1,True,True,0.0,Investment channel; Mankiw ch.14
+D. Pretrained + federation (KEN+TZA+UGA),private_credit,broad_money,financial,1,-1.69114,-1,True,False,0.728,Money multiplier; credit expansion
+D. Pretrained + federation (KEN+TZA+UGA),electricity_access,gdp_growth,infrastructure,1,-2.34964,-1,True,False,0.0,IMF Art.IV Kenya 2022 sec.III; WB WDI
+D. Pretrained + federation (KEN+TZA+UGA),electricity_access,internet_users,infrastructure,1,-5.863213,-1,True,False,0.721,Digital infrastructure co-location
+D. Pretrained + federation (KEN+TZA+UGA),electricity_access,private_credit,infrastructure,1,-7.575261,-1,True,False,0.0,Electrification enables bankable projects
+D. Pretrained + federation (KEN+TZA+UGA),internet_users,gdp_growth,infrastructure,1,-2.46574,-1,True,False,0.0,Digital economy productivity
+D. Pretrained + federation (KEN+TZA+UGA),gdp_growth,life_expectancy,human_capital,1,-1.63766,-1,True,False,0.0,Preston curve; income-health relationship
+D. Pretrained + federation (KEN+TZA+UGA),gdp_growth,school_enrollment,human_capital,1,-2.956327,-1,True,False,0.481,Income → education demand
+D. Pretrained + federation (KEN+TZA+UGA),unemployment,gdp_growth,human_capital,-1,-2.878553,-1,True,True,0.095,Okun's law (reverse)
+D. Pretrained + federation (KEN+TZA+UGA),life_expectancy,school_enrollment,human_capital,1,-2.403215,-1,True,False,0.0,Longer horizon → more education investment
+D. Pretrained + federation (KEN+TZA+UGA),urban_population,gdp_growth,human_capital,1,-2.7595,-1,True,False,0.369,Agglomeration economies; urbanisation-growth

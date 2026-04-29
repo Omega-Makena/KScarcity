@@ -1,0 +1,70 @@
+========================================================================
+SCARCITY — BASKET + FEDERATED LEARNING BENCHMARK
+  Data mode    : LIVE WB API
+  Pretrain mode: LIVE WB API
+  Kenya years  : 1995-2023  (29 obs)
+  Pretrain rows: 200  (10 SSA countries, 1975-1994)
+  Baskets      : ['macro', 'financial', 'infrastructure', 'human_capital']
+  Warmup years : 15
+========================================================================
+
+Rolling leave-one-year-out direction forecast (Kenya 2010-2023)
+Metric: direction accuracy on determined predictions vs AR(1) baseline
+
+  Condition: A. COLD-START             (no pretraining, no federation)  [FAIL]
+    Total direction tests  : 214
+    Engine determined      : 166 / 214  (77.6%)
+    Direction accuracy     : 70 / 166  (42.2%)
+    95% CI                 : [34.6%, 50.1%]
+    AR(1) accuracy         : 121 / 212  (57.1%)
+    Engine lift vs AR(1)   : -14.9%
+    Per-basket accuracy (determined only):
+      macro                 41/81  (51%)
+      financial             22/37  (59%)
+      infrastructure        18/53  (34%)
+      human_capital         27/61  (44%)
+
+  Condition: B. COLD-START + FEDERATED (no pretraining, with TZA/UGA)  [FAIL]
+    Total direction tests  : 214
+    Engine determined      : 168 / 214  (78.5%)
+    Direction accuracy     : 71 / 168  (42.3%)
+    95% CI                 : [34.7%, 50.1%]
+    AR(1) accuracy         : 121 / 212  (57.1%)
+    Engine lift vs AR(1)   : -14.8%
+    Per-basket accuracy (determined only):
+      macro                 43/83  (52%)
+      financial             22/37  (59%)
+      infrastructure        18/53  (34%)
+      human_capital         27/62  (44%)
+
+  Condition: C. PRETRAINED             (basket warm-start, no federation)  [FAIL]
+    Total direction tests  : 214
+    Engine determined      : 107 / 214  (50.0%)
+    Direction accuracy     : 51 / 107  (47.7%)
+    95% CI                 : [37.9%, 57.5%]
+    AR(1) accuracy         : 121 / 212  (57.1%)
+    Engine lift vs AR(1)   : -9.4%
+    Per-basket accuracy (determined only):
+      macro                 13/28  (46%)
+      financial             31/56  (55%)
+      infrastructure        5/14  (36%)
+      human_capital         20/51  (39%)
+
+  Condition: D. PRETRAINED + FEDERATED (basket warm-start + TZA/UGA)  [MARGINAL]
+    Total direction tests  : 214
+    Engine determined      : 124 / 214  (57.9%)
+    Direction accuracy     : 62 / 124  (50.0%)
+    95% CI                 : [40.9%, 59.1%]
+    AR(1) accuracy         : 121 / 212  (57.1%)
+    Engine lift vs AR(1)   : -7.1%
+    Per-basket accuracy (determined only):
+      macro                 24/45  (53%)
+      financial             31/56  (55%)
+      infrastructure        5/14  (36%)
+      human_capital         18/45  (40%)
+
+------------------------------------------------------------------------
+Target: direction accuracy CI lower bound > 50%  (50% = random guessing).
+PASS threshold deliberately modest for 14 test years of annual data.
+AR(1) is the meaningful real-world baseline (~55% on annual macro data).
+------------------------------------------------------------------------

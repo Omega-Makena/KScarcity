@@ -1,0 +1,4 @@
+digraph LearnedGraph {
+  rankdir=LR;
+  "real_interest_rate" -> "broad_money";
+}

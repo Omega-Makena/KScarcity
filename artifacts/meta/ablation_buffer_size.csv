@@ -1,0 +1,13 @@
+benchmark,buffer_size,country,country_code,final_confidence,steps_to_threshold,threshold,total_observations,total_hypotheses,active_hyp
+buffer_size,25,Kenya,KEN,0.158589,1,0.25,29,63,63
+buffer_size,25,Tanzania,TZA,0.150439,1,0.25,29,63,63
+buffer_size,25,Uganda,UGA,0.15121,1,0.25,29,63,63
+buffer_size,50,Kenya,KEN,0.159007,1,0.25,29,63,63
+buffer_size,50,Tanzania,TZA,0.150696,1,0.25,29,63,63
+buffer_size,50,Uganda,UGA,0.151823,1,0.25,29,63,63
+buffer_size,100,Kenya,KEN,0.159007,1,0.25,29,63,63
+buffer_size,100,Tanzania,TZA,0.150696,1,0.25,29,63,63
+buffer_size,100,Uganda,UGA,0.151823,1,0.25,29,63,63
+buffer_size,200,Kenya,KEN,0.159007,1,0.25,29,63,63
+buffer_size,200,Tanzania,TZA,0.150696,1,0.25,29,63,63
+buffer_size,200,Uganda,UGA,0.151823,1,0.25,29,63,63

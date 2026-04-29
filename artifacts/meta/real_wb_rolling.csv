@@ -1,0 +1,401 @@
+condition,year,variable,actual_delta,actual_dir,engine_dir,engine_match,ar1_dir,ar1_match
+LOCAL (Kenya only),2010,gdp_growth,4.7515,1,,,1,True
+LOCAL (Kenya only),2010,inflation,-5.2727,-1,,,-1,True
+LOCAL (Kenya only),2010,unemployment,-0.023,-1,,,1,False
+LOCAL (Kenya only),2010,exports_gdp,1.3494,1,1,True,-1,False
+LOCAL (Kenya only),2010,imports_gdp,3.0997,1,1,True,-1,False
+LOCAL (Kenya only),2010,current_account,-1.2294,-1,,,1,False
+LOCAL (Kenya only),2010,govt_consumption,-0.6016,-1,,,-1,True
+LOCAL (Kenya only),2010,real_interest_rate,22.623,1,,,-1,False
+LOCAL (Kenya only),2010,broad_money,3.6369,1,1,True,-1,False
+LOCAL (Kenya only),2010,private_credit,2.1118,1,,,-1,False
+LOCAL (Kenya only),2010,urban_population,0.011,1,1,True,1,True
+LOCAL (Kenya only),2010,life_expectancy,0.432,1,1,True,1,True
+LOCAL (Kenya only),2010,internet_users,1.1,1,-1,False,1,True
+LOCAL (Kenya only),2011,gdp_growth,-2.9374,-1,,,1,False
+LOCAL (Kenya only),2011,inflation,10.0611,1,1,True,-1,False
+LOCAL (Kenya only),2011,unemployment,-0.094,-1,1,False,-1,True
+LOCAL (Kenya only),2011,exports_gdp,1.4251,1,1,True,1,True
+LOCAL (Kenya only),2011,imports_gdp,6.5828,1,-1,False,1,True
+LOCAL (Kenya only),2011,current_account,-2.9321,-1,,,-1,True
+LOCAL (Kenya only),2011,govt_consumption,-0.2683,-1,,,-1,True
+LOCAL (Kenya only),2011,real_interest_rate,-8.0008,-1,-1,True,1,False
+LOCAL (Kenya only),2011,broad_money,1.059,1,-1,False,1,True
+LOCAL (Kenya only),2011,private_credit,3.3793,1,,,1,True
+LOCAL (Kenya only),2011,urban_population,-0.0039,-1,1,False,1,False
+LOCAL (Kenya only),2011,life_expectancy,0.368,1,-1,False,1,True
+LOCAL (Kenya only),2011,internet_users,1.6,1,-1,False,1,True
+LOCAL (Kenya only),2012,gdp_growth,-0.5524,-1,1,False,-1,True
+LOCAL (Kenya only),2012,inflation,-4.6447,-1,-1,True,1,False
+LOCAL (Kenya only),2012,unemployment,-0.021,-1,1,False,-1,True
+LOCAL (Kenya only),2012,exports_gdp,-1.6845,-1,1,False,1,False
+LOCAL (Kenya only),2012,imports_gdp,-5.094,-1,-1,True,1,False
+LOCAL (Kenya only),2012,current_account,0.6729,1,1,True,-1,False
+LOCAL (Kenya only),2012,govt_consumption,-0.4133,-1,,,-1,True
+LOCAL (Kenya only),2012,real_interest_rate,4.7873,1,1,True,-1,False
+LOCAL (Kenya only),2012,broad_money,-0.0429,-1,-1,True,1,False
+LOCAL (Kenya only),2012,private_credit,-0.9637,-1,,,1,False
+LOCAL (Kenya only),2012,urban_population,-0.0116,-1,1,False,-1,True
+LOCAL (Kenya only),2012,life_expectancy,0.254,1,-1,False,1,True
+LOCAL (Kenya only),2012,internet_users,1.7,1,-1,False,1,True
+LOCAL (Kenya only),2013,gdp_growth,-0.7708,-1,1,False,-1,True
+LOCAL (Kenya only),2013,inflation,-3.6603,-1,1,False,-1,True
+LOCAL (Kenya only),2013,unemployment,0.084,1,1,True,-1,False
+LOCAL (Kenya only),2013,exports_gdp,-2.0728,-1,1,False,-1,True
+LOCAL (Kenya only),2013,imports_gdp,-2.0863,-1,-1,True,-1,True
+LOCAL (Kenya only),2013,current_account,-0.3757,-1,1,False,1,False
+LOCAL (Kenya only),2013,govt_consumption,-0.4288,-1,1,False,-1,True
+LOCAL (Kenya only),2013,real_interest_rate,-0.0196,-1,-1,True,1,False
+LOCAL (Kenya only),2013,broad_money,1.2669,1,-1,False,-1,False
+LOCAL (Kenya only),2013,private_credit,1.9299,1,,,-1,False
+LOCAL (Kenya only),2013,urban_population,-0.0234,-1,1,False,-1,True
+LOCAL (Kenya only),2013,life_expectancy,0.192,1,-1,False,1,True
+LOCAL (Kenya only),2013,internet_users,2.5,1,-1,False,1,True
+LOCAL (Kenya only),2014,gdp_growth,1.2223,1,1,True,-1,False
+LOCAL (Kenya only),2014,inflation,1.1607,1,1,True,-1,False
+LOCAL (Kenya only),2014,unemployment,0.005,1,1,True,1,True
+LOCAL (Kenya only),2014,exports_gdp,-1.3194,-1,1,False,-1,True
+LOCAL (Kenya only),2014,imports_gdp,0.0252,1,-1,False,-1,False
+LOCAL (Kenya only),2014,current_account,-1.4885,-1,1,False,-1,True
+LOCAL (Kenya only),2014,govt_consumption,-0.1001,-1,1,False,-1,True
+LOCAL (Kenya only),2014,real_interest_rate,-1.0449,-1,-1,True,-1,True
+LOCAL (Kenya only),2014,broad_money,4.5079,1,-1,False,1,True
+LOCAL (Kenya only),2014,private_credit,6.1899,1,,,1,True
+LOCAL (Kenya only),2014,urban_population,-0.0393,-1,-1,True,-1,True
+LOCAL (Kenya only),2014,life_expectancy,0.261,1,-1,False,1,True
+LOCAL (Kenya only),2014,internet_users,3.5,1,-1,False,1,True
+LOCAL (Kenya only),2015,gdp_growth,-0.0524,-1,-1,True,1,False
+LOCAL (Kenya only),2015,inflation,-0.296,-1,1,False,1,False
+LOCAL (Kenya only),2015,unemployment,-0.005,-1,-1,True,1,False
+LOCAL (Kenya only),2015,exports_gdp,-1.3441,-1,1,False,-1,True
+LOCAL (Kenya only),2015,imports_gdp,-4.499,-1,-1,True,1,False
+LOCAL (Kenya only),2015,current_account,3.0355,1,1,True,-1,False
+LOCAL (Kenya only),2015,govt_consumption,0.9842,1,1,True,-1,False
+LOCAL (Kenya only),2015,tax_revenue,-0.3475,-1,,,,
+LOCAL (Kenya only),2015,real_interest_rate,-1.9803,-1,-1,True,-1,True
+LOCAL (Kenya only),2015,broad_money,0.5181,1,-1,False,1,True
+LOCAL (Kenya only),2015,private_credit,2.1773,1,,,1,True
+LOCAL (Kenya only),2015,urban_population,-0.0594,-1,1,False,-1,True
+LOCAL (Kenya only),2015,school_enrollment,-2.3611,-1,1,False,,
+LOCAL (Kenya only),2015,life_expectancy,0.289,1,-1,False,1,True
+LOCAL (Kenya only),2015,internet_users,0.0879,1,-1,False,1,True
+LOCAL (Kenya only),2016,gdp_growth,-0.7542,-1,-1,True,-1,True
+LOCAL (Kenya only),2016,inflation,-0.2849,-1,1,False,-1,True
+LOCAL (Kenya only),2016,unemployment,-0.005,-1,-1,True,-1,True
+LOCAL (Kenya only),2016,exports_gdp,-1.879,-1,1,False,-1,True
+LOCAL (Kenya only),2016,imports_gdp,-3.5834,-1,1,False,-1,True
+LOCAL (Kenya only),2016,current_account,0.9076,1,1,True,1,True
+LOCAL (Kenya only),2016,govt_consumption,-0.1169,-1,-1,True,1,False
+LOCAL (Kenya only),2016,tax_revenue,0.127,1,,,-1,False
+LOCAL (Kenya only),2016,real_interest_rate,3.8493,1,-1,False,-1,False
+LOCAL (Kenya only),2016,broad_money,-2.4918,-1,-1,True,1,False
+LOCAL (Kenya only),2016,private_credit,-1.1283,-1,,,1,False
+LOCAL (Kenya only),2016,urban_population,-0.0836,-1,-1,True,-1,True
+LOCAL (Kenya only),2016,school_enrollment,-0.6652,-1,1,False,-1,True
+LOCAL (Kenya only),2016,life_expectancy,0.247,1,-1,False,1,True
+LOCAL (Kenya only),2016,internet_users,0.0121,1,-1,False,1,True
+LOCAL (Kenya only),2017,gdp_growth,-0.3756,-1,1,False,-1,True
+LOCAL (Kenya only),2017,inflation,1.7084,1,1,True,-1,False
+LOCAL (Kenya only),2017,unemployment,0.785,1,1,True,-1,False
+LOCAL (Kenya only),2017,exports_gdp,-0.5131,-1,1,False,-1,True
+LOCAL (Kenya only),2017,imports_gdp,1.6431,1,1,True,-1,False
+LOCAL (Kenya only),2017,current_account,-1.5998,-1,-1,True,1,False
+LOCAL (Kenya only),2017,govt_consumption,-0.2747,-1,-1,True,-1,True
+LOCAL (Kenya only),2017,tax_revenue,0.086,1,,,1,True
+LOCAL (Kenya only),2017,real_interest_rate,-4.4614,-1,-1,True,1,False
+LOCAL (Kenya only),2017,broad_money,-0.9756,-1,-1,True,-1,True
+LOCAL (Kenya only),2017,private_credit,-2.4205,-1,-1,True,-1,True
+LOCAL (Kenya only),2017,urban_population,-0.1119,-1,-1,True,-1,True
+LOCAL (Kenya only),2017,school_enrollment,-2.157,-1,1,False,-1,True
+LOCAL (Kenya only),2017,life_expectancy,0.199,1,-1,False,1,True
+LOCAL (Kenya only),2017,internet_users,1.2271,1,-1,False,1,True
+LOCAL (Kenya only),2018,gdp_growth,1.81,1,-1,False,-1,False
+LOCAL (Kenya only),2018,inflation,-3.3158,-1,1,False,1,False
+LOCAL (Kenya only),2018,unemployment,0.742,1,-1,False,1,True
+LOCAL (Kenya only),2018,exports_gdp,-0.1947,-1,1,False,-1,True
+LOCAL (Kenya only),2018,imports_gdp,-1.3856,-1,1,False,1,False
+LOCAL (Kenya only),2018,current_account,1.5858,1,-1,False,-1,False
+LOCAL (Kenya only),2018,govt_consumption,0.0136,1,1,True,-1,False
+LOCAL (Kenya only),2018,tax_revenue,-0.6912,-1,,,1,False
+LOCAL (Kenya only),2018,real_interest_rate,2.8312,1,1,True,-1,False
+LOCAL (Kenya only),2018,broad_money,0.0078,1,1,True,-1,False
+LOCAL (Kenya only),2018,private_credit,-1.9519,-1,-1,True,-1,True
+LOCAL (Kenya only),2018,urban_population,-0.1444,-1,-1,True,-1,True
+LOCAL (Kenya only),2018,school_enrollment,-2.1875,-1,1,False,-1,True
+LOCAL (Kenya only),2018,life_expectancy,0.1,1,-1,False,1,True
+LOCAL (Kenya only),2018,internet_users,1.6729,1,-1,False,1,True
+LOCAL (Kenya only),2019,gdp_growth,-0.5338,-1,-1,True,1,False
+LOCAL (Kenya only),2019,inflation,0.5498,1,1,True,-1,False
+LOCAL (Kenya only),2019,unemployment,0.73,1,-1,False,1,True
+LOCAL (Kenya only),2019,exports_gdp,-1.114,-1,1,False,-1,True
+LOCAL (Kenya only),2019,imports_gdp,-1.5413,-1,1,False,-1,True
+LOCAL (Kenya only),2019,current_account,0.1725,1,-1,False,1,True
+LOCAL (Kenya only),2019,govt_consumption,-0.1779,-1,1,False,1,False
+LOCAL (Kenya only),2019,tax_revenue,0.7388,1,,,-1,False
+LOCAL (Kenya only),2019,real_interest_rate,-0.6569,-1,1,False,1,False
+LOCAL (Kenya only),2019,broad_money,-1.2893,-1,-1,True,1,False
+LOCAL (Kenya only),2019,private_credit,-0.3667,-1,-1,True,-1,True
+LOCAL (Kenya only),2019,urban_population,-0.2044,-1,-1,True,-1,True
+LOCAL (Kenya only),2019,school_enrollment,-22.2572,-1,1,False,-1,True
+LOCAL (Kenya only),2019,life_expectancy,0.114,1,-1,False,1,True
+LOCAL (Kenya only),2019,internet_users,3.1688,1,-1,False,1,True
+LOCAL (Kenya only),2020,gdp_growth,-5.3869,-1,,,-1,True
+LOCAL (Kenya only),2020,inflation,0.1655,1,1,True,1,True
+LOCAL (Kenya only),2020,unemployment,0.599,1,-1,False,1,True
+LOCAL (Kenya only),2020,exports_gdp,0.013,1,1,True,-1,False
+LOCAL (Kenya only),2020,imports_gdp,-1.3734,-1,1,False,-1,True
+LOCAL (Kenya only),2020,current_account,1.9694,1,-1,False,1,True
+LOCAL (Kenya only),2020,govt_consumption,0.3069,1,1,True,-1,False
+LOCAL (Kenya only),2020,tax_revenue,-0.8003,-1,,,1,False
+LOCAL (Kenya only),2020,real_interest_rate,-1.1165,-1,1,False,-1,True
+LOCAL (Kenya only),2020,broad_money,3.1321,1,1,True,-1,False
+LOCAL (Kenya only),2020,private_credit,1.3178,1,-1,False,-1,False
+LOCAL (Kenya only),2020,urban_population,0.0168,1,-1,False,-1,False
+LOCAL (Kenya only),2020,school_enrollment,14.441,1,1,True,-1,False
+LOCAL (Kenya only),2020,life_expectancy,-1.343,-1,-1,True,1,False
+LOCAL (Kenya only),2020,internet_users,2.054,1,-1,False,1,True
+LOCAL (Kenya only),2021,gdp_growth,7.8633,1,1,True,-1,False
+LOCAL (Kenya only),2021,inflation,0.7028,1,1,True,1,True
+LOCAL (Kenya only),2021,unemployment,0.08,1,-1,False,1,True
+LOCAL (Kenya only),2021,exports_gdp,1.6687,1,1,True,1,True
+LOCAL (Kenya only),2021,imports_gdp,2.9342,1,1,True,-1,False
+LOCAL (Kenya only),2021,current_account,-1.3299,-1,-1,True,1,False
+LOCAL (Kenya only),2021,govt_consumption,-0.3308,-1,-1,True,1,False
+LOCAL (Kenya only),2021,tax_revenue,-0.7452,-1,,,-1,True
+LOCAL (Kenya only),2021,real_interest_rate,0.7129,1,1,True,-1,False
+LOCAL (Kenya only),2021,broad_money,-2.2138,-1,-1,True,1,False
+LOCAL (Kenya only),2021,private_credit,-1.0267,-1,1,False,1,False
+LOCAL (Kenya only),2021,urban_population,0.0816,1,-1,False,1,True
+LOCAL (Kenya only),2021,school_enrollment,1.8127,1,1,True,1,True
+LOCAL (Kenya only),2021,life_expectancy,-0.371,-1,1,False,-1,True
+LOCAL (Kenya only),2021,internet_users,2.2401,1,-1,False,1,True
+LOCAL (Kenya only),2022,gdp_growth,-2.7305,-1,-1,True,1,False
+LOCAL (Kenya only),2022,inflation,1.5519,1,1,True,1,True
+LOCAL (Kenya only),2022,unemployment,-0.128,-1,-1,True,1,False
+LOCAL (Kenya only),2022,exports_gdp,2.8473,1,1,True,1,True
+LOCAL (Kenya only),2022,imports_gdp,2.426,1,1,True,1,True
+LOCAL (Kenya only),2022,current_account,0.3991,1,-1,False,-1,False
+LOCAL (Kenya only),2022,govt_consumption,0.0664,1,1,True,-1,False
+LOCAL (Kenya only),2022,tax_revenue,1.0447,1,,,-1,False
+LOCAL (Kenya only),2022,real_interest_rate,-2.3987,-1,1,False,1,False
+LOCAL (Kenya only),2022,broad_money,-1.6089,-1,1,False,-1,True
+LOCAL (Kenya only),2022,private_credit,0.1353,1,-1,False,-1,False
+LOCAL (Kenya only),2022,urban_population,0.1428,1,-1,False,1,True
+LOCAL (Kenya only),2022,school_enrollment,4.7851,1,1,True,1,True
+LOCAL (Kenya only),2022,life_expectancy,2.324,1,1,True,-1,False
+LOCAL (Kenya only),2022,internet_users,2.443,1,-1,False,1,True
+LOCAL (Kenya only),2023,gdp_growth,0.86,1,-1,False,-1,False
+LOCAL (Kenya only),2023,inflation,0.0115,1,1,True,1,True
+LOCAL (Kenya only),2023,unemployment,-0.156,-1,-1,True,-1,True
+LOCAL (Kenya only),2023,exports_gdp,0.9336,1,-1,False,1,True
+LOCAL (Kenya only),2023,imports_gdp,-0.0979,-1,-1,True,1,False
+LOCAL (Kenya only),2023,current_account,1.6544,1,-1,False,1,True
+LOCAL (Kenya only),2023,govt_consumption,-0.4363,-1,1,False,1,False
+LOCAL (Kenya only),2023,tax_revenue,-0.5362,-1,,,1,False
+LOCAL (Kenya only),2023,real_interest_rate,2.7239,1,1,True,-1,False
+LOCAL (Kenya only),2023,broad_money,2.8269,1,1,True,-1,False
+LOCAL (Kenya only),2023,private_credit,0.5397,1,-1,False,1,True
+LOCAL (Kenya only),2023,urban_population,0.2023,1,1,True,1,True
+LOCAL (Kenya only),2023,school_enrollment,-0.3036,-1,1,False,1,False
+LOCAL (Kenya only),2023,life_expectancy,0.097,1,-1,False,1,True
+LOCAL (Kenya only),2023,internet_users,2.6645,1,-1,False,1,True
+FEDERATED (KEN+TZA+UGA),2010,gdp_growth,4.7515,1,,,1,True
+FEDERATED (KEN+TZA+UGA),2010,inflation,-5.2727,-1,,,-1,True
+FEDERATED (KEN+TZA+UGA),2010,unemployment,-0.023,-1,-1,True,1,False
+FEDERATED (KEN+TZA+UGA),2010,exports_gdp,1.3494,1,-1,False,-1,False
+FEDERATED (KEN+TZA+UGA),2010,imports_gdp,3.0997,1,1,True,-1,False
+FEDERATED (KEN+TZA+UGA),2010,current_account,-1.2294,-1,,,1,False
+FEDERATED (KEN+TZA+UGA),2010,govt_consumption,-0.6016,-1,,,-1,True
+FEDERATED (KEN+TZA+UGA),2010,real_interest_rate,22.623,1,1,True,-1,False
+FEDERATED (KEN+TZA+UGA),2010,broad_money,3.6369,1,1,True,-1,False
+FEDERATED (KEN+TZA+UGA),2010,private_credit,2.1118,1,,,-1,False
+FEDERATED (KEN+TZA+UGA),2010,urban_population,0.011,1,-1,False,1,True
+FEDERATED (KEN+TZA+UGA),2010,life_expectancy,0.432,1,-1,False,1,True
+FEDERATED (KEN+TZA+UGA),2010,internet_users,1.1,1,-1,False,1,True
+FEDERATED (KEN+TZA+UGA),2011,gdp_growth,-2.9374,-1,-1,True,1,False
+FEDERATED (KEN+TZA+UGA),2011,inflation,10.0611,1,1,True,-1,False
+FEDERATED (KEN+TZA+UGA),2011,unemployment,-0.094,-1,-1,True,-1,True
+FEDERATED (KEN+TZA+UGA),2011,exports_gdp,1.4251,1,1,True,1,True
+FEDERATED (KEN+TZA+UGA),2011,imports_gdp,6.5828,1,-1,False,1,True
+FEDERATED (KEN+TZA+UGA),2011,current_account,-2.9321,-1,,,-1,True
+FEDERATED (KEN+TZA+UGA),2011,govt_consumption,-0.2683,-1,,,-1,True
+FEDERATED (KEN+TZA+UGA),2011,real_interest_rate,-8.0008,-1,-1,True,1,False
+FEDERATED (KEN+TZA+UGA),2011,broad_money,1.059,1,-1,False,1,True
+FEDERATED (KEN+TZA+UGA),2011,private_credit,3.3793,1,,,1,True
+FEDERATED (KEN+TZA+UGA),2011,urban_population,-0.0039,-1,1,False,1,False
+FEDERATED (KEN+TZA+UGA),2011,life_expectancy,0.368,1,-1,False,1,True
+FEDERATED (KEN+TZA+UGA),2011,internet_users,1.6,1,-1,False,1,True
+FEDERATED (KEN+TZA+UGA),2012,gdp_growth,-0.5524,-1,1,False,-1,True
+FEDERATED (KEN+TZA+UGA),2012,inflation,-4.6447,-1,-1,True,1,False
+FEDERATED (KEN+TZA+UGA),2012,unemployment,-0.021,-1,1,False,-1,True
+FEDERATED (KEN+TZA+UGA),2012,exports_gdp,-1.6845,-1,1,False,1,False
+FEDERATED (KEN+TZA+UGA),2012,imports_gdp,-5.094,-1,-1,True,1,False
+FEDERATED (KEN+TZA+UGA),2012,current_account,0.6729,1,1,True,-1,False
+FEDERATED (KEN+TZA+UGA),2012,govt_consumption,-0.4133,-1,1,False,-1,True
+FEDERATED (KEN+TZA+UGA),2012,real_interest_rate,4.7873,1,1,True,-1,False
+FEDERATED (KEN+TZA+UGA),2012,broad_money,-0.0429,-1,-1,True,1,False
+FEDERATED (KEN+TZA+UGA),2012,private_credit,-0.9637,-1,,,1,False
+FEDERATED (KEN+TZA+UGA),2012,urban_population,-0.0116,-1,1,False,-1,True
+FEDERATED (KEN+TZA+UGA),2012,life_expectancy,0.254,1,-1,False,1,True
+FEDERATED (KEN+TZA+UGA),2012,internet_users,1.7,1,-1,False,1,True
+FEDERATED (KEN+TZA+UGA),2013,gdp_growth,-0.7708,-1,1,False,-1,True
+FEDERATED (KEN+TZA+UGA),2013,inflation,-3.6603,-1,1,False,-1,True
+FEDERATED (KEN+TZA+UGA),2013,unemployment,0.084,1,1,True,-1,False
+FEDERATED (KEN+TZA+UGA),2013,exports_gdp,-2.0728,-1,1,False,-1,True
+FEDERATED (KEN+TZA+UGA),2013,imports_gdp,-2.0863,-1,-1,True,-1,True
+FEDERATED (KEN+TZA+UGA),2013,current_account,-0.3757,-1,1,False,1,False
+FEDERATED (KEN+TZA+UGA),2013,govt_consumption,-0.4288,-1,1,False,-1,True
+FEDERATED (KEN+TZA+UGA),2013,real_interest_rate,-0.0196,-1,-1,True,1,False
+FEDERATED (KEN+TZA+UGA),2013,broad_money,1.2669,1,-1,False,-1,False
+FEDERATED (KEN+TZA+UGA),2013,private_credit,1.9299,1,,,-1,False
+FEDERATED (KEN+TZA+UGA),2013,urban_population,-0.0234,-1,1,False,-1,True
+FEDERATED (KEN+TZA+UGA),2013,life_expectancy,0.192,1,-1,False,1,True
+FEDERATED (KEN+TZA+UGA),2013,internet_users,2.5,1,-1,False,1,True
+FEDERATED (KEN+TZA+UGA),2014,gdp_growth,1.2223,1,1,True,-1,False
+FEDERATED (KEN+TZA+UGA),2014,inflation,1.1607,1,1,True,-1,False
+FEDERATED (KEN+TZA+UGA),2014,unemployment,0.005,1,1,True,1,True
+FEDERATED (KEN+TZA+UGA),2014,exports_gdp,-1.3194,-1,1,False,-1,True
+FEDERATED (KEN+TZA+UGA),2014,imports_gdp,0.0252,1,-1,False,-1,False
+FEDERATED (KEN+TZA+UGA),2014,current_account,-1.4885,-1,1,False,-1,True
+FEDERATED (KEN+TZA+UGA),2014,govt_consumption,-0.1001,-1,1,False,-1,True
+FEDERATED (KEN+TZA+UGA),2014,real_interest_rate,-1.0449,-1,-1,True,-1,True
+FEDERATED (KEN+TZA+UGA),2014,broad_money,4.5079,1,-1,False,1,True
+FEDERATED (KEN+TZA+UGA),2014,private_credit,6.1899,1,,,1,True
+FEDERATED (KEN+TZA+UGA),2014,urban_population,-0.0393,-1,-1,True,-1,True
+FEDERATED (KEN+TZA+UGA),2014,life_expectancy,0.261,1,-1,False,1,True
+FEDERATED (KEN+TZA+UGA),2014,internet_users,3.5,1,-1,False,1,True
+FEDERATED (KEN+TZA+UGA),2015,gdp_growth,-0.0524,-1,-1,True,1,False
+FEDERATED (KEN+TZA+UGA),2015,inflation,-0.296,-1,1,False,1,False
+FEDERATED (KEN+TZA+UGA),2015,unemployment,-0.005,-1,-1,True,1,False
+FEDERATED (KEN+TZA+UGA),2015,exports_gdp,-1.3441,-1,1,False,-1,True
+FEDERATED (KEN+TZA+UGA),2015,imports_gdp,-4.499,-1,-1,True,1,False
+FEDERATED (KEN+TZA+UGA),2015,current_account,3.0355,1,1,True,-1,False
+FEDERATED (KEN+TZA+UGA),2015,govt_consumption,0.9842,1,1,True,-1,False
+FEDERATED (KEN+TZA+UGA),2015,tax_revenue,-0.3475,-1,,,,
+FEDERATED (KEN+TZA+UGA),2015,real_interest_rate,-1.9803,-1,-1,True,-1,True
+FEDERATED (KEN+TZA+UGA),2015,broad_money,0.5181,1,-1,False,1,True
+FEDERATED (KEN+TZA+UGA),2015,private_credit,2.1773,1,,,1,True
+FEDERATED (KEN+TZA+UGA),2015,urban_population,-0.0594,-1,1,False,-1,True
+FEDERATED (KEN+TZA+UGA),2015,school_enrollment,-2.3611,-1,1,False,,
+FEDERATED (KEN+TZA+UGA),2015,life_expectancy,0.289,1,-1,False,1,True
+FEDERATED (KEN+TZA+UGA),2015,internet_users,0.0879,1,-1,False,1,True
+FEDERATED (KEN+TZA+UGA),2016,gdp_growth,-0.7542,-1,-1,True,-1,True
+FEDERATED (KEN+TZA+UGA),2016,inflation,-0.2849,-1,1,False,-1,True
+FEDERATED (KEN+TZA+UGA),2016,unemployment,-0.005,-1,-1,True,-1,True
+FEDERATED (KEN+TZA+UGA),2016,exports_gdp,-1.879,-1,1,False,-1,True
+FEDERATED (KEN+TZA+UGA),2016,imports_gdp,-3.5834,-1,1,False,-1,True
+FEDERATED (KEN+TZA+UGA),2016,current_account,0.9076,1,1,True,1,True
+FEDERATED (KEN+TZA+UGA),2016,govt_consumption,-0.1169,-1,-1,True,1,False
+FEDERATED (KEN+TZA+UGA),2016,tax_revenue,0.127,1,,,-1,False
+FEDERATED (KEN+TZA+UGA),2016,real_interest_rate,3.8493,1,-1,False,-1,False
+FEDERATED (KEN+TZA+UGA),2016,broad_money,-2.4918,-1,-1,True,1,False
+FEDERATED (KEN+TZA+UGA),2016,private_credit,-1.1283,-1,,,1,False
+FEDERATED (KEN+TZA+UGA),2016,urban_population,-0.0836,-1,-1,True,-1,True
+FEDERATED (KEN+TZA+UGA),2016,school_enrollment,-0.6652,-1,1,False,-1,True
+FEDERATED (KEN+TZA+UGA),2016,life_expectancy,0.247,1,-1,False,1,True
+FEDERATED (KEN+TZA+UGA),2016,internet_users,0.0121,1,-1,False,1,True
+FEDERATED (KEN+TZA+UGA),2017,gdp_growth,-0.3756,-1,1,False,-1,True
+FEDERATED (KEN+TZA+UGA),2017,inflation,1.7084,1,1,True,-1,False
+FEDERATED (KEN+TZA+UGA),2017,unemployment,0.785,1,1,True,-1,False
+FEDERATED (KEN+TZA+UGA),2017,exports_gdp,-0.5131,-1,1,False,-1,True
+FEDERATED (KEN+TZA+UGA),2017,imports_gdp,1.6431,1,1,True,-1,False
+FEDERATED (KEN+TZA+UGA),2017,current_account,-1.5998,-1,-1,True,1,False
+FEDERATED (KEN+TZA+UGA),2017,govt_consumption,-0.2747,-1,-1,True,-1,True
+FEDERATED (KEN+TZA+UGA),2017,tax_revenue,0.086,1,,,1,True
+FEDERATED (KEN+TZA+UGA),2017,real_interest_rate,-4.4614,-1,-1,True,1,False
+FEDERATED (KEN+TZA+UGA),2017,broad_money,-0.9756,-1,-1,True,-1,True
+FEDERATED (KEN+TZA+UGA),2017,private_credit,-2.4205,-1,-1,True,-1,True
+FEDERATED (KEN+TZA+UGA),2017,urban_population,-0.1119,-1,-1,True,-1,True
+FEDERATED (KEN+TZA+UGA),2017,school_enrollment,-2.157,-1,1,False,-1,True
+FEDERATED (KEN+TZA+UGA),2017,life_expectancy,0.199,1,-1,False,1,True
+FEDERATED (KEN+TZA+UGA),2017,internet_users,1.2271,1,-1,False,1,True
+FEDERATED (KEN+TZA+UGA),2018,gdp_growth,1.81,1,-1,False,-1,False
+FEDERATED (KEN+TZA+UGA),2018,inflation,-3.3158,-1,1,False,1,False
+FEDERATED (KEN+TZA+UGA),2018,unemployment,0.742,1,-1,False,1,True
+FEDERATED (KEN+TZA+UGA),2018,exports_gdp,-0.1947,-1,1,False,-1,True
+FEDERATED (KEN+TZA+UGA),2018,imports_gdp,-1.3856,-1,1,False,1,False
+FEDERATED (KEN+TZA+UGA),2018,current_account,1.5858,1,-1,False,-1,False
+FEDERATED (KEN+TZA+UGA),2018,govt_consumption,0.0136,1,1,True,-1,False
+FEDERATED (KEN+TZA+UGA),2018,tax_revenue,-0.6912,-1,,,1,False
+FEDERATED (KEN+TZA+UGA),2018,real_interest_rate,2.8312,1,1,True,-1,False
+FEDERATED (KEN+TZA+UGA),2018,broad_money,0.0078,1,1,True,-1,False
+FEDERATED (KEN+TZA+UGA),2018,private_credit,-1.9519,-1,-1,True,-1,True
+FEDERATED (KEN+TZA+UGA),2018,urban_population,-0.1444,-1,-1,True,-1,True
+FEDERATED (KEN+TZA+UGA),2018,school_enrollment,-2.1875,-1,1,False,-1,True
+FEDERATED (KEN+TZA+UGA),2018,life_expectancy,0.1,1,-1,False,1,True
+FEDERATED (KEN+TZA+UGA),2018,internet_users,1.6729,1,-1,False,1,True
+FEDERATED (KEN+TZA+UGA),2019,gdp_growth,-0.5338,-1,,,1,False
+FEDERATED (KEN+TZA+UGA),2019,inflation,0.5498,1,1,True,-1,False
+FEDERATED (KEN+TZA+UGA),2019,unemployment,0.73,1,-1,False,1,True
+FEDERATED (KEN+TZA+UGA),2019,exports_gdp,-1.114,-1,1,False,-1,True
+FEDERATED (KEN+TZA+UGA),2019,imports_gdp,-1.5413,-1,1,False,-1,True
+FEDERATED (KEN+TZA+UGA),2019,current_account,0.1725,1,-1,False,1,True
+FEDERATED (KEN+TZA+UGA),2019,govt_consumption,-0.1779,-1,1,False,1,False
+FEDERATED (KEN+TZA+UGA),2019,tax_revenue,0.7388,1,,,-1,False
+FEDERATED (KEN+TZA+UGA),2019,real_interest_rate,-0.6569,-1,1,False,1,False
+FEDERATED (KEN+TZA+UGA),2019,broad_money,-1.2893,-1,-1,True,1,False
+FEDERATED (KEN+TZA+UGA),2019,private_credit,-0.3667,-1,-1,True,-1,True
+FEDERATED (KEN+TZA+UGA),2019,urban_population,-0.2044,-1,-1,True,-1,True
+FEDERATED (KEN+TZA+UGA),2019,school_enrollment,-22.2572,-1,1,False,-1,True
+FEDERATED (KEN+TZA+UGA),2019,life_expectancy,0.114,1,-1,False,1,True
+FEDERATED (KEN+TZA+UGA),2019,internet_users,3.1688,1,-1,False,1,True
+FEDERATED (KEN+TZA+UGA),2020,gdp_growth,-5.3869,-1,-1,True,-1,True
+FEDERATED (KEN+TZA+UGA),2020,inflation,0.1655,1,1,True,1,True
+FEDERATED (KEN+TZA+UGA),2020,unemployment,0.599,1,-1,False,1,True
+FEDERATED (KEN+TZA+UGA),2020,exports_gdp,0.013,1,1,True,-1,False
+FEDERATED (KEN+TZA+UGA),2020,imports_gdp,-1.3734,-1,1,False,-1,True
+FEDERATED (KEN+TZA+UGA),2020,current_account,1.9694,1,-1,False,1,True
+FEDERATED (KEN+TZA+UGA),2020,govt_consumption,0.3069,1,-1,False,-1,False
+FEDERATED (KEN+TZA+UGA),2020,tax_revenue,-0.8003,-1,,,1,False
+FEDERATED (KEN+TZA+UGA),2020,real_interest_rate,-1.1165,-1,1,False,-1,True
+FEDERATED (KEN+TZA+UGA),2020,broad_money,3.1321,1,1,True,-1,False
+FEDERATED (KEN+TZA+UGA),2020,private_credit,1.3178,1,-1,False,-1,False
+FEDERATED (KEN+TZA+UGA),2020,urban_population,0.0168,1,-1,False,-1,False
+FEDERATED (KEN+TZA+UGA),2020,school_enrollment,14.441,1,1,True,-1,False
+FEDERATED (KEN+TZA+UGA),2020,life_expectancy,-1.343,-1,-1,True,1,False
+FEDERATED (KEN+TZA+UGA),2020,internet_users,2.054,1,-1,False,1,True
+FEDERATED (KEN+TZA+UGA),2021,gdp_growth,7.8633,1,1,True,-1,False
+FEDERATED (KEN+TZA+UGA),2021,inflation,0.7028,1,1,True,1,True
+FEDERATED (KEN+TZA+UGA),2021,unemployment,0.08,1,-1,False,1,True
+FEDERATED (KEN+TZA+UGA),2021,exports_gdp,1.6687,1,1,True,1,True
+FEDERATED (KEN+TZA+UGA),2021,imports_gdp,2.9342,1,1,True,-1,False
+FEDERATED (KEN+TZA+UGA),2021,current_account,-1.3299,-1,-1,True,1,False
+FEDERATED (KEN+TZA+UGA),2021,govt_consumption,-0.3308,-1,-1,True,1,False
+FEDERATED (KEN+TZA+UGA),2021,tax_revenue,-0.7452,-1,,,-1,True
+FEDERATED (KEN+TZA+UGA),2021,real_interest_rate,0.7129,1,1,True,-1,False
+FEDERATED (KEN+TZA+UGA),2021,broad_money,-2.2138,-1,-1,True,1,False
+FEDERATED (KEN+TZA+UGA),2021,private_credit,-1.0267,-1,1,False,1,False
+FEDERATED (KEN+TZA+UGA),2021,urban_population,0.0816,1,-1,False,1,True
+FEDERATED (KEN+TZA+UGA),2021,school_enrollment,1.8127,1,1,True,1,True
+FEDERATED (KEN+TZA+UGA),2021,life_expectancy,-0.371,-1,1,False,-1,True
+FEDERATED (KEN+TZA+UGA),2021,internet_users,2.2401,1,-1,False,1,True
+FEDERATED (KEN+TZA+UGA),2022,gdp_growth,-2.7305,-1,,,1,False
+FEDERATED (KEN+TZA+UGA),2022,inflation,1.5519,1,1,True,1,True
+FEDERATED (KEN+TZA+UGA),2022,unemployment,-0.128,-1,-1,True,1,False
+FEDERATED (KEN+TZA+UGA),2022,exports_gdp,2.8473,1,1,True,1,True
+FEDERATED (KEN+TZA+UGA),2022,imports_gdp,2.426,1,1,True,1,True
+FEDERATED (KEN+TZA+UGA),2022,current_account,0.3991,1,-1,False,-1,False
+FEDERATED (KEN+TZA+UGA),2022,govt_consumption,0.0664,1,1,True,-1,False
+FEDERATED (KEN+TZA+UGA),2022,tax_revenue,1.0447,1,,,-1,False
+FEDERATED (KEN+TZA+UGA),2022,real_interest_rate,-2.3987,-1,1,False,1,False
+FEDERATED (KEN+TZA+UGA),2022,broad_money,-1.6089,-1,1,False,-1,True
+FEDERATED (KEN+TZA+UGA),2022,private_credit,0.1353,1,-1,False,-1,False
+FEDERATED (KEN+TZA+UGA),2022,urban_population,0.1428,1,-1,False,1,True
+FEDERATED (KEN+TZA+UGA),2022,school_enrollment,4.7851,1,1,True,1,True
+FEDERATED (KEN+TZA+UGA),2022,life_expectancy,2.324,1,1,True,-1,False
+FEDERATED (KEN+TZA+UGA),2022,internet_users,2.443,1,-1,False,1,True
+FEDERATED (KEN+TZA+UGA),2023,gdp_growth,0.86,1,-1,False,-1,False
+FEDERATED (KEN+TZA+UGA),2023,inflation,0.0115,1,1,True,1,True
+FEDERATED (KEN+TZA+UGA),2023,unemployment,-0.156,-1,-1,True,-1,True
+FEDERATED (KEN+TZA+UGA),2023,exports_gdp,0.9336,1,-1,False,1,True
+FEDERATED (KEN+TZA+UGA),2023,imports_gdp,-0.0979,-1,1,False,1,False
+FEDERATED (KEN+TZA+UGA),2023,current_account,1.6544,1,-1,False,1,True
+FEDERATED (KEN+TZA+UGA),2023,govt_consumption,-0.4363,-1,1,False,1,False
+FEDERATED (KEN+TZA+UGA),2023,tax_revenue,-0.5362,-1,,,1,False
+FEDERATED (KEN+TZA+UGA),2023,real_interest_rate,2.7239,1,1,True,-1,False
+FEDERATED (KEN+TZA+UGA),2023,broad_money,2.8269,1,1,True,-1,False
+FEDERATED (KEN+TZA+UGA),2023,private_credit,0.5397,1,-1,False,1,True
+FEDERATED (KEN+TZA+UGA),2023,urban_population,0.2023,1,1,True,1,True
+FEDERATED (KEN+TZA+UGA),2023,school_enrollment,-0.3036,-1,1,False,1,False
+FEDERATED (KEN+TZA+UGA),2023,life_expectancy,0.097,1,-1,False,1,True
+FEDERATED (KEN+TZA+UGA),2023,internet_users,2.6645,1,-1,False,1,True

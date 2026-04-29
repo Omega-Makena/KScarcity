@@ -14,6 +14,7 @@ import numpy as np
 import time
 import uuid
 import logging
+from collections import deque
 from dataclasses import dataclass, field
 from typing import Any, Dict, List, Optional, Tuple, Type
 from enum import Enum
@@ -58,6 +59,52 @@ class HypothesisMetadata:
     generation: int = 0
     parents: List[str] = field(default_factory=list)
 
+class RegimeTracker:
+    """
+    Page's CUSUM structural break detector.
+
+    Feeds residuals from a hypothesis model; tracks how stable the relationship
+    is across regime shifts.  consistency_score = 1.0 means no breaks ever
+    detected; 0.0 means the relationship breaks constantly.
+    """
+
+    def __init__(self, threshold: float = 5.0, drift: float = 0.5):
+        self._cusum_pos = 0.0
+        self._cusum_neg = 0.0
+        self._threshold = threshold
+        self._drift = drift
+        self._sigma_ema = 1.0
+        self._sigma_alpha = 0.05
+        self._n_breaks = 0
+        self._n_consistent = 0
+
+    def update(self, residual: float) -> bool:
+        """Feed one residual. Returns True if a regime break is detected."""
+        r = abs(float(residual))
+        self._sigma_ema = ((1.0 - self._sigma_alpha) * self._sigma_ema
+                           + self._sigma_alpha * r)
+        normed = r / (self._sigma_ema + 1e-8)
+        self._cusum_pos = max(0.0, self._cusum_pos + normed - self._drift)
+        self._cusum_neg = max(0.0, self._cusum_neg - normed - self._drift)
+        break_detected = (self._cusum_pos > self._threshold
+                          or self._cusum_neg > self._threshold)
+        if break_detected:
+            self._n_breaks += 1
+            self._cusum_pos = 0.0
+            self._cusum_neg = 0.0
+        else:
+            self._n_consistent += 1
+        return break_detected
+
+    @property
+    def consistency_score(self) -> float:
+        """Fraction of steps without a detected break. [0, 1]"""
+        total = self._n_breaks + self._n_consistent
+        if total == 0:
+            return 0.5
+        return self._n_consistent / total
+
+
 class Hypothesis(abc.ABC):
     """
     Abstract base class for all relational hypotheses.
@@ -71,21 +118,25 @@ class Hypothesis(abc.ABC):
 
     Subclasses implement specific mathematical models for different relationship types.
     """
-    
+
     def __init__(self, variables: List[str], rel_type: RelationshipType):
         self.variables = variables
         self.rel_type = rel_type
         self.meta = HypothesisMetadata()
-        
+
         # core metrics (the "4 pillars")
         self.fit_score = 0.5   # how well it explains current data (0-1)
         self.confidence = 0.5  # bayesian probability of truth
         self.evidence = 0      # n samples
         self.stability = 0.5   # 1.0 - cv(error)
-        
-        # bayesian priors
-        self.alpha_success = 1.0
+
+        # skeptical bayesian prior — hypotheses must earn confidence
+        # alpha=0.1, beta=1.0 → initial confidence ≈ 0.09
+        self.alpha_success = 0.1
         self.beta_failure = 1.0
+
+        # optional regime tracker; subclasses assign self._regime_tracker = RegimeTracker()
+        self._regime_tracker: Optional[RegimeTracker] = None
 
     @abc.abstractmethod
     def fit_step(self, row: Dict[str, float]) -> None:
@@ -128,44 +179,90 @@ class Hypothesis(abc.ABC):
         """
         return None
 
+    def observe(self, state: Dict[str, float]) -> None:
+        """
+        Notify the hypothesis of a new simulation state.
+        Default is a no-op; subclasses may override to track simulation history.
+        """
+        pass
+
+    def _update_regime_tracker(self, residual: float) -> None:
+        """Subclasses call this in fit_step() with their prediction residual."""
+        if self._regime_tracker is not None:
+            self._regime_tracker.update(residual)
+
+    def _regime_consistency(self) -> float:
+        """
+        Returns a consistency score in [0, 1] reflecting regime stability.
+        Default delegates to the optional _regime_tracker.
+        TemporalHypothesis overrides this to use its built-in CUSUM.
+        """
+        if self._regime_tracker is not None:
+            return self._regime_tracker.consistency_score
+        return 0.5
+
     def update(self, row: Dict[str, float]) -> Dict[str, Any]:
         """
-        Executes the full online update cycle for the hypothesis.
+        Full online update cycle.
 
-        Sequence:
-        1. Evaluate the hypothesis against the new data (compute fit/error).
-        2. Update internal model parameters (learn from data).
-        3. Update Bayesian confidence scores based on success/failure of the fit.
-        
-        Args:
-            row: The incoming data row.
-
-        Returns:
-            The metrics dictionary containing the latest fit_score, confidence, etc.
+        1. Evaluate the hypothesis (read-only statistical measurement).
+        2. Derive signal from p-value (E[signal]≈0.025 on null data — calibration-safe)
+           or fit-score deviation from 0.5 null baseline.
+        3. Update internal model parameters via fit_step.
+        4. Accumulate signal with λ=0.99 exponential forgetting so the effective
+           memory window is ~100 steps.  Without forgetting, 1000 past observations
+           overwhelm any regime shift; with λ=0.99 old evidence decays gracefully.
+        5. Apply regime-consistency as a conservative multiplicative lift (max 5%).
+           Proportional form keeps low-confidence hypotheses from being falsely
+           promoted and guarantees the result stays in [0, 1].
         """
-        # 1. evaluate (read-only measurement)
+        # 1. evaluate (read-only)
         metrics = self.evaluate(row)
         self.fit_score = metrics['fit_score']
-        # note: 'confidence' and 'stability' in metrics might be pre-calculated 
-        # based on history, or we update them here.
-        
-        # 2. fit (update internal state)
+
+        # 2. signal — prefer proper p-value; fall back to fit-score deviation
+        p_val = metrics.get('p_value')
+        if p_val is None:
+            p_val = metrics.get('p_value_forward')
+
+        if p_val is not None:
+            # p < 0.10 → positive signal.
+            # M=10: E[null signal] ≈ 0.05  (∫₀^{0.10} (1−10p) dp = 0.05).
+            # Calibrated for annual macro data: genuine relationships yield
+            # p=0.05-0.10 on rolling 5-10yr windows; M=10 lets those accumulate.
+            # Null SS confidence ≈ 5% — safely below predict() threshold (20%)
+            # and MetaController graduation threshold (70%).
+            signal = max(0.0, 1.0 - float(p_val) * 10.0)
+        else:
+            # fit-score fallback: null baseline at 0.5.
+            # RandomPredictor and i.i.d. noise typically yield fit_score ≈ 0.5,
+            # so signal ≈ 0.  Structured data yields fit_score > 0.5 → signal > 0.
+            signal = max(0.0, (self.fit_score - 0.5) * 2.0)
+
+        # 3. update internal model parameters
         self.fit_step(row)
         self.evidence += 1
-        
-        # 3. update bayesian confidence
-        # we use fit_score as a "soft" success
-        self.alpha_success += self.fit_score
-        self.beta_failure += (1.0 - self.fit_score)
-        
+
+        # 4. exponentially-weighted Bayesian accumulators (λ = 0.99)
+        # Steady-state confidence converges to signal_mean, allowing the
+        # accumulator to track regime changes rather than being permanently
+        # anchored by early observations.
+        _lambda = 0.99
+        self.alpha_success = _lambda * self.alpha_success + signal
+        self.beta_failure  = _lambda * self.beta_failure  + (1.0 - signal)
         self.confidence = self.alpha_success / (self.alpha_success + self.beta_failure)
-        
-        # update reported metrics
+
+        # 5. regime-consistency: conservative multiplicative lift (max +5%)
+        # Proportional form: a hypothesis at conf=0.9 gets at most 0.9*1.05=0.945;
+        # one at conf=0.01 gets at most 0.0105.  Low-confidence hypotheses are not
+        # falsely promoted.  Result is guaranteed ≤ 1.0 since conf ≤ 1.
+        if self.evidence > 15:
+            rc = self._regime_consistency()
+            self.confidence = min(1.0, self.confidence * (1.0 + 0.05 * rc))
+
         metrics['confidence'] = self.confidence
         metrics['evidence'] = self.evidence
-        # stability is usually tracked inside the subclass (cv of error), passed up in metrics
         self.stability = metrics.get('stability', 0.5)
-        
         return metrics
 
     def to_dict(self) -> Dict[str, Any]:
@@ -190,11 +287,12 @@ class HypothesisPool:
     def __init__(self, capacity: int = 1000):
         self.capacity = capacity
         self.population: Dict[str, Hypothesis] = {}
-        self.graveyard: List[Dict[str, Any]] = [] 
+        self.graveyard: List[Dict[str, Any]] = []
         self.last_update_errors = 0
         self.last_update_error_details: List[Dict[str, Any]] = []
         self.total_update_errors = 0
-        
+        self._fdr_step: int = 0
+
         # vectorized backend
         self.vec_pool = VectorizedHypothesisPool(capacity=capacity)
     
@@ -300,6 +398,45 @@ class HypothesisPool:
                 )
 
         self.total_update_errors += self.last_update_errors
+
+        # FDR correction every 10 steps: penalise low-evidence hypotheses that
+        # only appear significant due to multiple testing across the pool.
+        self._fdr_step += 1
+        if self._fdr_step % 10 == 0:
+            self._apply_fdr_correction()
+
+    def _apply_fdr_correction(self) -> None:
+        """
+        Soft Benjamini-Hochberg FDR correction at q=0.05.
+
+        BH ranking uses FORWARD confidence (alpha_success / total).
+        After deflation, h.confidence is reset to conf_fwd so that the
+        ensemble threshold and arbitrator continue to see the true forward
+        confidence, not an intermediate signed value.
+        Hypotheses that do not clear the BH rank threshold and have fewer than
+        15 observations have their alpha accumulator gently deflated (8%),
+        pulling them back toward the skeptical prior.
+        """
+        n = len(self.population)
+        if n < 10:
+            return
+        q = 0.05
+
+        def _fwd(h) -> float:
+            denom = h.alpha_success + h.beta_failure
+            return h.alpha_success / denom if denom > 0 else 0.0
+
+        hyps = sorted(self.population.values(), key=_fwd, reverse=True)
+        bh_cutoff = 0
+        for k, h in enumerate(hyps, start=1):
+            if (1.0 - _fwd(h)) <= (k / n) * q:
+                bh_cutoff = k
+        for h in hyps[bh_cutoff:]:
+            if h.evidence >= 15:
+                continue
+            h.alpha_success = max(0.1, h.alpha_success * 0.92)
+            conf_fwd = h.alpha_success / (h.alpha_success + h.beta_failure)
+            h.confidence = conf_fwd
 
     def _kill(self, hid: str) -> None:
         if hid in self.population:

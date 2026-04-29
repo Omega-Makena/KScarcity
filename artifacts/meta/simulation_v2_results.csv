@@ -1,0 +1,311 @@
+shock_id,shock_label,shock_var,shock_delta,target_var,expected_dir,actual_delta,match,rationale,condition
+S1_electricity,Electricity access +20 pp  (infrastructure investment),electricity_access,20.0,gdp_growth,+,0.0,,Higher productivity from electrification,local
+S1_electricity,Electricity access +20 pp  (infrastructure investment),electricity_access,20.0,internet_users,+,2.946722,True,Digital infrastructure piggybacks on power,local
+S1_electricity,Electricity access +20 pp  (infrastructure investment),electricity_access,20.0,life_expectancy,+,0.0,,Healthcare and food storage improvements,local
+S1_electricity,Electricity access +20 pp  (infrastructure investment),electricity_access,20.0,private_credit,+,0.0,,More economic activity -> more bankable projects,local
+S1_electricity,Electricity access +20 pp  (infrastructure investment),electricity_access,20.0,urban_population,+,0.0,,Electrified areas attract migration,local
+S2_govt_debt,Government debt +15 pp GDP  (fiscal expansion),govt_debt,15.0,real_interest_rate,+,0.0,,Crowding-out raises cost of capital,local
+S2_govt_debt,Government debt +15 pp GDP  (fiscal expansion),govt_debt,15.0,inflation,+,0.0,,Monetization risk and demand pressure,local
+S2_govt_debt,Government debt +15 pp GDP  (fiscal expansion),govt_debt,15.0,private_credit,-,0.0,,Crowded out by govt borrowing,local
+S2_govt_debt,Government debt +15 pp GDP  (fiscal expansion),govt_debt,15.0,gdp_growth,+,0.0,,Short-run Keynesian stimulus multiplier,local
+S2_govt_debt,Government debt +15 pp GDP  (fiscal expansion),govt_debt,15.0,tax_revenue,+,0.0,,Higher income base boosts tax receipts,local
+S3_inflation,Inflation shock +5 pp  (external price pressure),inflation,5.0,real_interest_rate,+,0.0,,Central bank raises policy rate,local
+S3_inflation,Inflation shock +5 pp  (external price pressure),inflation,5.0,exports_gdp,-,0.0,,Competitiveness loss via REER appreciation,local
+S3_inflation,Inflation shock +5 pp  (external price pressure),inflation,5.0,broad_money,+,0.0,,Monetization -- more money in system,local
+S3_inflation,Inflation shock +5 pp  (external price pressure),inflation,5.0,private_credit,-,0.0,,Higher rates discourage borrowing,local
+S3_inflation,Inflation shock +5 pp  (external price pressure),inflation,5.0,current_account,-,0.0,,"Import costs rise, trade balance deteriorates",local
+S3_inflation,Inflation shock +5 pp  (external price pressure),inflation,5.0,unemployment,+,0.0,,Stagflation dynamic at high inflation,local
+S4_private_credit,Private credit +5 pp GDP  (FDI / capital availability surge),private_credit,5.0,gdp_growth,+,0.0,,Investment multiplier (Romer 1990 endogenous growth),local
+S4_private_credit,Private credit +5 pp GDP  (FDI / capital availability surge),private_credit,5.0,exports_gdp,+,0.0,,New productive capacity expands export base,local
+S4_private_credit,Private credit +5 pp GDP  (FDI / capital availability surge),private_credit,5.0,unemployment,-,0.0,,Capital-financed expansion creates jobs,local
+S4_private_credit,Private credit +5 pp GDP  (FDI / capital availability surge),private_credit,5.0,electricity_access,+,0.0,,Investable capital flows into infrastructure,local
+S5_export_drought,Exports -10 pp GDP  (drought / commodity shock),exports_gdp,-10.0,current_account,-,-1.85874,True,Trade balance deteriorates directly,local
+S5_export_drought,Exports -10 pp GDP  (drought / commodity shock),exports_gdp,-10.0,gdp_growth,-,0.0,,Output falls with agricultural sector,local
+S5_export_drought,Exports -10 pp GDP  (drought / commodity shock),exports_gdp,-10.0,unemployment,+,0.0,,Rural labour market shock,local
+S5_export_drought,Exports -10 pp GDP  (drought / commodity shock),exports_gdp,-10.0,inflation,+,0.0,,Food price pressure from supply shortage,local
+S5_export_drought,Exports -10 pp GDP  (drought / commodity shock),exports_gdp,-10.0,tax_revenue,-,0.0,,Lower income base shrinks fiscal revenues,local
+S6_interest_rate,Real interest rate +3 pp  (monetary tightening),real_interest_rate,3.0,private_credit,-,0.0,,Borrowing more expensive -> credit contraction,local
+S6_interest_rate,Real interest rate +3 pp  (monetary tightening),real_interest_rate,3.0,gdp_growth,-,0.0,,Investment falls with higher cost of capital,local
+S6_interest_rate,Real interest rate +3 pp  (monetary tightening),real_interest_rate,3.0,unemployment,+,0.520137,True,Businesses cut expansion plans,local
+S6_interest_rate,Real interest rate +3 pp  (monetary tightening),real_interest_rate,3.0,inflation,-,0.0,,Monetary tightening suppresses demand inflation,local
+S6_interest_rate,Real interest rate +3 pp  (monetary tightening),real_interest_rate,3.0,broad_money,-,0.0,,Monetary contraction reduces money supply,local
+S6_interest_rate,Real interest rate +3 pp  (monetary tightening),real_interest_rate,3.0,govt_debt,+,0.0,,Higher debt service increases nominal debt stock,local
+S1_electricity,Electricity access +20 pp  (infrastructure investment),electricity_access,20.0,gdp_growth,+,0.0,,Higher productivity from electrification,federated
+S1_electricity,Electricity access +20 pp  (infrastructure investment),electricity_access,20.0,internet_users,+,4.26234,True,Digital infrastructure piggybacks on power,federated
+S1_electricity,Electricity access +20 pp  (infrastructure investment),electricity_access,20.0,life_expectancy,+,0.0,,Healthcare and food storage improvements,federated
+S1_electricity,Electricity access +20 pp  (infrastructure investment),electricity_access,20.0,private_credit,+,0.0,,More economic activity -> more bankable projects,federated
+S1_electricity,Electricity access +20 pp  (infrastructure investment),electricity_access,20.0,urban_population,+,15.90833,True,Electrified areas attract migration,federated
+S2_govt_debt,Government debt +15 pp GDP  (fiscal expansion),govt_debt,15.0,real_interest_rate,+,0.0,,Crowding-out raises cost of capital,federated
+S2_govt_debt,Government debt +15 pp GDP  (fiscal expansion),govt_debt,15.0,inflation,+,0.0,,Monetization risk and demand pressure,federated
+S2_govt_debt,Government debt +15 pp GDP  (fiscal expansion),govt_debt,15.0,private_credit,-,0.0,,Crowded out by govt borrowing,federated
+S2_govt_debt,Government debt +15 pp GDP  (fiscal expansion),govt_debt,15.0,gdp_growth,+,0.0,,Short-run Keynesian stimulus multiplier,federated
+S2_govt_debt,Government debt +15 pp GDP  (fiscal expansion),govt_debt,15.0,tax_revenue,+,0.0,,Higher income base boosts tax receipts,federated
+S3_inflation,Inflation shock +5 pp  (external price pressure),inflation,5.0,real_interest_rate,+,0.0,,Central bank raises policy rate,federated
+S3_inflation,Inflation shock +5 pp  (external price pressure),inflation,5.0,exports_gdp,-,0.0,,Competitiveness loss via REER appreciation,federated
+S3_inflation,Inflation shock +5 pp  (external price pressure),inflation,5.0,broad_money,+,0.0,,Monetization -- more money in system,federated
+S3_inflation,Inflation shock +5 pp  (external price pressure),inflation,5.0,private_credit,-,0.0,,Higher rates discourage borrowing,federated
+S3_inflation,Inflation shock +5 pp  (external price pressure),inflation,5.0,current_account,-,0.0,,"Import costs rise, trade balance deteriorates",federated
+S3_inflation,Inflation shock +5 pp  (external price pressure),inflation,5.0,unemployment,+,0.0,,Stagflation dynamic at high inflation,federated
+S4_private_credit,Private credit +5 pp GDP  (FDI / capital availability surge),private_credit,5.0,gdp_growth,+,0.0,,Investment multiplier (Romer 1990 endogenous growth),federated
+S4_private_credit,Private credit +5 pp GDP  (FDI / capital availability surge),private_credit,5.0,exports_gdp,+,0.0,,New productive capacity expands export base,federated
+S4_private_credit,Private credit +5 pp GDP  (FDI / capital availability surge),private_credit,5.0,unemployment,-,0.0,,Capital-financed expansion creates jobs,federated
+S4_private_credit,Private credit +5 pp GDP  (FDI / capital availability surge),private_credit,5.0,electricity_access,+,0.0,,Investable capital flows into infrastructure,federated
+S5_export_drought,Exports -10 pp GDP  (drought / commodity shock),exports_gdp,-10.0,current_account,-,-1.499355,True,Trade balance deteriorates directly,federated
+S5_export_drought,Exports -10 pp GDP  (drought / commodity shock),exports_gdp,-10.0,gdp_growth,-,0.0,,Output falls with agricultural sector,federated
+S5_export_drought,Exports -10 pp GDP  (drought / commodity shock),exports_gdp,-10.0,unemployment,+,0.0,,Rural labour market shock,federated
+S5_export_drought,Exports -10 pp GDP  (drought / commodity shock),exports_gdp,-10.0,inflation,+,0.0,,Food price pressure from supply shortage,federated
+S5_export_drought,Exports -10 pp GDP  (drought / commodity shock),exports_gdp,-10.0,tax_revenue,-,0.0,,Lower income base shrinks fiscal revenues,federated
+S6_interest_rate,Real interest rate +3 pp  (monetary tightening),real_interest_rate,3.0,private_credit,-,0.0,,Borrowing more expensive -> credit contraction,federated
+S6_interest_rate,Real interest rate +3 pp  (monetary tightening),real_interest_rate,3.0,gdp_growth,-,0.0,,Investment falls with higher cost of capital,federated
+S6_interest_rate,Real interest rate +3 pp  (monetary tightening),real_interest_rate,3.0,unemployment,+,0.47191,True,Businesses cut expansion plans,federated
+S6_interest_rate,Real interest rate +3 pp  (monetary tightening),real_interest_rate,3.0,inflation,-,0.0,,Monetary tightening suppresses demand inflation,federated
+S6_interest_rate,Real interest rate +3 pp  (monetary tightening),real_interest_rate,3.0,broad_money,-,0.0,,Monetary contraction reduces money supply,federated
+S6_interest_rate,Real interest rate +3 pp  (monetary tightening),real_interest_rate,3.0,govt_debt,+,0.0,,Higher debt service increases nominal debt stock,federated
+S1_electricity,Electricity access +20 pp  (infrastructure investment),electricity_access,20.0,gdp_growth,+,2.965088,True,Higher productivity from electrification,local
+S1_electricity,Electricity access +20 pp  (infrastructure investment),electricity_access,20.0,internet_users,+,4.246925,True,Digital infrastructure piggybacks on power,local
+S1_electricity,Electricity access +20 pp  (infrastructure investment),electricity_access,20.0,life_expectancy,+,-0.196122,False,Healthcare and food storage improvements,local
+S1_electricity,Electricity access +20 pp  (infrastructure investment),electricity_access,20.0,private_credit,+,0.0,,More economic activity -> more bankable projects,local
+S1_electricity,Electricity access +20 pp  (infrastructure investment),electricity_access,20.0,urban_population,+,1.527582,True,Electrified areas attract migration,local
+S2_govt_debt,Government debt +15 pp GDP  (fiscal expansion),govt_debt,15.0,real_interest_rate,+,0.0,,Crowding-out raises cost of capital,local
+S2_govt_debt,Government debt +15 pp GDP  (fiscal expansion),govt_debt,15.0,inflation,+,0.0,,Monetization risk and demand pressure,local
+S2_govt_debt,Government debt +15 pp GDP  (fiscal expansion),govt_debt,15.0,private_credit,-,0.0,,Crowded out by govt borrowing,local
+S2_govt_debt,Government debt +15 pp GDP  (fiscal expansion),govt_debt,15.0,gdp_growth,+,0.0,,Short-run Keynesian stimulus multiplier,local
+S2_govt_debt,Government debt +15 pp GDP  (fiscal expansion),govt_debt,15.0,tax_revenue,+,1.902377,True,Higher income base boosts tax receipts,local
+S3_inflation,Inflation shock +5 pp  (external price pressure),inflation,5.0,real_interest_rate,+,0.0,,Central bank raises policy rate,local
+S3_inflation,Inflation shock +5 pp  (external price pressure),inflation,5.0,exports_gdp,-,-0.643207,True,Competitiveness loss via REER appreciation,local
+S3_inflation,Inflation shock +5 pp  (external price pressure),inflation,5.0,broad_money,+,0.0,,Monetization -- more money in system,local
+S3_inflation,Inflation shock +5 pp  (external price pressure),inflation,5.0,private_credit,-,0.0,,Higher rates discourage borrowing,local
+S3_inflation,Inflation shock +5 pp  (external price pressure),inflation,5.0,current_account,-,0.0,,"Import costs rise, trade balance deteriorates",local
+S3_inflation,Inflation shock +5 pp  (external price pressure),inflation,5.0,unemployment,+,0.0,,Stagflation dynamic at high inflation,local
+S4_private_credit,Private credit +5 pp GDP  (FDI / capital availability surge),private_credit,5.0,gdp_growth,+,0.0,,Investment multiplier (Romer 1990 endogenous growth),local
+S4_private_credit,Private credit +5 pp GDP  (FDI / capital availability surge),private_credit,5.0,exports_gdp,+,0.0,,New productive capacity expands export base,local
+S4_private_credit,Private credit +5 pp GDP  (FDI / capital availability surge),private_credit,5.0,unemployment,-,0.0,,Capital-financed expansion creates jobs,local
+S4_private_credit,Private credit +5 pp GDP  (FDI / capital availability surge),private_credit,5.0,electricity_access,+,0.0,,Investable capital flows into infrastructure,local
+S5_export_drought,Exports -10 pp GDP  (drought / commodity shock),exports_gdp,-10.0,current_account,-,-1.856707,True,Trade balance deteriorates directly,local
+S5_export_drought,Exports -10 pp GDP  (drought / commodity shock),exports_gdp,-10.0,gdp_growth,-,0.0,,Output falls with agricultural sector,local
+S5_export_drought,Exports -10 pp GDP  (drought / commodity shock),exports_gdp,-10.0,unemployment,+,-0.080105,False,Rural labour market shock,local
+S5_export_drought,Exports -10 pp GDP  (drought / commodity shock),exports_gdp,-10.0,inflation,+,0.502908,True,Food price pressure from supply shortage,local
+S5_export_drought,Exports -10 pp GDP  (drought / commodity shock),exports_gdp,-10.0,tax_revenue,-,0.0,,Lower income base shrinks fiscal revenues,local
+S6_interest_rate,Real interest rate +3 pp  (monetary tightening),real_interest_rate,3.0,private_credit,-,-0.15596,True,Borrowing more expensive -> credit contraction,local
+S6_interest_rate,Real interest rate +3 pp  (monetary tightening),real_interest_rate,3.0,gdp_growth,-,0.0,,Investment falls with higher cost of capital,local
+S6_interest_rate,Real interest rate +3 pp  (monetary tightening),real_interest_rate,3.0,unemployment,+,0.0,,Businesses cut expansion plans,local
+S6_interest_rate,Real interest rate +3 pp  (monetary tightening),real_interest_rate,3.0,inflation,-,0.0,,Monetary tightening suppresses demand inflation,local
+S6_interest_rate,Real interest rate +3 pp  (monetary tightening),real_interest_rate,3.0,broad_money,-,0.0,,Monetary contraction reduces money supply,local
+S6_interest_rate,Real interest rate +3 pp  (monetary tightening),real_interest_rate,3.0,govt_debt,+,0.0,,Higher debt service increases nominal debt stock,local
+S1_electricity,Electricity access +20 pp  (infrastructure investment),electricity_access,20.0,gdp_growth,+,2.663418,True,Higher productivity from electrification,federated
+S1_electricity,Electricity access +20 pp  (infrastructure investment),electricity_access,20.0,internet_users,+,4.939371,True,Digital infrastructure piggybacks on power,federated
+S1_electricity,Electricity access +20 pp  (infrastructure investment),electricity_access,20.0,life_expectancy,+,0.0,,Healthcare and food storage improvements,federated
+S1_electricity,Electricity access +20 pp  (infrastructure investment),electricity_access,20.0,private_credit,+,0.0,,More economic activity -> more bankable projects,federated
+S1_electricity,Electricity access +20 pp  (infrastructure investment),electricity_access,20.0,urban_population,+,1.259676,True,Electrified areas attract migration,federated
+S2_govt_debt,Government debt +15 pp GDP  (fiscal expansion),govt_debt,15.0,real_interest_rate,+,0.0,,Crowding-out raises cost of capital,federated
+S2_govt_debt,Government debt +15 pp GDP  (fiscal expansion),govt_debt,15.0,inflation,+,0.0,,Monetization risk and demand pressure,federated
+S2_govt_debt,Government debt +15 pp GDP  (fiscal expansion),govt_debt,15.0,private_credit,-,0.0,,Crowded out by govt borrowing,federated
+S2_govt_debt,Government debt +15 pp GDP  (fiscal expansion),govt_debt,15.0,gdp_growth,+,0.0,,Short-run Keynesian stimulus multiplier,federated
+S2_govt_debt,Government debt +15 pp GDP  (fiscal expansion),govt_debt,15.0,tax_revenue,+,1.829113,True,Higher income base boosts tax receipts,federated
+S3_inflation,Inflation shock +5 pp  (external price pressure),inflation,5.0,real_interest_rate,+,0.0,,Central bank raises policy rate,federated
+S3_inflation,Inflation shock +5 pp  (external price pressure),inflation,5.0,exports_gdp,-,-0.874419,True,Competitiveness loss via REER appreciation,federated
+S3_inflation,Inflation shock +5 pp  (external price pressure),inflation,5.0,broad_money,+,0.0,,Monetization -- more money in system,federated
+S3_inflation,Inflation shock +5 pp  (external price pressure),inflation,5.0,private_credit,-,0.0,,Higher rates discourage borrowing,federated
+S3_inflation,Inflation shock +5 pp  (external price pressure),inflation,5.0,current_account,-,0.0,,"Import costs rise, trade balance deteriorates",federated
+S3_inflation,Inflation shock +5 pp  (external price pressure),inflation,5.0,unemployment,+,0.0,,Stagflation dynamic at high inflation,federated
+S4_private_credit,Private credit +5 pp GDP  (FDI / capital availability surge),private_credit,5.0,gdp_growth,+,0.0,,Investment multiplier (Romer 1990 endogenous growth),federated
+S4_private_credit,Private credit +5 pp GDP  (FDI / capital availability surge),private_credit,5.0,exports_gdp,+,0.0,,New productive capacity expands export base,federated
+S4_private_credit,Private credit +5 pp GDP  (FDI / capital availability surge),private_credit,5.0,unemployment,-,0.0,,Capital-financed expansion creates jobs,federated
+S4_private_credit,Private credit +5 pp GDP  (FDI / capital availability surge),private_credit,5.0,electricity_access,+,0.0,,Investable capital flows into infrastructure,federated
+S5_export_drought,Exports -10 pp GDP  (drought / commodity shock),exports_gdp,-10.0,current_account,-,-1.990912,True,Trade balance deteriorates directly,federated
+S5_export_drought,Exports -10 pp GDP  (drought / commodity shock),exports_gdp,-10.0,gdp_growth,-,0.0,,Output falls with agricultural sector,federated
+S5_export_drought,Exports -10 pp GDP  (drought / commodity shock),exports_gdp,-10.0,unemployment,+,-0.090379,False,Rural labour market shock,federated
+S5_export_drought,Exports -10 pp GDP  (drought / commodity shock),exports_gdp,-10.0,inflation,+,0.985336,True,Food price pressure from supply shortage,federated
+S5_export_drought,Exports -10 pp GDP  (drought / commodity shock),exports_gdp,-10.0,tax_revenue,-,0.0,,Lower income base shrinks fiscal revenues,federated
+S6_interest_rate,Real interest rate +3 pp  (monetary tightening),real_interest_rate,3.0,private_credit,-,-0.238813,True,Borrowing more expensive -> credit contraction,federated
+S6_interest_rate,Real interest rate +3 pp  (monetary tightening),real_interest_rate,3.0,gdp_growth,-,0.0,,Investment falls with higher cost of capital,federated
+S6_interest_rate,Real interest rate +3 pp  (monetary tightening),real_interest_rate,3.0,unemployment,+,0.0,,Businesses cut expansion plans,federated
+S6_interest_rate,Real interest rate +3 pp  (monetary tightening),real_interest_rate,3.0,inflation,-,0.0,,Monetary tightening suppresses demand inflation,federated
+S6_interest_rate,Real interest rate +3 pp  (monetary tightening),real_interest_rate,3.0,broad_money,-,0.0,,Monetary contraction reduces money supply,federated
+S6_interest_rate,Real interest rate +3 pp  (monetary tightening),real_interest_rate,3.0,govt_debt,+,0.0,,Higher debt service increases nominal debt stock,federated
+S1_electricity,Electricity access +20 pp  (infrastructure investment),electricity_access,20.0,gdp_growth,+,0.0,,Higher productivity from electrification,local
+S1_electricity,Electricity access +20 pp  (infrastructure investment),electricity_access,20.0,internet_users,+,0.0,,Digital infrastructure piggybacks on power,local
+S1_electricity,Electricity access +20 pp  (infrastructure investment),electricity_access,20.0,life_expectancy,+,1.618762,True,Healthcare and food storage improvements,local
+S1_electricity,Electricity access +20 pp  (infrastructure investment),electricity_access,20.0,private_credit,+,0.0,,More economic activity -> more bankable projects,local
+S1_electricity,Electricity access +20 pp  (infrastructure investment),electricity_access,20.0,urban_population,+,0.0,,Electrified areas attract migration,local
+S2_govt_debt,Government debt +15 pp GDP  (fiscal expansion),govt_debt,15.0,real_interest_rate,+,1.37836,True,Crowding-out raises cost of capital,local
+S2_govt_debt,Government debt +15 pp GDP  (fiscal expansion),govt_debt,15.0,inflation,+,0.0,,Monetization risk and demand pressure,local
+S2_govt_debt,Government debt +15 pp GDP  (fiscal expansion),govt_debt,15.0,private_credit,-,-0.698802,True,Crowded out by govt borrowing,local
+S2_govt_debt,Government debt +15 pp GDP  (fiscal expansion),govt_debt,15.0,gdp_growth,+,0.0,,Short-run Keynesian stimulus multiplier,local
+S2_govt_debt,Government debt +15 pp GDP  (fiscal expansion),govt_debt,15.0,tax_revenue,+,0.0,,Higher income base boosts tax receipts,local
+S3_inflation,Inflation shock +5 pp  (external price pressure),inflation,5.0,real_interest_rate,+,0.0,,Central bank raises policy rate,local
+S3_inflation,Inflation shock +5 pp  (external price pressure),inflation,5.0,exports_gdp,-,0.0,,Competitiveness loss via REER appreciation,local
+S3_inflation,Inflation shock +5 pp  (external price pressure),inflation,5.0,broad_money,+,0.627294,True,Monetization -- more money in system,local
+S3_inflation,Inflation shock +5 pp  (external price pressure),inflation,5.0,private_credit,-,0.0,,Higher rates discourage borrowing,local
+S3_inflation,Inflation shock +5 pp  (external price pressure),inflation,5.0,current_account,-,-0.545467,True,"Import costs rise, trade balance deteriorates",local
+S3_inflation,Inflation shock +5 pp  (external price pressure),inflation,5.0,unemployment,+,0.0,,Stagflation dynamic at high inflation,local
+S4_private_credit,Private credit +5 pp GDP  (FDI / capital availability surge),private_credit,5.0,gdp_growth,+,0.501538,True,Investment multiplier (Romer 1990 endogenous growth),local
+S4_private_credit,Private credit +5 pp GDP  (FDI / capital availability surge),private_credit,5.0,exports_gdp,+,0.0,,New productive capacity expands export base,local
+S4_private_credit,Private credit +5 pp GDP  (FDI / capital availability surge),private_credit,5.0,unemployment,-,-0.649843,True,Capital-financed expansion creates jobs,local
+S4_private_credit,Private credit +5 pp GDP  (FDI / capital availability surge),private_credit,5.0,electricity_access,+,0.0,,Investable capital flows into infrastructure,local
+S5_export_drought,Exports -10 pp GDP  (drought / commodity shock),exports_gdp,-10.0,current_account,-,-1.385693,True,Trade balance deteriorates directly,local
+S5_export_drought,Exports -10 pp GDP  (drought / commodity shock),exports_gdp,-10.0,gdp_growth,-,0.0,,Output falls with agricultural sector,local
+S5_export_drought,Exports -10 pp GDP  (drought / commodity shock),exports_gdp,-10.0,unemployment,+,0.0,,Rural labour market shock,local
+S5_export_drought,Exports -10 pp GDP  (drought / commodity shock),exports_gdp,-10.0,inflation,+,0.0,,Food price pressure from supply shortage,local
+S5_export_drought,Exports -10 pp GDP  (drought / commodity shock),exports_gdp,-10.0,tax_revenue,-,0.0,,Lower income base shrinks fiscal revenues,local
+S6_interest_rate,Real interest rate +3 pp  (monetary tightening),real_interest_rate,3.0,private_credit,-,0.0,,Borrowing more expensive -> credit contraction,local
+S6_interest_rate,Real interest rate +3 pp  (monetary tightening),real_interest_rate,3.0,gdp_growth,-,-0.195972,True,Investment falls with higher cost of capital,local
+S6_interest_rate,Real interest rate +3 pp  (monetary tightening),real_interest_rate,3.0,unemployment,+,0.0,,Businesses cut expansion plans,local
+S6_interest_rate,Real interest rate +3 pp  (monetary tightening),real_interest_rate,3.0,inflation,-,0.0,,Monetary tightening suppresses demand inflation,local
+S6_interest_rate,Real interest rate +3 pp  (monetary tightening),real_interest_rate,3.0,broad_money,-,0.0,,Monetary contraction reduces money supply,local
+S6_interest_rate,Real interest rate +3 pp  (monetary tightening),real_interest_rate,3.0,govt_debt,+,0.36486,True,Higher debt service increases nominal debt stock,local
+S1_electricity,Electricity access +20 pp  (infrastructure investment),electricity_access,20.0,gdp_growth,+,0.0,,Higher productivity from electrification,federated
+S1_electricity,Electricity access +20 pp  (infrastructure investment),electricity_access,20.0,internet_users,+,0.0,,Digital infrastructure piggybacks on power,federated
+S1_electricity,Electricity access +20 pp  (infrastructure investment),electricity_access,20.0,life_expectancy,+,0.0,,Healthcare and food storage improvements,federated
+S1_electricity,Electricity access +20 pp  (infrastructure investment),electricity_access,20.0,private_credit,+,0.0,,More economic activity -> more bankable projects,federated
+S1_electricity,Electricity access +20 pp  (infrastructure investment),electricity_access,20.0,urban_population,+,0.0,,Electrified areas attract migration,federated
+S2_govt_debt,Government debt +15 pp GDP  (fiscal expansion),govt_debt,15.0,real_interest_rate,+,1.524164,True,Crowding-out raises cost of capital,federated
+S2_govt_debt,Government debt +15 pp GDP  (fiscal expansion),govt_debt,15.0,inflation,+,0.0,,Monetization risk and demand pressure,federated
+S2_govt_debt,Government debt +15 pp GDP  (fiscal expansion),govt_debt,15.0,private_credit,-,-0.942228,True,Crowded out by govt borrowing,federated
+S2_govt_debt,Government debt +15 pp GDP  (fiscal expansion),govt_debt,15.0,gdp_growth,+,0.0,,Short-run Keynesian stimulus multiplier,federated
+S2_govt_debt,Government debt +15 pp GDP  (fiscal expansion),govt_debt,15.0,tax_revenue,+,0.0,,Higher income base boosts tax receipts,federated
+S3_inflation,Inflation shock +5 pp  (external price pressure),inflation,5.0,real_interest_rate,+,0.0,,Central bank raises policy rate,federated
+S3_inflation,Inflation shock +5 pp  (external price pressure),inflation,5.0,exports_gdp,-,0.0,,Competitiveness loss via REER appreciation,federated
+S3_inflation,Inflation shock +5 pp  (external price pressure),inflation,5.0,broad_money,+,0.777072,True,Monetization -- more money in system,federated
+S3_inflation,Inflation shock +5 pp  (external price pressure),inflation,5.0,private_credit,-,0.0,,Higher rates discourage borrowing,federated
+S3_inflation,Inflation shock +5 pp  (external price pressure),inflation,5.0,current_account,-,-0.809301,True,"Import costs rise, trade balance deteriorates",federated
+S3_inflation,Inflation shock +5 pp  (external price pressure),inflation,5.0,unemployment,+,0.0,,Stagflation dynamic at high inflation,federated
+S4_private_credit,Private credit +5 pp GDP  (FDI / capital availability surge),private_credit,5.0,gdp_growth,+,0.442899,True,Investment multiplier (Romer 1990 endogenous growth),federated
+S4_private_credit,Private credit +5 pp GDP  (FDI / capital availability surge),private_credit,5.0,exports_gdp,+,0.0,,New productive capacity expands export base,federated
+S4_private_credit,Private credit +5 pp GDP  (FDI / capital availability surge),private_credit,5.0,unemployment,-,-0.765882,True,Capital-financed expansion creates jobs,federated
+S4_private_credit,Private credit +5 pp GDP  (FDI / capital availability surge),private_credit,5.0,electricity_access,+,0.0,,Investable capital flows into infrastructure,federated
+S5_export_drought,Exports -10 pp GDP  (drought / commodity shock),exports_gdp,-10.0,current_account,-,-1.805818,True,Trade balance deteriorates directly,federated
+S5_export_drought,Exports -10 pp GDP  (drought / commodity shock),exports_gdp,-10.0,gdp_growth,-,0.0,,Output falls with agricultural sector,federated
+S5_export_drought,Exports -10 pp GDP  (drought / commodity shock),exports_gdp,-10.0,unemployment,+,0.0,,Rural labour market shock,federated
+S5_export_drought,Exports -10 pp GDP  (drought / commodity shock),exports_gdp,-10.0,inflation,+,0.0,,Food price pressure from supply shortage,federated
+S5_export_drought,Exports -10 pp GDP  (drought / commodity shock),exports_gdp,-10.0,tax_revenue,-,0.0,,Lower income base shrinks fiscal revenues,federated
+S6_interest_rate,Real interest rate +3 pp  (monetary tightening),real_interest_rate,3.0,private_credit,-,0.0,,Borrowing more expensive -> credit contraction,federated
+S6_interest_rate,Real interest rate +3 pp  (monetary tightening),real_interest_rate,3.0,gdp_growth,-,-0.205797,True,Investment falls with higher cost of capital,federated
+S6_interest_rate,Real interest rate +3 pp  (monetary tightening),real_interest_rate,3.0,unemployment,+,0.0,,Businesses cut expansion plans,federated
+S6_interest_rate,Real interest rate +3 pp  (monetary tightening),real_interest_rate,3.0,inflation,-,0.0,,Monetary tightening suppresses demand inflation,federated
+S6_interest_rate,Real interest rate +3 pp  (monetary tightening),real_interest_rate,3.0,broad_money,-,0.0,,Monetary contraction reduces money supply,federated
+S6_interest_rate,Real interest rate +3 pp  (monetary tightening),real_interest_rate,3.0,govt_debt,+,0.321691,True,Higher debt service increases nominal debt stock,federated
+S1_electricity,Electricity access +20 pp  (infrastructure investment),electricity_access,20.0,gdp_growth,+,-0.098075,False,Higher productivity from electrification,local
+S1_electricity,Electricity access +20 pp  (infrastructure investment),electricity_access,20.0,internet_users,+,0.0,,Digital infrastructure piggybacks on power,local
+S1_electricity,Electricity access +20 pp  (infrastructure investment),electricity_access,20.0,life_expectancy,+,-1.939288,False,Healthcare and food storage improvements,local
+S1_electricity,Electricity access +20 pp  (infrastructure investment),electricity_access,20.0,private_credit,+,0.0,,More economic activity -> more bankable projects,local
+S1_electricity,Electricity access +20 pp  (infrastructure investment),electricity_access,20.0,urban_population,+,0.0,,Electrified areas attract migration,local
+S2_govt_debt,Government debt +15 pp GDP  (fiscal expansion),govt_debt,15.0,real_interest_rate,+,0.0,,Crowding-out raises cost of capital,local
+S2_govt_debt,Government debt +15 pp GDP  (fiscal expansion),govt_debt,15.0,inflation,+,0.0,,Monetization risk and demand pressure,local
+S2_govt_debt,Government debt +15 pp GDP  (fiscal expansion),govt_debt,15.0,private_credit,-,0.0,,Crowded out by govt borrowing,local
+S2_govt_debt,Government debt +15 pp GDP  (fiscal expansion),govt_debt,15.0,gdp_growth,+,-1.485498,False,Short-run Keynesian stimulus multiplier,local
+S2_govt_debt,Government debt +15 pp GDP  (fiscal expansion),govt_debt,15.0,tax_revenue,+,0.0,,Higher income base boosts tax receipts,local
+S3_inflation,Inflation shock +5 pp  (external price pressure),inflation,5.0,real_interest_rate,+,0.0,,Central bank raises policy rate,local
+S3_inflation,Inflation shock +5 pp  (external price pressure),inflation,5.0,exports_gdp,-,0.0,,Competitiveness loss via REER appreciation,local
+S3_inflation,Inflation shock +5 pp  (external price pressure),inflation,5.0,broad_money,+,0.0,,Monetization -- more money in system,local
+S3_inflation,Inflation shock +5 pp  (external price pressure),inflation,5.0,private_credit,-,0.0,,Higher rates discourage borrowing,local
+S3_inflation,Inflation shock +5 pp  (external price pressure),inflation,5.0,current_account,-,0.0,,"Import costs rise, trade balance deteriorates",local
+S3_inflation,Inflation shock +5 pp  (external price pressure),inflation,5.0,unemployment,+,0.0,,Stagflation dynamic at high inflation,local
+S4_private_credit,Private credit +5 pp GDP  (FDI / capital availability surge),private_credit,5.0,gdp_growth,+,0.302277,True,Investment multiplier (Romer 1990 endogenous growth),local
+S4_private_credit,Private credit +5 pp GDP  (FDI / capital availability surge),private_credit,5.0,exports_gdp,+,0.0,,New productive capacity expands export base,local
+S4_private_credit,Private credit +5 pp GDP  (FDI / capital availability surge),private_credit,5.0,unemployment,-,0.0,,Capital-financed expansion creates jobs,local
+S4_private_credit,Private credit +5 pp GDP  (FDI / capital availability surge),private_credit,5.0,electricity_access,+,0.0,,Investable capital flows into infrastructure,local
+S5_export_drought,Exports -10 pp GDP  (drought / commodity shock),exports_gdp,-10.0,current_account,-,-2.849509,True,Trade balance deteriorates directly,local
+S5_export_drought,Exports -10 pp GDP  (drought / commodity shock),exports_gdp,-10.0,gdp_growth,-,0.0,,Output falls with agricultural sector,local
+S5_export_drought,Exports -10 pp GDP  (drought / commodity shock),exports_gdp,-10.0,unemployment,+,0.0,,Rural labour market shock,local
+S5_export_drought,Exports -10 pp GDP  (drought / commodity shock),exports_gdp,-10.0,inflation,+,0.0,,Food price pressure from supply shortage,local
+S5_export_drought,Exports -10 pp GDP  (drought / commodity shock),exports_gdp,-10.0,tax_revenue,-,0.0,,Lower income base shrinks fiscal revenues,local
+S6_interest_rate,Real interest rate +3 pp  (monetary tightening),real_interest_rate,3.0,private_credit,-,0.0,,Borrowing more expensive -> credit contraction,local
+S6_interest_rate,Real interest rate +3 pp  (monetary tightening),real_interest_rate,3.0,gdp_growth,-,0.0,,Investment falls with higher cost of capital,local
+S6_interest_rate,Real interest rate +3 pp  (monetary tightening),real_interest_rate,3.0,unemployment,+,0.0,,Businesses cut expansion plans,local
+S6_interest_rate,Real interest rate +3 pp  (monetary tightening),real_interest_rate,3.0,inflation,-,0.0,,Monetary tightening suppresses demand inflation,local
+S6_interest_rate,Real interest rate +3 pp  (monetary tightening),real_interest_rate,3.0,broad_money,-,-0.720833,True,Monetary contraction reduces money supply,local
+S6_interest_rate,Real interest rate +3 pp  (monetary tightening),real_interest_rate,3.0,govt_debt,+,0.0,,Higher debt service increases nominal debt stock,local
+S1_electricity,Electricity access +20 pp  (infrastructure investment),electricity_access,20.0,gdp_growth,+,0.0,,Higher productivity from electrification,federated
+S1_electricity,Electricity access +20 pp  (infrastructure investment),electricity_access,20.0,internet_users,+,0.0,,Digital infrastructure piggybacks on power,federated
+S1_electricity,Electricity access +20 pp  (infrastructure investment),electricity_access,20.0,life_expectancy,+,-1.924512,False,Healthcare and food storage improvements,federated
+S1_electricity,Electricity access +20 pp  (infrastructure investment),electricity_access,20.0,private_credit,+,0.0,,More economic activity -> more bankable projects,federated
+S1_electricity,Electricity access +20 pp  (infrastructure investment),electricity_access,20.0,urban_population,+,0.0,,Electrified areas attract migration,federated
+S2_govt_debt,Government debt +15 pp GDP  (fiscal expansion),govt_debt,15.0,real_interest_rate,+,0.0,,Crowding-out raises cost of capital,federated
+S2_govt_debt,Government debt +15 pp GDP  (fiscal expansion),govt_debt,15.0,inflation,+,0.0,,Monetization risk and demand pressure,federated
+S2_govt_debt,Government debt +15 pp GDP  (fiscal expansion),govt_debt,15.0,private_credit,-,0.0,,Crowded out by govt borrowing,federated
+S2_govt_debt,Government debt +15 pp GDP  (fiscal expansion),govt_debt,15.0,gdp_growth,+,-1.389859,False,Short-run Keynesian stimulus multiplier,federated
+S2_govt_debt,Government debt +15 pp GDP  (fiscal expansion),govt_debt,15.0,tax_revenue,+,0.0,,Higher income base boosts tax receipts,federated
+S3_inflation,Inflation shock +5 pp  (external price pressure),inflation,5.0,real_interest_rate,+,0.0,,Central bank raises policy rate,federated
+S3_inflation,Inflation shock +5 pp  (external price pressure),inflation,5.0,exports_gdp,-,0.0,,Competitiveness loss via REER appreciation,federated
+S3_inflation,Inflation shock +5 pp  (external price pressure),inflation,5.0,broad_money,+,0.0,,Monetization -- more money in system,federated
+S3_inflation,Inflation shock +5 pp  (external price pressure),inflation,5.0,private_credit,-,0.0,,Higher rates discourage borrowing,federated
+S3_inflation,Inflation shock +5 pp  (external price pressure),inflation,5.0,current_account,-,0.0,,"Import costs rise, trade balance deteriorates",federated
+S3_inflation,Inflation shock +5 pp  (external price pressure),inflation,5.0,unemployment,+,0.0,,Stagflation dynamic at high inflation,federated
+S4_private_credit,Private credit +5 pp GDP  (FDI / capital availability surge),private_credit,5.0,gdp_growth,+,0.344329,True,Investment multiplier (Romer 1990 endogenous growth),federated
+S4_private_credit,Private credit +5 pp GDP  (FDI / capital availability surge),private_credit,5.0,exports_gdp,+,0.0,,New productive capacity expands export base,federated
+S4_private_credit,Private credit +5 pp GDP  (FDI / capital availability surge),private_credit,5.0,unemployment,-,0.0,,Capital-financed expansion creates jobs,federated
+S4_private_credit,Private credit +5 pp GDP  (FDI / capital availability surge),private_credit,5.0,electricity_access,+,0.0,,Investable capital flows into infrastructure,federated
+S5_export_drought,Exports -10 pp GDP  (drought / commodity shock),exports_gdp,-10.0,current_account,-,-2.909868,True,Trade balance deteriorates directly,federated
+S5_export_drought,Exports -10 pp GDP  (drought / commodity shock),exports_gdp,-10.0,gdp_growth,-,0.0,,Output falls with agricultural sector,federated
+S5_export_drought,Exports -10 pp GDP  (drought / commodity shock),exports_gdp,-10.0,unemployment,+,0.0,,Rural labour market shock,federated
+S5_export_drought,Exports -10 pp GDP  (drought / commodity shock),exports_gdp,-10.0,inflation,+,0.0,,Food price pressure from supply shortage,federated
+S5_export_drought,Exports -10 pp GDP  (drought / commodity shock),exports_gdp,-10.0,tax_revenue,-,0.0,,Lower income base shrinks fiscal revenues,federated
+S6_interest_rate,Real interest rate +3 pp  (monetary tightening),real_interest_rate,3.0,private_credit,-,0.0,,Borrowing more expensive -> credit contraction,federated
+S6_interest_rate,Real interest rate +3 pp  (monetary tightening),real_interest_rate,3.0,gdp_growth,-,0.0,,Investment falls with higher cost of capital,federated
+S6_interest_rate,Real interest rate +3 pp  (monetary tightening),real_interest_rate,3.0,unemployment,+,0.0,,Businesses cut expansion plans,federated
+S6_interest_rate,Real interest rate +3 pp  (monetary tightening),real_interest_rate,3.0,inflation,-,0.0,,Monetary tightening suppresses demand inflation,federated
+S6_interest_rate,Real interest rate +3 pp  (monetary tightening),real_interest_rate,3.0,broad_money,-,0.0,,Monetary contraction reduces money supply,federated
+S6_interest_rate,Real interest rate +3 pp  (monetary tightening),real_interest_rate,3.0,govt_debt,+,0.0,,Higher debt service increases nominal debt stock,federated
+S1_electricity,Electricity access +20 pp  (infrastructure investment),electricity_access,20.0,gdp_growth,+,1.634391,True,Higher productivity from electrification,local
+S1_electricity,Electricity access +20 pp  (infrastructure investment),electricity_access,20.0,internet_users,+,1.062066,True,Digital infrastructure piggybacks on power,local
+S1_electricity,Electricity access +20 pp  (infrastructure investment),electricity_access,20.0,life_expectancy,+,0.512047,True,Healthcare and food storage improvements,local
+S1_electricity,Electricity access +20 pp  (infrastructure investment),electricity_access,20.0,private_credit,+,1.293921,True,More economic activity -> more bankable projects,local
+S1_electricity,Electricity access +20 pp  (infrastructure investment),electricity_access,20.0,urban_population,+,0.477224,True,Electrified areas attract migration,local
+S2_govt_debt,Government debt +15 pp GDP  (fiscal expansion),govt_debt,15.0,real_interest_rate,+,0.0,,Crowding-out raises cost of capital,local
+S2_govt_debt,Government debt +15 pp GDP  (fiscal expansion),govt_debt,15.0,inflation,+,0.900312,True,Monetization risk and demand pressure,local
+S2_govt_debt,Government debt +15 pp GDP  (fiscal expansion),govt_debt,15.0,private_credit,-,0.0,,Crowded out by govt borrowing,local
+S2_govt_debt,Government debt +15 pp GDP  (fiscal expansion),govt_debt,15.0,gdp_growth,+,0.0,,Short-run Keynesian stimulus multiplier,local
+S2_govt_debt,Government debt +15 pp GDP  (fiscal expansion),govt_debt,15.0,tax_revenue,+,0.42809,True,Higher income base boosts tax receipts,local
+S3_inflation,Inflation shock +5 pp  (external price pressure),inflation,5.0,real_interest_rate,+,0.0,,Central bank raises policy rate,local
+S3_inflation,Inflation shock +5 pp  (external price pressure),inflation,5.0,exports_gdp,-,0.0,,Competitiveness loss via REER appreciation,local
+S3_inflation,Inflation shock +5 pp  (external price pressure),inflation,5.0,broad_money,+,0.584077,True,Monetization -- more money in system,local
+S3_inflation,Inflation shock +5 pp  (external price pressure),inflation,5.0,private_credit,-,-0.111562,True,Higher rates discourage borrowing,local
+S3_inflation,Inflation shock +5 pp  (external price pressure),inflation,5.0,current_account,-,0.0,,"Import costs rise, trade balance deteriorates",local
+S3_inflation,Inflation shock +5 pp  (external price pressure),inflation,5.0,unemployment,+,0.0,,Stagflation dynamic at high inflation,local
+S4_private_credit,Private credit +5 pp GDP  (FDI / capital availability surge),private_credit,5.0,gdp_growth,+,0.27771,True,Investment multiplier (Romer 1990 endogenous growth),local
+S4_private_credit,Private credit +5 pp GDP  (FDI / capital availability surge),private_credit,5.0,exports_gdp,+,0.195562,True,New productive capacity expands export base,local
+S4_private_credit,Private credit +5 pp GDP  (FDI / capital availability surge),private_credit,5.0,unemployment,-,-0.238741,True,Capital-financed expansion creates jobs,local
+S4_private_credit,Private credit +5 pp GDP  (FDI / capital availability surge),private_credit,5.0,electricity_access,+,0.283442,True,Investable capital flows into infrastructure,local
+S5_export_drought,Exports -10 pp GDP  (drought / commodity shock),exports_gdp,-10.0,current_account,-,-1.239306,True,Trade balance deteriorates directly,local
+S5_export_drought,Exports -10 pp GDP  (drought / commodity shock),exports_gdp,-10.0,gdp_growth,-,-0.811845,True,Output falls with agricultural sector,local
+S5_export_drought,Exports -10 pp GDP  (drought / commodity shock),exports_gdp,-10.0,unemployment,+,1.104378,True,Rural labour market shock,local
+S5_export_drought,Exports -10 pp GDP  (drought / commodity shock),exports_gdp,-10.0,inflation,+,0.0,,Food price pressure from supply shortage,local
+S5_export_drought,Exports -10 pp GDP  (drought / commodity shock),exports_gdp,-10.0,tax_revenue,-,-0.677471,True,Lower income base shrinks fiscal revenues,local
+S6_interest_rate,Real interest rate +3 pp  (monetary tightening),real_interest_rate,3.0,private_credit,-,-0.119623,True,Borrowing more expensive -> credit contraction,local
+S6_interest_rate,Real interest rate +3 pp  (monetary tightening),real_interest_rate,3.0,gdp_growth,-,0.0,,Investment falls with higher cost of capital,local
+S6_interest_rate,Real interest rate +3 pp  (monetary tightening),real_interest_rate,3.0,unemployment,+,0.0,,Businesses cut expansion plans,local
+S6_interest_rate,Real interest rate +3 pp  (monetary tightening),real_interest_rate,3.0,inflation,-,0.0,,Monetary tightening suppresses demand inflation,local
+S6_interest_rate,Real interest rate +3 pp  (monetary tightening),real_interest_rate,3.0,broad_money,-,0.0,,Monetary contraction reduces money supply,local
+S6_interest_rate,Real interest rate +3 pp  (monetary tightening),real_interest_rate,3.0,govt_debt,+,0.0,,Higher debt service increases nominal debt stock,local
+S1_electricity,Electricity access +20 pp  (infrastructure investment),electricity_access,20.0,gdp_growth,+,1.585152,True,Higher productivity from electrification,federated
+S1_electricity,Electricity access +20 pp  (infrastructure investment),electricity_access,20.0,internet_users,+,1.04984,True,Digital infrastructure piggybacks on power,federated
+S1_electricity,Electricity access +20 pp  (infrastructure investment),electricity_access,20.0,life_expectancy,+,0.0,,Healthcare and food storage improvements,federated
+S1_electricity,Electricity access +20 pp  (infrastructure investment),electricity_access,20.0,private_credit,+,1.359299,True,More economic activity -> more bankable projects,federated
+S1_electricity,Electricity access +20 pp  (infrastructure investment),electricity_access,20.0,urban_population,+,0.474333,True,Electrified areas attract migration,federated
+S2_govt_debt,Government debt +15 pp GDP  (fiscal expansion),govt_debt,15.0,real_interest_rate,+,0.0,,Crowding-out raises cost of capital,federated
+S2_govt_debt,Government debt +15 pp GDP  (fiscal expansion),govt_debt,15.0,inflation,+,1.893796,True,Monetization risk and demand pressure,federated
+S2_govt_debt,Government debt +15 pp GDP  (fiscal expansion),govt_debt,15.0,private_credit,-,0.0,,Crowded out by govt borrowing,federated
+S2_govt_debt,Government debt +15 pp GDP  (fiscal expansion),govt_debt,15.0,gdp_growth,+,0.0,,Short-run Keynesian stimulus multiplier,federated
+S2_govt_debt,Government debt +15 pp GDP  (fiscal expansion),govt_debt,15.0,tax_revenue,+,0.561486,True,Higher income base boosts tax receipts,federated
+S3_inflation,Inflation shock +5 pp  (external price pressure),inflation,5.0,real_interest_rate,+,0.0,,Central bank raises policy rate,federated
+S3_inflation,Inflation shock +5 pp  (external price pressure),inflation,5.0,exports_gdp,-,0.0,,Competitiveness loss via REER appreciation,federated
+S3_inflation,Inflation shock +5 pp  (external price pressure),inflation,5.0,broad_money,+,0.56285,True,Monetization -- more money in system,federated
+S3_inflation,Inflation shock +5 pp  (external price pressure),inflation,5.0,private_credit,-,-0.106125,True,Higher rates discourage borrowing,federated
+S3_inflation,Inflation shock +5 pp  (external price pressure),inflation,5.0,current_account,-,0.0,,"Import costs rise, trade balance deteriorates",federated
+S3_inflation,Inflation shock +5 pp  (external price pressure),inflation,5.0,unemployment,+,0.0,,Stagflation dynamic at high inflation,federated
+S4_private_credit,Private credit +5 pp GDP  (FDI / capital availability surge),private_credit,5.0,gdp_growth,+,0.278064,True,Investment multiplier (Romer 1990 endogenous growth),federated
+S4_private_credit,Private credit +5 pp GDP  (FDI / capital availability surge),private_credit,5.0,exports_gdp,+,0.197022,True,New productive capacity expands export base,federated
+S4_private_credit,Private credit +5 pp GDP  (FDI / capital availability surge),private_credit,5.0,unemployment,-,-0.257513,True,Capital-financed expansion creates jobs,federated
+S4_private_credit,Private credit +5 pp GDP  (FDI / capital availability surge),private_credit,5.0,electricity_access,+,0.346739,True,Investable capital flows into infrastructure,federated
+S5_export_drought,Exports -10 pp GDP  (drought / commodity shock),exports_gdp,-10.0,current_account,-,-1.192311,True,Trade balance deteriorates directly,federated
+S5_export_drought,Exports -10 pp GDP  (drought / commodity shock),exports_gdp,-10.0,gdp_growth,-,-0.849058,True,Output falls with agricultural sector,federated
+S5_export_drought,Exports -10 pp GDP  (drought / commodity shock),exports_gdp,-10.0,unemployment,+,1.03464,True,Rural labour market shock,federated
+S5_export_drought,Exports -10 pp GDP  (drought / commodity shock),exports_gdp,-10.0,inflation,+,0.0,,Food price pressure from supply shortage,federated
+S5_export_drought,Exports -10 pp GDP  (drought / commodity shock),exports_gdp,-10.0,tax_revenue,-,-0.713108,True,Lower income base shrinks fiscal revenues,federated
+S6_interest_rate,Real interest rate +3 pp  (monetary tightening),real_interest_rate,3.0,private_credit,-,-0.152533,True,Borrowing more expensive -> credit contraction,federated
+S6_interest_rate,Real interest rate +3 pp  (monetary tightening),real_interest_rate,3.0,gdp_growth,-,0.0,,Investment falls with higher cost of capital,federated
+S6_interest_rate,Real interest rate +3 pp  (monetary tightening),real_interest_rate,3.0,unemployment,+,0.0,,Businesses cut expansion plans,federated
+S6_interest_rate,Real interest rate +3 pp  (monetary tightening),real_interest_rate,3.0,inflation,-,0.0,,Monetary tightening suppresses demand inflation,federated
+S6_interest_rate,Real interest rate +3 pp  (monetary tightening),real_interest_rate,3.0,broad_money,-,0.0,,Monetary contraction reduces money supply,federated
+S6_interest_rate,Real interest rate +3 pp  (monetary tightening),real_interest_rate,3.0,govt_debt,+,0.0,,Higher debt service increases nominal debt stock,federated

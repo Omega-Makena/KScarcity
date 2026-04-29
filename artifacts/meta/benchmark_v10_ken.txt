@@ -1,0 +1,394 @@
+21:29:48  INFO     benchmark.discovery -- === Discovery Benchmark | data=LIVE World Bank API | pretrain=LIVE World Bank API | country=KEN | peers=TZA,UGA ===
+21:29:48  INFO     benchmark.discovery -- Fetching KEN + peers (TZA,UGA) for 1980-2023 ...
+21:45:45  INFO     benchmark.discovery --   KEN=44 obs  TZA=44  UGA=40
+21:45:45  INFO     benchmark.discovery -- Building pretraining corpus (12 SSA countries, 1995-2009) ...
+22:09:24  INFO     benchmark.discovery --   Corpus: 165 rows
+22:09:24  INFO     benchmark.discovery -- --- A. Cold-start, no federation ---
+22:09:42  INFO     scarcity.engine.engine_v2 -- Initializing V2 engine with 9 variables
+22:09:42  INFO     scarcity.engine.engine_v2 -- Initialized 655 hypotheses (V2)
+22:09:42  INFO     scarcity.engine.engine_v2 -- Initializing V2 engine with 6 variables
+22:09:42  INFO     scarcity.engine.engine_v2 -- Initialized 203 hypotheses (V2)
+22:09:42  INFO     scarcity.engine.engine_v2 -- Initializing V2 engine with 5 variables
+22:09:42  INFO     scarcity.engine.engine_v2 -- Initialized 121 hypotheses (V2)
+22:09:42  INFO     scarcity.engine.engine_v2 -- Initializing V2 engine with 5 variables
+22:09:42  INFO     scarcity.engine.engine_v2 -- Initialized 121 hypotheses (V2)
+22:09:42  INFO     scarcity.engine.federation_hub -- Hub: registered node KEN (baskets: ['macro', 'financial', 'infrastructure', 'human_capital'])
+22:09:42  INFO     benchmark.discovery -- Streaming 44 years of live data ...
+22:09:43  INFO     benchmark.discovery --   hub state:
+FederationHub  nodes=1  baskets=['macro', 'financial', 'infrastructure', 'human_capital']
+  KEN:
+    macro                 hyps=  19  pretrain=   0  live=  44
+    financial             hyps=  22  pretrain=   0  live=  44
+    infrastructure        hyps= 121  pretrain=   0  live=   0
+    human_capital         hyps= 121  pretrain=   0  live=   0
+22:09:43  INFO     benchmark.discovery -- --- B. Cold-start + federation (KEN+TZA+UGA) ---
+22:09:43  INFO     scarcity.engine.engine_v2 -- Initializing V2 engine with 9 variables
+22:09:43  INFO     scarcity.engine.engine_v2 -- Initialized 655 hypotheses (V2)
+22:09:43  INFO     scarcity.engine.engine_v2 -- Initializing V2 engine with 6 variables
+22:09:44  INFO     scarcity.engine.engine_v2 -- Initialized 203 hypotheses (V2)
+22:09:44  INFO     scarcity.engine.engine_v2 -- Initializing V2 engine with 5 variables
+22:09:44  INFO     scarcity.engine.engine_v2 -- Initialized 121 hypotheses (V2)
+22:09:44  INFO     scarcity.engine.engine_v2 -- Initializing V2 engine with 5 variables
+22:09:44  INFO     scarcity.engine.engine_v2 -- Initialized 121 hypotheses (V2)
+22:09:44  INFO     scarcity.engine.federation_hub -- Hub: registered node KEN (baskets: ['macro', 'financial', 'infrastructure', 'human_capital'])
+22:09:44  INFO     scarcity.engine.engine_v2 -- Initializing V2 engine with 9 variables
+22:09:44  INFO     scarcity.engine.engine_v2 -- Initialized 655 hypotheses (V2)
+22:09:44  INFO     scarcity.engine.engine_v2 -- Initializing V2 engine with 6 variables
+22:09:44  INFO     scarcity.engine.engine_v2 -- Initialized 203 hypotheses (V2)
+22:09:44  INFO     scarcity.engine.engine_v2 -- Initializing V2 engine with 5 variables
+22:09:44  INFO     scarcity.engine.engine_v2 -- Initialized 121 hypotheses (V2)
+22:09:44  INFO     scarcity.engine.engine_v2 -- Initializing V2 engine with 5 variables
+22:09:44  INFO     scarcity.engine.engine_v2 -- Initialized 121 hypotheses (V2)
+22:09:44  INFO     scarcity.engine.federation_hub -- Hub: registered node TZA (baskets: ['macro', 'financial', 'infrastructure', 'human_capital'])
+22:09:44  INFO     scarcity.engine.engine_v2 -- Initializing V2 engine with 9 variables
+22:09:44  INFO     scarcity.engine.engine_v2 -- Initialized 655 hypotheses (V2)
+22:09:44  INFO     scarcity.engine.engine_v2 -- Initializing V2 engine with 6 variables
+22:09:44  INFO     scarcity.engine.engine_v2 -- Initialized 203 hypotheses (V2)
+22:09:44  INFO     scarcity.engine.engine_v2 -- Initializing V2 engine with 5 variables
+22:09:44  INFO     scarcity.engine.engine_v2 -- Initialized 121 hypotheses (V2)
+22:09:44  INFO     scarcity.engine.engine_v2 -- Initializing V2 engine with 5 variables
+22:09:44  INFO     scarcity.engine.engine_v2 -- Initialized 121 hypotheses (V2)
+22:09:44  INFO     scarcity.engine.federation_hub -- Hub: registered node UGA (baskets: ['macro', 'financial', 'infrastructure', 'human_capital'])
+22:09:44  INFO     benchmark.discovery -- Streaming 44 years of live data ...
+22:09:49  INFO     scarcity.engine.federation_hub -- sync_directions: primary=KEN  peer_pairs=0  applied=0
+22:09:49  INFO     benchmark.discovery --   direction sync: 0 hints applied to KEN
+22:09:49  INFO     benchmark.discovery --   hub state:
+FederationHub  nodes=3  baskets=['macro', 'financial', 'infrastructure', 'human_capital']
+  KEN:
+    macro                 hyps=  19  pretrain=   0  live=  44
+    financial             hyps=  21  pretrain=   0  live=  44
+    infrastructure        hyps= 121  pretrain=   0  live=   0
+    human_capital         hyps= 121  pretrain=   0  live=   0
+  TZA:
+    macro                 hyps=  17  pretrain=   0  live=  34
+    financial             hyps= 203  pretrain=   0  live=   0
+    infrastructure        hyps= 121  pretrain=   0  live=   0
+    human_capital         hyps=  20  pretrain=   0  live=  44
+  UGA:
+    macro                 hyps=  20  pretrain=   0  live=  30
+    financial             hyps= 213  pretrain=   0  live=  25
+    infrastructure        hyps= 121  pretrain=   0  live=   0
+    human_capital         hyps= 121  pretrain=   0  live=   0
+22:09:49  INFO     benchmark.discovery -- --- C. Pretrained, no federation ---
+22:09:49  INFO     scarcity.engine.engine_v2 -- Initializing V2 engine with 9 variables
+22:09:49  INFO     scarcity.engine.engine_v2 -- Initialized 655 hypotheses (V2)
+22:09:49  INFO     scarcity.engine.engine_v2 -- Initializing V2 engine with 6 variables
+22:09:49  INFO     scarcity.engine.engine_v2 -- Initialized 203 hypotheses (V2)
+22:09:49  INFO     scarcity.engine.engine_v2 -- Initializing V2 engine with 5 variables
+22:09:49  INFO     scarcity.engine.engine_v2 -- Initialized 121 hypotheses (V2)
+22:09:49  INFO     scarcity.engine.engine_v2 -- Initializing V2 engine with 5 variables
+22:09:49  INFO     scarcity.engine.engine_v2 -- Initialized 121 hypotheses (V2)
+22:09:49  INFO     scarcity.engine.federation_hub -- Hub: registered node KEN (baskets: ['macro', 'financial', 'infrastructure', 'human_capital'])
+22:09:49  INFO     benchmark.discovery -- Pretraining all nodes on 165 corpus rows ...
+22:09:50  INFO     scarcity.engine.federation_node -- Node KEN | pretrained basket=macro | 150/165 rows ingested (total pretrain=150)
+22:09:53  INFO     scarcity.engine.federation_node -- Node KEN | pretrained basket=financial | 149/165 rows ingested (total pretrain=149)
+22:09:56  INFO     scarcity.engine.federation_node -- Node KEN | pretrained basket=infrastructure | 165/165 rows ingested (total pretrain=165)
+22:09:59  INFO     scarcity.engine.federation_node -- Node KEN | pretrained basket=human_capital | 165/165 rows ingested (total pretrain=165)
+22:09:59  INFO     scarcity.engine.federation_node -- Node KEN: pretrain discount=0.50 applied; ECM fields reset
+22:09:59  INFO     benchmark.discovery -- Streaming 44 years of live data ...
+22:10:01  INFO     benchmark.discovery --   hub state:
+FederationHub  nodes=1  baskets=['macro', 'financial', 'infrastructure', 'human_capital']
+  KEN:
+    macro                 hyps=  23  pretrain= 150  live=  44
+    financial             hyps=  22  pretrain= 149  live=  44
+    infrastructure        hyps=  20  pretrain= 165  live=   0
+    human_capital         hyps=  22  pretrain= 165  live=   0
+22:10:01  INFO     benchmark.discovery -- --- D. Pretrained + federation (KEN+TZA+UGA) ---
+22:10:01  INFO     scarcity.engine.engine_v2 -- Initializing V2 engine with 9 variables
+22:10:01  INFO     scarcity.engine.engine_v2 -- Initialized 655 hypotheses (V2)
+22:10:01  INFO     scarcity.engine.engine_v2 -- Initializing V2 engine with 6 variables
+22:10:01  INFO     scarcity.engine.engine_v2 -- Initialized 203 hypotheses (V2)
+22:10:01  INFO     scarcity.engine.engine_v2 -- Initializing V2 engine with 5 variables
+22:10:01  INFO     scarcity.engine.engine_v2 -- Initialized 121 hypotheses (V2)
+22:10:01  INFO     scarcity.engine.engine_v2 -- Initializing V2 engine with 5 variables
+22:10:01  INFO     scarcity.engine.engine_v2 -- Initialized 121 hypotheses (V2)
+22:10:01  INFO     scarcity.engine.federation_hub -- Hub: registered node KEN (baskets: ['macro', 'financial', 'infrastructure', 'human_capital'])
+22:10:01  INFO     scarcity.engine.engine_v2 -- Initializing V2 engine with 9 variables
+22:10:01  INFO     scarcity.engine.engine_v2 -- Initialized 655 hypotheses (V2)
+22:10:01  INFO     scarcity.engine.engine_v2 -- Initializing V2 engine with 6 variables
+22:10:01  INFO     scarcity.engine.engine_v2 -- Initialized 203 hypotheses (V2)
+22:10:01  INFO     scarcity.engine.engine_v2 -- Initializing V2 engine with 5 variables
+22:10:01  INFO     scarcity.engine.engine_v2 -- Initialized 121 hypotheses (V2)
+22:10:01  INFO     scarcity.engine.engine_v2 -- Initializing V2 engine with 5 variables
+22:10:01  INFO     scarcity.engine.engine_v2 -- Initialized 121 hypotheses (V2)
+22:10:01  INFO     scarcity.engine.federation_hub -- Hub: registered node TZA (baskets: ['macro', 'financial', 'infrastructure', 'human_capital'])
+22:10:01  INFO     scarcity.engine.engine_v2 -- Initializing V2 engine with 9 variables
+22:10:01  INFO     scarcity.engine.engine_v2 -- Initialized 655 hypotheses (V2)
+22:10:01  INFO     scarcity.engine.engine_v2 -- Initializing V2 engine with 6 variables
+22:10:01  INFO     scarcity.engine.engine_v2 -- Initialized 203 hypotheses (V2)
+22:10:01  INFO     scarcity.engine.engine_v2 -- Initializing V2 engine with 5 variables
+22:10:01  INFO     scarcity.engine.engine_v2 -- Initialized 121 hypotheses (V2)
+22:10:01  INFO     scarcity.engine.engine_v2 -- Initializing V2 engine with 5 variables
+22:10:01  INFO     scarcity.engine.engine_v2 -- Initialized 121 hypotheses (V2)
+22:10:01  INFO     scarcity.engine.federation_hub -- Hub: registered node UGA (baskets: ['macro', 'financial', 'infrastructure', 'human_capital'])
+22:10:01  INFO     benchmark.discovery -- Pretraining all nodes on 165 corpus rows ...
+22:10:05  INFO     scarcity.engine.federation_node -- Node KEN | pretrained basket=macro | 150/165 rows ingested (total pretrain=150)
+22:10:06  INFO     scarcity.engine.federation_node -- Node KEN | pretrained basket=financial | 149/165 rows ingested (total pretrain=149)
+22:10:09  INFO     scarcity.engine.federation_node -- Node KEN | pretrained basket=infrastructure | 165/165 rows ingested (total pretrain=165)
+22:10:13  INFO     scarcity.engine.federation_node -- Node KEN | pretrained basket=human_capital | 165/165 rows ingested (total pretrain=165)
+22:10:17  INFO     scarcity.engine.federation_node -- Node TZA | pretrained basket=macro | 150/165 rows ingested (total pretrain=150)
+22:10:20  INFO     scarcity.engine.federation_node -- Node TZA | pretrained basket=financial | 149/165 rows ingested (total pretrain=149)
+22:10:22  INFO     scarcity.engine.federation_node -- Node TZA | pretrained basket=infrastructure | 165/165 rows ingested (total pretrain=165)
+22:10:25  INFO     scarcity.engine.federation_node -- Node TZA | pretrained basket=human_capital | 165/165 rows ingested (total pretrain=165)
+22:10:28  INFO     scarcity.engine.federation_node -- Node UGA | pretrained basket=macro | 150/165 rows ingested (total pretrain=150)
+22:10:30  INFO     scarcity.engine.federation_node -- Node UGA | pretrained basket=financial | 149/165 rows ingested (total pretrain=149)
+22:10:32  INFO     scarcity.engine.federation_node -- Node UGA | pretrained basket=infrastructure | 165/165 rows ingested (total pretrain=165)
+22:10:35  INFO     scarcity.engine.federation_node -- Node UGA | pretrained basket=human_capital | 165/165 rows ingested (total pretrain=165)
+22:10:35  INFO     scarcity.engine.federation_node -- Node KEN: pretrain discount=0.50 applied; ECM fields reset
+22:10:35  INFO     scarcity.engine.federation_node -- Node TZA: pretrain discount=0.50 applied; ECM fields reset
+22:10:35  INFO     scarcity.engine.federation_node -- Node UGA: pretrain discount=0.50 applied; ECM fields reset
+22:10:35  INFO     benchmark.discovery -- Streaming 44 years of live data ...
+22:10:47  INFO     scarcity.engine.federation_hub -- sync_directions: primary=KEN  peer_pairs=4  applied=0
+22:10:47  INFO     benchmark.discovery --   direction sync: 0 hints applied to KEN
+22:10:47  INFO     benchmark.discovery --   hub state:
+FederationHub  nodes=3  baskets=['macro', 'financial', 'infrastructure', 'human_capital']
+  KEN:
+    macro                 hyps=  26  pretrain= 150  live=  44
+    financial             hyps=  20  pretrain= 149  live=  44
+    infrastructure        hyps=  21  pretrain= 165  live=   0
+    human_capital         hyps=  22  pretrain= 165  live=   0
+  TZA:
+    macro                 hyps=  22  pretrain= 150  live=  34
+    financial             hyps=  24  pretrain= 149  live=   0
+    infrastructure        hyps=  20  pretrain= 165  live=   0
+    human_capital         hyps=  19  pretrain= 165  live=  44
+  UGA:
+    macro                 hyps=  23  pretrain= 150  live=  30
+    financial             hyps=  19  pretrain= 149  live=  25
+    infrastructure        hyps=  20  pretrain= 165  live=   0
+    human_capital         hyps=  21  pretrain= 165  live=   0
+22:10:47  INFO     benchmark.discovery -- Report -> artifacts\meta\discovery_benchmark.txt
+22:10:47  INFO     benchmark.discovery -- CSV -> artifacts\meta\discovery_results.csv
+
+==============================================================================
+SCARCITY — RELATIONSHIP DISCOVERY BENCHMARK
+  Data         : LIVE World Bank API
+  Pretrain     : LIVE World Bank API
+  Country      : KEN  (1980-2023, 44 obs)
+  Peers        : TZA, UGA
+  Pretrain     : 12 SSA countries  1995-2009  (165 rows)
+  Ground truth : 25 theory-grounded relationships
+==============================================================================
+
+Evaluation: perturb source variable by +1 std, check predicted target sign.
+Metrics:
+  Discovery rate  = engine gives non-zero prediction for this relationship
+  Sign accuracy   = of discovered, fraction with correct +/- direction
+  Overall recall  = sign-correct / all ground-truth relationships
+
+  A. Cold-start, no federation
+    Ground-truth relationships : 25
+    Discovered (non-zero delta): 0 / 25  (0%)
+    Sign correct (of discovered): 0 / 0  (0%)
+    Conf-weighted sign accuracy : 0%
+    Overall recall             : 0 / 25  (0%)
+    Structural-only recall     : 0 / 19  (0%)
+
+    Per-basket breakdown:
+      macro                 disc=0/9  correct=0/0
+      financial             disc=0/7  correct=0/0
+      infrastructure        disc=0/4  correct=0/0
+      human_capital         disc=0/5  correct=0/0
+
+    Relationship detail (source → target):
+      Source                 Target                  Exp  Got      Delta   Conf  Status
+      ----------------------------------------------------------------------------------
+      inflation              real_interest_rate         +            —     0.000  NOT FOUND
+      govt_debt              real_interest_rate         +            —     0.000  NOT FOUND
+      govt_debt              private_credit             -            —     0.000  NOT FOUND
+      real_interest_rate     private_credit             -            —     0.000  NOT FOUND
+      real_interest_rate     broad_money           *    -            —     0.000  NOT FOUND
+      real_interest_rate     gdp_growth                 -            —     0.000  NOT FOUND
+      private_credit         broad_money           *    +            —     0.000  NOT FOUND
+      gdp_growth             life_expectancy            +            —     0.000  NOT FOUND
+      gdp_growth             school_enrollment          +            —     0.000  NOT FOUND
+      unemployment           gdp_growth                 -            —     0.000  NOT FOUND
+      life_expectancy        school_enrollment          +            —     0.000  NOT FOUND
+      urban_population       gdp_growth                 +            —     0.000  NOT FOUND
+      electricity_access     gdp_growth                 +            —     0.000  NOT FOUND
+      electricity_access     internet_users             +            —     0.000  NOT FOUND
+      electricity_access     private_credit             +            —     0.000  NOT FOUND
+      internet_users         gdp_growth                 +            —     0.000  NOT FOUND
+      private_credit         gdp_growth                 +            —     0.000  NOT FOUND
+      exports_gdp            gdp_growth                 +            —     0.000  NOT FOUND
+      exports_gdp            current_account       *    +            —     0.000  NOT FOUND
+      exports_gdp            tax_revenue           *    +            —     0.000  NOT FOUND
+      gdp_growth             tax_revenue           *    +            —     0.000  NOT FOUND
+      gdp_growth             unemployment               -            —     0.000  NOT FOUND
+      inflation              exports_gdp                -            —     0.000  NOT FOUND
+      inflation              current_account       *    -            —     0.000  NOT FOUND
+      govt_consumption       gdp_growth                 +            —     0.000  NOT FOUND
+      (* = accounting identity target; excluded from structural recall)
+
+  B. Cold-start + federation (KEN+TZA+UGA)
+    Ground-truth relationships : 25
+    Discovered (non-zero delta): 0 / 25  (0%)
+    Sign correct (of discovered): 0 / 0  (0%)
+    Conf-weighted sign accuracy : 0%
+    Overall recall             : 0 / 25  (0%)
+    Structural-only recall     : 0 / 19  (0%)
+
+    Per-basket breakdown:
+      macro                 disc=0/9  correct=0/0
+      financial             disc=0/7  correct=0/0
+      infrastructure        disc=0/4  correct=0/0
+      human_capital         disc=0/5  correct=0/0
+
+    Relationship detail (source → target):
+      Source                 Target                  Exp  Got      Delta   Conf  Status
+      ----------------------------------------------------------------------------------
+      inflation              real_interest_rate         +            —     0.000  NOT FOUND
+      govt_debt              real_interest_rate         +            —     0.000  NOT FOUND
+      govt_debt              private_credit             -            —     0.000  NOT FOUND
+      real_interest_rate     private_credit             -            —     0.000  NOT FOUND
+      real_interest_rate     broad_money           *    -            —     0.000  NOT FOUND
+      real_interest_rate     gdp_growth                 -            —     0.000  NOT FOUND
+      private_credit         broad_money           *    +            —     0.000  NOT FOUND
+      gdp_growth             life_expectancy            +            —     0.000  NOT FOUND
+      gdp_growth             school_enrollment          +            —     0.000  NOT FOUND
+      unemployment           gdp_growth                 -            —     0.000  NOT FOUND
+      life_expectancy        school_enrollment          +            —     0.000  NOT FOUND
+      urban_population       gdp_growth                 +            —     0.000  NOT FOUND
+      electricity_access     gdp_growth                 +            —     0.000  NOT FOUND
+      electricity_access     internet_users             +            —     0.000  NOT FOUND
+      electricity_access     private_credit             +            —     0.000  NOT FOUND
+      internet_users         gdp_growth                 +            —     0.000  NOT FOUND
+      private_credit         gdp_growth                 +            —     0.000  NOT FOUND
+      exports_gdp            gdp_growth                 +            —     0.000  NOT FOUND
+      exports_gdp            current_account       *    +            —     0.000  NOT FOUND
+      exports_gdp            tax_revenue           *    +            —     0.000  NOT FOUND
+      gdp_growth             tax_revenue           *    +            —     0.000  NOT FOUND
+      gdp_growth             unemployment               -            —     0.000  NOT FOUND
+      inflation              exports_gdp                -            —     0.000  NOT FOUND
+      inflation              current_account       *    -            —     0.000  NOT FOUND
+      govt_consumption       gdp_growth                 +            —     0.000  NOT FOUND
+      (* = accounting identity target; excluded from structural recall)
+
+  C. Pretrained, no federation
+    Ground-truth relationships : 25
+    Discovered (non-zero delta): 0 / 25  (0%)
+    Sign correct (of discovered): 0 / 0  (0%)
+    Conf-weighted sign accuracy : 0%
+    Overall recall             : 0 / 25  (0%)
+    Structural-only recall     : 0 / 19  (0%)
+
+    Per-basket breakdown:
+      macro                 disc=0/9  correct=0/0
+      financial             disc=0/7  correct=0/0
+      infrastructure        disc=0/4  correct=0/0
+      human_capital         disc=0/5  correct=0/0
+
+    Relationship detail (source → target):
+      Source                 Target                  Exp  Got      Delta   Conf  Status
+      ----------------------------------------------------------------------------------
+      inflation              real_interest_rate         +            —     0.000  NOT FOUND
+      govt_debt              real_interest_rate         +            —     0.000  NOT FOUND
+      govt_debt              private_credit             -            —     0.000  NOT FOUND
+      real_interest_rate     private_credit             -            —     0.000  NOT FOUND
+      real_interest_rate     broad_money           *    -            —     0.000  NOT FOUND
+      real_interest_rate     gdp_growth                 -            —     0.000  NOT FOUND
+      private_credit         broad_money           *    +            —     0.000  NOT FOUND
+      gdp_growth             life_expectancy            +            —     0.000  NOT FOUND
+      gdp_growth             school_enrollment          +            —     0.000  NOT FOUND
+      unemployment           gdp_growth                 -            —     0.000  NOT FOUND
+      life_expectancy        school_enrollment          +            —     0.000  NOT FOUND
+      urban_population       gdp_growth                 +            —     0.000  NOT FOUND
+      electricity_access     gdp_growth                 +            —     0.000  NOT FOUND
+      electricity_access     internet_users             +            —     0.000  NOT FOUND
+      electricity_access     private_credit             +            —     0.000  NOT FOUND
+      internet_users         gdp_growth                 +            —     0.000  NOT FOUND
+      private_credit         gdp_growth                 +            —     0.000  NOT FOUND
+      exports_gdp            gdp_growth                 +            —     0.000  NOT FOUND
+      exports_gdp            current_account       *    +            —     0.000  NOT FOUND
+      exports_gdp            tax_revenue           *    +            —     0.000  NOT FOUND
+      gdp_growth             tax_revenue           *    +            —     0.000  NOT FOUND
+      gdp_growth             unemployment               -            —     0.000  NOT FOUND
+      inflation              exports_gdp                -            —     0.000  NOT FOUND
+      inflation              current_account       *    -            —     0.000  NOT FOUND
+      govt_consumption       gdp_growth                 +            —     0.000  NOT FOUND
+      (* = accounting identity target; excluded from structural recall)
+
+  D. Pretrained + federation (KEN+TZA+UGA)
+    Ground-truth relationships : 25
+    Discovered (non-zero delta): 0 / 25  (0%)
+    Sign correct (of discovered): 0 / 0  (0%)
+    Conf-weighted sign accuracy : 0%
+    Overall recall             : 0 / 25  (0%)
+    Structural-only recall     : 0 / 19  (0%)
+
+    Per-basket breakdown:
+      macro                 disc=0/9  correct=0/0
+      financial             disc=0/7  correct=0/0
+      infrastructure        disc=0/4  correct=0/0
+      human_capital         disc=0/5  correct=0/0
+
+    Relationship detail (source → target):
+      Source                 Target                  Exp  Got      Delta   Conf  Status
+      ----------------------------------------------------------------------------------
+      inflation              real_interest_rate         +            —     0.000  NOT FOUND
+      govt_debt              real_interest_rate         +            —     0.000  NOT FOUND
+      govt_debt              private_credit             -            —     0.000  NOT FOUND
+      real_interest_rate     private_credit             -            —     0.000  NOT FOUND
+      real_interest_rate     broad_money           *    -            —     0.000  NOT FOUND
+      real_interest_rate     gdp_growth                 -            —     0.000  NOT FOUND
+      private_credit         broad_money           *    +            —     0.000  NOT FOUND
+      gdp_growth             life_expectancy            +            —     0.000  NOT FOUND
+      gdp_growth             school_enrollment          +            —     0.000  NOT FOUND
+      unemployment           gdp_growth                 -            —     0.000  NOT FOUND
+      life_expectancy        school_enrollment          +            —     0.000  NOT FOUND
+      urban_population       gdp_growth                 +            —     0.000  NOT FOUND
+      electricity_access     gdp_growth                 +            —     0.000  NOT FOUND
+      electricity_access     internet_users             +            —     0.000  NOT FOUND
+      electricity_access     private_credit             +            —     0.000  NOT FOUND
+      internet_users         gdp_growth                 +            —     0.000  NOT FOUND
+      private_credit         gdp_growth                 +            —     0.000  NOT FOUND
+      exports_gdp            gdp_growth                 +            —     0.000  NOT FOUND
+      exports_gdp            current_account       *    +            —     0.000  NOT FOUND
+      exports_gdp            tax_revenue           *    +            —     0.000  NOT FOUND
+      gdp_growth             tax_revenue           *    +            —     0.000  NOT FOUND
+      gdp_growth             unemployment               -            —     0.000  NOT FOUND
+      inflation              exports_gdp                -            —     0.000  NOT FOUND
+      inflation              current_account       *    -            —     0.000  NOT FOUND
+      govt_consumption       gdp_growth                 +            —     0.000  NOT FOUND
+      (* = accounting identity target; excluded from structural recall)
+
+------------------------------------------------------------------------------
+Summary comparison:
+
+  Condition                                       Disc%  SignAcc%   Recall%  StrRecall%
+  ----------------------------------------------------------------------------------
+  A. Cold-start, no federation                      0.0       0.0       0.0         0.0
+  B. Cold-start + federation (KEN+TZA+UGA)          0.0       0.0       0.0         0.0
+  C. Pretrained, no federation                      0.0       0.0       0.0         0.0
+  D. Pretrained + federation (KEN+TZA+UGA)          0.0       0.0       0.0         0.0
+------------------------------------------------------------------------------
+Multi-step (mediated) discovery: X → M → Y chains
+
+  A. Cold-start, no federation
+    (no significant mediation chains found)
+
+  B. Cold-start + federation (KEN+TZA+UGA)
+    (no significant mediation chains found)
+
+  C. Pretrained, no federation
+    (no significant mediation chains found)
+
+  D. Pretrained + federation (KEN+TZA+UGA)
+    (no significant mediation chains found)
+
+
+------------------------------------------------------------------------------
+Interpretation:
+  Evaluation method:
+    Primary  — step-function lag sweep (4 steps, conf>=0.10 ensemble).
+               Source held +1std; dominant signed response across lags used.
+               Epsilon threshold: |delta| > 1e-4 (near-zero = NOT FOUND).
+    Fallback — direct hypothesis scan (CorrelationalHypothesis p<0.10,
+               CausalHypothesis forward p<0.10, FunctionalHypothesis).
+  Conf-weighted sign accuracy weights each discovery by hypothesis confidence.
+  Structural recall excludes accounting-identity targets (current_account,
+    tax_revenue, broad_money) where the sign is constrained by definition.
+  Discovery rate 80%+ = engine finds signals for most known relationships.
+  Sign accuracy  70%+ = engine correctly identifies +/- for most found.
+  Overall recall 60%+ = engine correctly maps most of the known structure.
+------------------------------------------------------------------------------

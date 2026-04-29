@@ -1,0 +1,4 @@
+digraph LearnedGraph {
+  rankdir=LR;
+  "unemployment" -> "gdp_growth";
+}

@@ -1,0 +1,12 @@
+digraph LearnedGraph {
+  rankdir=LR;
+  "Access to clean fuels and technologies for cooking (% of population)" -> "Inflation, GDP deflator (annual %)";
+  "Access to clean fuels and technologies for cooking (% of population)" -> "Unemployment, female (% of female labor force) (modeled ILO estimate)";
+  "Access to clean fuels and technologies for cooking, rural (% of rural population)" -> "Inflation, GDP deflator (annual %)";
+  "Access to clean fuels and technologies for cooking, rural (% of rural population)" -> "Unemployment, female (% of female labor force) (modeled ILO estimate)";
+  "Access to clean fuels and technologies for cooking, urban (% of urban population)" -> "Inflation, GDP deflator (annual %)";
+  "Access to clean fuels and technologies for cooking, urban (% of urban population)" -> "Unemployment, female (% of female labor force) (modeled ILO estimate)";
+  "Access to electricity (% of population)" -> "Inflation, GDP deflator (annual %)";
+  "Access to electricity (% of population)" -> "Unemployment, female (% of female labor force) (modeled ILO estimate)";
+  "Inflation, GDP deflator (annual %)" -> "Unemployment, female (% of female labor force) (modeled ILO estimate)";
+}

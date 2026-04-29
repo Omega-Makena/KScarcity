@@ -1,0 +1,17 @@
+step,phase,avg_conf,n_active,n_dead_cumulative
+1,normal,0.0,0,0
+4,normal,0.0,0,0
+7,normal,0.0,0,0
+10,normal,0.4423,5,43
+13,normal,0.464,5,43
+16,normal,0.4668,5,43
+18,structural_break,0.4455,5,43
+19,structural_break,0.4252,5,43
+20,structural_break,0.4081,5,68
+21,structural_break,0.406,5,68
+22,structural_break,0.4027,5,68
+25,post_break,0.4035,5,68
+28,post_break,0.4135,5,68
+31,post_break,0.4134,5,93
+34,post_break,0.4212,5,93
+37,post_break,0.4159,5,93

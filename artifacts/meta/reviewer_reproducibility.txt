@@ -1,0 +1,50 @@
+REPRODUCIBILITY AUDIT
+=====================
+
+Q1: Do fixed seeds (0-19) affect stochastic parts of the pipeline?
+--------------------------------------------------------------------
+YES for RandomBaseline: RandomBaseline(seed=seed) seeds Python random — predictions vary.
+YES for dry-run data:   _mock_country_data() calls numpy.random — data varies per seed.
+NO  for AR(1) family:   AR(1), FedAvg, Oracle are deterministic given fixed data.
+NO  for Scarcity:       hypothesis accumulation is deterministic given fixed data.
+VERDICT: In live mode (real WB data), seeds only affect RandomBaseline.
+         In dry-run mode, seeds affect both data generation and RandomBaseline.
+         All non-trivial methods (AR1, Scarcity) are seed-invariant on fixed data.
+
+Q2: Does Oracle-AR1 use the same rolling fold protocol as Local-AR1?
+----------------------------------------------------------------------
+YES. In evaluate_country(), at each fold T:
+  train_years = years[:t_idx]   # years strictly before T
+  node_train = {code: [rows for y in train_years ...] for code in COUNTRIES}
+  oracle.fit_pooled(node_train)  # pooled rows from ALL countries, ALL up to T
+  local_ar1.fit(train_rows)      # local rows only, ALL up to T
+Both refit at every fold. Oracle sees 3x more rows (all 3 countries) but the same
+temporal boundary. No future data leaks into either model.
+
+Q3: Is there fold leakage in the rolling evaluation?
+------------------------------------------------------
+NO. The protocol is:
+  for each year T from (start + MIN_TRAIN) to 2023:
+      train on all rows with year < T
+      predict row at year T
+      record normalised MAE(prediction, actual_T)
+Year T is NEVER in the training set. Normalisation statistics are computed
+on ACTUALS (collected after all folds complete), not training data. This is
+standard leave-one-year-out with no information leakage.
+
+Q4: Are all results reproducible with --live (real World Bank API)?
+---------------------------------------------------------------------
+The prediction accuracy results (§4) are from --live runs on real WB data.
+The discovery quality, ablation, stress test and failure mode results use
+synthetic data (--dry-run). These are reproducible from the scripts without
+an API connection. The --live flag does not affect discovery experiments.
+Run 'python scripts/benchmark_proper.py --live --seeds 20' for §4 results.
+
+Q5: Seed impact on multi-seed aggregation (§4 mean ± std)
+-----------------------------------------------------------
+Seeds 0-19 generate 20 different synthetic datasets in dry-run mode.
+On real WB data, seeds 0-19 produce 20 RandomBaseline evaluations (trivial).
+The mean ± std in §4 reflects cross-seed variability in data generation
+(dry-run) or pure randomness (Random baseline in live mode).
+Scarcity, AR1, FedAvg, and Oracle std is driven by data variation (dry-run)
+or is zero (live mode for non-random methods on fixed real data).

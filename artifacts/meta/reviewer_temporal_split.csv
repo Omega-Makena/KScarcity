@@ -1,0 +1,4 @@
+conf_at_end,mae_post_2008,test_years,conf_change_pct,n_active_at_split,n_active_at_end,phase,note,train_years,conf_at_split,method
+,0.9197,16,,,,pre_crisis_only,"AR1 params fixed on 1990-2007, evaluated on 2008-2023",18,,AR1-fixed
+,0.8822,16,,,,rolling,AR1 retrained up to each test year (standard protocol),1990-T,,AR1-rolling
+0.1644,N/A,N/A,66.5,53,34,pre_crisis_only,Discovery quality: conf at end of pre-crisis vs full-stream,18,0.0987,Scarcity-discovery

@@ -1,0 +1,45 @@
+{
+  "stage": "10",
+  "name": "regime_transfer",
+  "status": "PASS",
+  "target": "ScarcityEngine post-break MAE <= AR1-Fixed MAE (adaptive >= frozen)",
+  "result": {
+    "n_seeds": 2,
+    "break_year": 2008,
+    "pre_years": "1990-2007",
+    "post_years": "2008-2023",
+    "methods": {
+      "ar1_fixed": {
+        "mean_mae": 2.21,
+        "std_mae": 0.0252,
+        "n_seeds": 2
+      },
+      "ar1_rolling": {
+        "mean_mae": 1.1895,
+        "std_mae": 0.0414,
+        "n_seeds": 2
+      },
+      "scarcity_engine": {
+        "mean_mae": 1.2466,
+        "std_mae": 0.0199,
+        "n_seeds": 2
+      }
+    },
+    "adaptation": {
+      "ar1_fixed_early": 2.0046,
+      "ar1_fixed_late": 2.3577,
+      "ar1_rolling_early": 1.6097,
+      "ar1_rolling_late": 1.3101,
+      "scarcity_engine_early": 1.2719,
+      "scarcity_engine_late": 1.3833
+    },
+    "scarcity_engine_mae": 1.2466,
+    "ar1_fixed_mae": 2.21,
+    "ar1_rolling_mae": 1.1895,
+    "gap_vs_fixed_pp": 0.9634,
+    "gap_vs_rolling_pp": -0.0571,
+    "interpretation": "Positive gap_vs_fixed = Scarcity adapts better than frozen AR(1). Compare early_mae vs late_mae to see adaptation speed. Scarcity should converge faster after the structural break."
+  },
+  "wallclock_s": 1.74,
+  "timestamp": "2026-04-26T17:43:46.025009+00:00"
+}

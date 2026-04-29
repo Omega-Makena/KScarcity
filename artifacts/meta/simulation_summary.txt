@@ -1,0 +1,49 @@
+=================================================================
+SCARCITY — ECONOMIC POLICY SIMULATION RESULTS
+Engine: EconomicDiscoveryEngine (Kenya historical, 1990-2023)
+Simulation steps: 5
+Initial state year: 2023 (last observed)
+=================================================================
+
+Shock: Electricity access +20 pp
+  Rationale: Infrastructure investment — common EAC development target
+  electricity_access: n/a  ->  70.00
+  Propagation effects at step 5:
+    gdp_usd                        delta=-1139562.474  (  -0.03%)
+    gdp_per_capita                 delta=  +0.071  (  +0.13%)
+    labor_force_part               delta=  +0.032  (  +1.53%)
+    dom_credit_pvt                 delta=  -0.014  (  -1.39%)
+    trade_gdp                      delta=  -0.012  (  -0.97%)
+    gov_expense_gdp                delta=  +0.010  (  +1.11%)
+
+Shock: Government debt +15 pp GDP
+  Rationale: Fiscal expansion — models debt-financed stimulus
+  gov_debt_gdp: n/a  ->  70.00
+  Propagation effects at step 5:
+    gdp_usd                        delta=+55638000.880  (  +1.67%)
+    gov_debt_gdp                   delta=  +2.206  (+6735983.58%)
+    gdp_per_capita                 delta=  +0.644  (  +1.15%)
+    trade_gdp                      delta=  -0.014  (  -1.12%)
+    real_interest_rate             delta=  -0.005  (  -2.12%)
+    unemployment                   delta=  -0.003  (  -1.82%)
+
+Shock: Inflation shock +5 pp
+  Rationale: External price pressure — food/energy shock
+  inflation_cpi: 7.67139634029402  ->  12.67
+  Propagation effects at step 5:
+    gdp_usd                        delta=+13241170.389  (  +0.39%)
+    gdp_per_capita                 delta=  -0.716  (  -1.26%)
+    inflation_cpi                  delta=  +0.156  ( +65.00%)
+    labor_force_part               delta=  -0.028  (  -1.31%)
+    dom_credit_pvt                 delta=  -0.013  (  -1.36%)
+    money_broad_gdp                delta=  +0.011  (  +0.86%)
+
+Note: PolicySimulator propagates shocks through the discovered
+knowledge graph (high-confidence active hypotheses only).
+Trajectories reflect the causal structure learned from 34 years
+of Kenya World Bank data — not an econometric forecast model.
+
+Interpretation guide:
+  delta > 0  : shocked variable increased relative to baseline
+  delta < 0  : shocked variable decreased relative to baseline
+  |delta| near 0 : no causal path found between shock and this variable

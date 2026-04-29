@@ -1,5 +1,77 @@
 # Module Reference — K-Scarcity / K-SHIELD
 
+See [BENCHMARK.md](BENCHMARK.md) for the master benchmark that verifies every component listed here.
+
+---
+
+## scarcity/engine/
+
+### Online Discovery Engine (`engine_v2.py`) — `OnlineDiscoveryEngine`
+
+Entry point for streaming causal discovery. Manages the full hypothesis lifecycle across
+any variable set and any data frequency.
+
+```python
+engine = OnlineDiscoveryEngine(
+    explore_interval=10,   # how often exploration hypotheses are proposed
+    mode="balanced",       # "balanced" | "conservative" | "aggressive"
+    buffer_size=150,       # observation window for all hypothesis buffers
+)
+engine.initialize_v2(var_names)          # seeds all pair/triplet hypotheses
+engine.update(data_dict)                 # advance one observation
+engine.get_candidate_paths()             # ranked edges (confidence ≥ 0.25)
+```
+
+`buffer_size` threads through every hypothesis constructor (both in `initialize_v2` and
+in exploration steps) so high-frequency tick data (`buffer_size=50`) and monthly macro
+data (`buffer_size=300`) are each handled with an appropriate observation window.
+
+### Hypothesis Types — `relationships.py` / `relationships_extended.py`
+
+15 relational hypothesis types across two files:
+
+| Type | Algorithm | Implementation |
+|------|-----------|---------------|
+| `CausalHypothesis` | Granger causality (RLS regression, dual-direction); signed directional confidence `\|conf_fwd−conf_bwd\|`; F-ratio asymmetry guard; live-direction override | Window-batch |
+| `CorrelationalHypothesis` | Welford online Pearson correlation | Truly online |
+| `TemporalHypothesis` | AR/VAR (RLS forgetting factor) | Truly online |
+| `FunctionalHypothesis` | Polynomial regression (RLS) | Truly online |
+| `EquilibriumHypothesis` | Kalman filter mean-reversion | Truly online |
+| `CompositionalHypothesis` | Sum constraint error | Window-batch |
+| `CompetitiveHypothesis` | Negative correlation / zero-sum | Window-batch |
+| `SynergisticHypothesis` | Interaction regression | Window-batch |
+| `ProbabilisticHypothesis` | Distribution shift (Cohen's d) | Window-batch |
+| `StructuralHypothesis` | Per-group Welford ANOVA/ICC | Truly online |
+| `MediatingHypothesis` | Baron-Kenny mediation (Sobel test); lowered to p<0.20, min_n=20 for short series | Window-batch |
+| `ModeratingHypothesis` | Interaction moderation (F-test) | Window-batch |
+| `GraphHypothesis` | Shared-variance network structure | Window-batch |
+| `SimilarityHypothesis` | k-means clustering | Window-batch |
+| `LogicalHypothesis` | Boolean rule induction | Window-batch |
+
+#### Cold-start Guard — `_not_ready()`
+
+All 15 types use the `_not_ready()` sentinel for early returns before their observation
+buffer reaches the required minimum:
+
+```python
+# returned until buffer is full
+{'fit_score': 0.0, 'confidence': 0.0, 'evidence': n, 'stability': 0.0, 'ready': False}
+
+# returned once ready
+{'fit_score': ..., 'confidence': ..., ..., 'ready': True}
+```
+
+`confidence: 0.0` is blocked by the existing `confidence < 0.25` filter in
+`get_candidate_paths()`, so cold-start noise never enters the proposal pool.
+The `ready` flag allows downstream consumers to distinguish cold-start from a genuine
+zero-confidence finding.
+
+### Configuration — `relationship_config.py`
+
+Centralised config dataclasses for all 15 types (see `HypothesisConfig`). All thresholds
+and forgetting factors are overridable at construction time; defaults are documented in
+`CausalConfig`, `CorrelationalConfig`, `TemporalConfig`, etc.
+
 ---
 
 ## kshiked/core/
@@ -443,3 +515,95 @@ hub.get_indices()  # current threat indices
 | `delta_sync.py` | Incremental sync for federated updates |
 | `project_signals.py` | Institution project tracking signals |
 | `models.py` | SQLAlchemy / SQLite models |
+
+---
+
+## scripts/
+
+### Comprehensive Benchmark Harness (`benchmark_harness.py`)
+
+Orchestrates all 26 benchmark stages covering the full K-Scarcity architecture. Single entry
+point for claim validation, regression testing, and claim integrity reporting.
+
+```bash
+python scripts/benchmark_harness.py              # all 26 stages
+python scripts/benchmark_harness.py --fast       # reduced trial counts
+python scripts/benchmark_harness.py --skip-slow  # skip stages > 5 min
+python scripts/benchmark_harness.py --stage 9 10 11.1 11.2   # specific stages
+python scripts/benchmark_harness.py --list       # list all stages and exit
+```
+
+**Stage groups:**
+
+| Group | Stages | Coverage |
+|-------|--------|----------|
+| Foundation | 0, 1.1–1.4 | Engine identity, non-IID, null FPR, temporal ordering |
+| Discovery | 2.1–2.3 | Four-condition matrix, baselines, cross-method comparison |
+| Federation | 3.1–3.4 | Evidence-sharing ablation, DP, Byzantine robustness |
+| Simulation | 4.1–4.3 | SFC identity, directional validation, null shock |
+| Meta-learning | 5.1–5.3 | Pretrain inversion, pioneer sweep, MetaIntegrativeLayer |
+| DRG | 6.1–6.2 | Assurance levels, self-regulation loop |
+| Causal | 7 | DoWhy ATE pipeline (SKIP if dowhy not installed) |
+| Integration | 8.1 | EventBus static + live wiring audit |
+| Prediction | 9 | Rolling leave-one-year-out MAE (6 methods) |
+| Regime transfer | 10 | Post-2008 adaptation: AR1-fixed vs rolling vs Scarcity |
+| Sparsity/buffer | 11.1, 11.2 | Data-drop degradation curves; buffer size sweep |
+
+**Outputs:** `artifacts/harness/harness_results.json` and `artifacts/harness/claim_integrity_matrix.json`.
+
+**Stage modules** (`scripts/stages/`):
+
+| Module | Stages |
+|--------|--------|
+| `stage0_identity.py` | 0 — AST-based engine identity audit |
+| `stage1_foundation.py` | 1.1–1.4 — non-IID, null FPR, temporal ordering, Pearson baseline |
+| `stage2_discovery.py` | 2.1–2.3 — four-condition matrix, Granger/VAR baselines |
+| `stage3_federation.py` | 3.1–3.4 — evidence-sharing, DP sweep, Byzantine robustness |
+| `stage4_simulation.py` | 4.1–4.3 — SFC accounting, 12-shock directional validation |
+| `stage5_meta.py` | 5.1–5.3 — pretrain inversion, pioneer sweep, MetaIntegrativeLayer |
+| `stage6_drg.py` | 6.1–6.2 — DRG assurance levels, self-regulation loop |
+| `stage7_causal.py` | 7 — DoWhy ATE sign accuracy |
+| `stage8_integration.py` | 8.1 — EventBus wiring audit |
+| `stage9_prediction_mae.py` | 9 — rolling MAE: Mean/LocalAR1/FedAvgAR1/OracleAR1/ScarcityLocal/ScarcityFed |
+| `stage10_regime_transfer.py` | 10 — regime transfer with synthetic structural break at 2008 |
+| `stage11_sparsity_buffer.py` | 11.1–11.2 — sparsity sweep and buffer size sweep |
+| `utils.py` | Shared helpers: `make_result`, `load_ground_truth`, `build_hub`, `stream_rows`, ... |
+
+---
+
+### Relationship Discovery Benchmark (`benchmark_discovery.py`)
+
+Evaluates how well the online discovery engine recovers 25 theory-grounded macro/financial
+relationships from real time-series data.
+
+```bash
+python scripts/benchmark_discovery.py \
+  --fred --fred-key <KEY> \
+  --country USA --peers CAN,GBR \
+  --start 1980 --end 2023 \
+  --pretrain-live --pretrain-start 1980 --pretrain-end 2005 \
+  --output artifacts/meta/discovery_benchmark.txt
+```
+
+**Modes:**
+- `--fred` — fetch FRED quarterly data (176 obs for USA 1980–2023); omit for dry-run with
+  synthetic data
+- `--pretrain-live` — pretrain on World Bank annual data before streaming FRED observations
+- `--peers` — comma-separated ISO-3 list of federated peer nodes
+
+**Evaluation:** dual-path — (1) low-threshold (conf ≥ 0.10) ensemble perturbation test;
+(2) direct hypothesis scan at p < 0.10 as fallback for hypotheses that fire but do not
+respond to perturbation (e.g. `CausalHypothesis` with `direction=-1`).
+
+**Key results — FRED USA (best condition D, pretrained + fed):** 68% discovery, 36% overall
+recall, 53% recall on the 17/25 testable relationships, 75% conf-weighted sign accuracy.
+Infrastructure basket is untestable with FRED (no `electricity_access`/`internet_users`).
+
+**Key results — World Bank Kenya 1980–2023 (44 obs, best condition D: pretrained + fed):**
+92% discovery, 44% recall, **47% structural recall**, 48% sign accuracy.
+All 4 baskets testable. Structural recall improved +5 pp over the prior run (42% → 47%)
+driven by ECM cointegration reset at the pretrain/live boundary and majority-sign voting.
+See `BENCHMARK_FINDINGS.md §31.2` for full methodology and per-condition breakdown.
+
+See `documentation/scarcity-docs/BENCHMARK_FINDINGS.md §31` for full methodology and
+`artifacts/meta/discovery_benchmark.txt` for per-relationship detail.

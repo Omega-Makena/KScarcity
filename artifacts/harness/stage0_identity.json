@@ -1,0 +1,384 @@
+{
+  "stage": "0",
+  "name": "engine_identity_audit",
+  "status": "PASS",
+  "target": "Engine identity discrepancies documented in resolution doc",
+  "result": {
+    "scripts": [
+      {
+        "script": "benchmark_basket_fl.py",
+        "engine_imports": [],
+        "federation_imports": [
+          {
+            "type": "from",
+            "module": "scarcity.engine.federation_node",
+            "name": "FederationNode",
+            "alias": null
+          },
+          {
+            "type": "from",
+            "module": "scarcity.engine.federation_hub",
+            "name": "FederationHub",
+            "alias": null
+          },
+          {
+            "type": "from",
+            "module": "scarcity.engine.federation_node",
+            "name": "FederationNode",
+            "alias": null
+          },
+          {
+            "type": "from",
+            "module": "scarcity.engine.federation_hub",
+            "name": "FederationHub",
+            "alias": null
+          }
+        ],
+        "engine_instantiations": [],
+        "federation_instantiations": [
+          {
+            "class": "FederationHub",
+            "lineno": 443
+          },
+          {
+            "class": "FederationHub",
+            "lineno": 453
+          },
+          {
+            "class": "FederationNode",
+            "lineno": 454
+          },
+          {
+            "class": "FederationHub",
+            "lineno": 470
+          },
+          {
+            "class": "FederationHub",
+            "lineno": 246
+          },
+          {
+            "class": "FederationNode",
+            "lineno": 247
+          },
+          {
+            "class": "FederationNode",
+            "lineno": 472
+          },
+          {
+            "class": "FederationNode",
+            "lineno": 445
+          },
+          {
+            "class": "FederationNode",
+            "lineno": 251
+          }
+        ]
+      },
+      {
+        "script": "benchmark_comprehensive.py",
+        "engine_imports": [
+          {
+            "type": "from",
+            "module": "scarcity.engine.engine_v2",
+            "name": "OnlineDiscoveryEngine",
+            "alias": null
+          },
+          {
+            "type": "from",
+            "module": "scarcity.engine.economic_engine",
+            "name": "EconomicDiscoveryEngine",
+            "alias": null
+          }
+        ],
+        "federation_imports": [],
+        "engine_instantiations": [
+          {
+            "class": "OnlineDiscoveryEngine",
+            "lineno": 96
+          }
+        ],
+        "federation_instantiations": []
+      },
+      {
+        "script": "benchmark_discovery.py",
+        "engine_imports": [],
+        "federation_imports": [
+          {
+            "type": "from",
+            "module": "scarcity.engine.federation_hub",
+            "name": "FederationHub",
+            "alias": null
+          },
+          {
+            "type": "from",
+            "module": "scarcity.engine.federation_node",
+            "name": "FederationNode",
+            "alias": null
+          }
+        ],
+        "engine_instantiations": [],
+        "federation_instantiations": [
+          {
+            "class": "FederationHub",
+            "lineno": 434
+          },
+          {
+            "class": "FederationNode",
+            "lineno": 435
+          },
+          {
+            "class": "FederationNode",
+            "lineno": 439
+          }
+        ]
+      },
+      {
+        "script": "benchmark_economic_simulation.py",
+        "engine_imports": [
+          {
+            "type": "from",
+            "module": "scarcity.engine.economic_engine",
+            "name": "EconomicDiscoveryEngine",
+            "alias": null
+          },
+          {
+            "type": "from",
+            "module": "scarcity.engine.engine_v2",
+            "name": "OnlineDiscoveryEngine",
+            "alias": null
+          }
+        ],
+        "federation_imports": [],
+        "engine_instantiations": [],
+        "federation_instantiations": []
+      },
+      {
+        "script": "benchmark_economic_simulation_v2.py",
+        "engine_imports": [
+          {
+            "type": "from",
+            "module": "scarcity.engine.engine_v2",
+            "name": "OnlineDiscoveryEngine",
+            "alias": null
+          }
+        ],
+        "federation_imports": [],
+        "engine_instantiations": [
+          {
+            "class": "OnlineDiscoveryEngine",
+            "lineno": 314
+          }
+        ],
+        "federation_instantiations": []
+      },
+      {
+        "script": "benchmark_engine_drift.py",
+        "engine_imports": [
+          {
+            "type": "from",
+            "module": "scarcity.engine.engine_v2",
+            "name": "OnlineDiscoveryEngine",
+            "alias": null
+          }
+        ],
+        "federation_imports": [],
+        "engine_instantiations": [
+          {
+            "class": "OnlineDiscoveryEngine",
+            "lineno": 125
+          }
+        ],
+        "federation_instantiations": []
+      },
+      {
+        "script": "benchmark_federation_ablations.py",
+        "engine_imports": [
+          {
+            "type": "from",
+            "module": "scarcity.engine.engine_v2",
+            "name": "OnlineDiscoveryEngine",
+            "alias": null
+          }
+        ],
+        "federation_imports": [],
+        "engine_instantiations": [
+          {
+            "class": "OnlineDiscoveryEngine",
+            "lineno": 74
+          }
+        ],
+        "federation_instantiations": []
+      },
+      {
+        "script": "benchmark_fl_model_accuracy.py",
+        "engine_imports": [],
+        "federation_imports": [],
+        "engine_instantiations": [],
+        "federation_instantiations": []
+      },
+      {
+        "script": "benchmark_harness.py",
+        "engine_imports": [],
+        "federation_imports": [],
+        "engine_instantiations": [],
+        "federation_instantiations": []
+      },
+      {
+        "script": "benchmark_meta_model_accuracy.py",
+        "engine_imports": [],
+        "federation_imports": [],
+        "engine_instantiations": [],
+        "federation_instantiations": []
+      },
+      {
+        "script": "benchmark_online_model_accuracy.py",
+        "engine_imports": [
+          {
+            "type": "from",
+            "module": "scarcity.engine.engine_v2",
+            "name": "OnlineDiscoveryEngine",
+            "alias": null
+          }
+        ],
+        "federation_imports": [],
+        "engine_instantiations": [
+          {
+            "class": "OnlineDiscoveryEngine",
+            "lineno": 94
+          }
+        ],
+        "federation_instantiations": []
+      },
+      {
+        "script": "benchmark_proper.py",
+        "engine_imports": [
+          {
+            "type": "from",
+            "module": "scarcity.engine.engine_v2",
+            "name": "OnlineDiscoveryEngine",
+            "alias": null
+          }
+        ],
+        "federation_imports": [],
+        "engine_instantiations": [
+          {
+            "class": "OnlineDiscoveryEngine",
+            "lineno": 350
+          }
+        ],
+        "federation_instantiations": []
+      },
+      {
+        "script": "benchmark_real_wb.py",
+        "engine_imports": [
+          {
+            "type": "from",
+            "module": "scarcity.engine.engine_v2",
+            "name": "OnlineDiscoveryEngine",
+            "alias": null
+          }
+        ],
+        "federation_imports": [],
+        "engine_instantiations": [
+          {
+            "class": "OnlineDiscoveryEngine",
+            "lineno": 299
+          }
+        ],
+        "federation_instantiations": []
+      },
+      {
+        "script": "benchmark_reviewer.py",
+        "engine_imports": [
+          {
+            "type": "from",
+            "module": "scarcity.engine.engine_v2",
+            "name": "OnlineDiscoveryEngine",
+            "alias": null
+          },
+          {
+            "type": "from",
+            "module": "scarcity.engine.engine_v2",
+            "name": "OnlineDiscoveryEngine",
+            "alias": null
+          }
+        ],
+        "federation_imports": [],
+        "engine_instantiations": [
+          {
+            "class": "OnlineDiscoveryEngine",
+            "lineno": 335
+          },
+          {
+            "class": "OnlineDiscoveryEngine",
+            "lineno": 342
+          },
+          {
+            "class": "OnlineDiscoveryEngine",
+            "lineno": 400
+          }
+        ],
+        "federation_instantiations": []
+      },
+      {
+        "script": "benchmark_scientific_questions.py",
+        "engine_imports": [],
+        "federation_imports": [],
+        "engine_instantiations": [],
+        "federation_instantiations": []
+      },
+      {
+        "script": "benchmark_statistical_model_accuracy.py",
+        "engine_imports": [],
+        "federation_imports": [],
+        "engine_instantiations": [],
+        "federation_instantiations": []
+      }
+    ],
+    "engine_in_code": {
+      "class": "OnlineDiscoveryEngine",
+      "module": "scarcity.engine.engine_v2",
+      "init_params": {
+        "explore_interval": 10,
+        "mode": "balanced",
+        "buffer_size": 150
+      }
+    },
+    "federation_in_code": {
+      "benchmark_path": "FederationHub / FederationNode",
+      "benchmark_module": "scarcity.engine.federation_hub / federation_node",
+      "hub_class": "FederationHub",
+      "node_class": "FederationNode"
+    },
+    "controller_thresholds": {
+      "confidence_threshold": 0.7,
+      "stability_threshold": 0.6,
+      "min_evidence": 20,
+      "kill_threshold": 0.1
+    },
+    "discrepancies": [
+      {
+        "field": "engine_class",
+        "architecture_doc": "MPIEOrchestrator",
+        "actual_in_benchmarks": "OnlineDiscoveryEngine",
+        "note": "Benchmarks use OnlineDiscoveryEngine (hypothesis survival + Bayesian \u03b1/\u03b2). Architecture docs describe MPIEOrchestrator (Thompson Sampling + bootstrap R\u00b2 gain). These are two distinct engines."
+      },
+      {
+        "field": "federation_class",
+        "architecture_doc": "HierarchicalFederation",
+        "actual_in_benchmarks": "FederationHub / FederationNode",
+        "note": "Benchmarks use FederationHub/FederationNode (simple evidence sharing). Architecture docs describe HierarchicalFederation with gossip, Layer1/Layer2, DP, and Byzantine-robust aggregation."
+      }
+    ],
+    "engine_alias_resolves_to": "OnlineDiscoveryEngine (scarcity.engine.engine_v2)",
+    "mpie_file_exists": true,
+    "mpie_has_orchestrator": true,
+    "hierarchical_federation_importable": true,
+    "discrepancy_count": 2,
+    "conclusion": "Benchmark scripts instantiate OnlineDiscoveryEngine (scarcity.engine.engine_v2) with FederationHub/FederationNode (scarcity.engine.federation_*). The architecture documentation describes a separate, newer subsystem (MPIEOrchestrator + HierarchicalFederation) that the benchmarks do not exercise. Subsequent stages use the engine the benchmarks actually instantiate.",
+    "resolution_doc": "C:\\Users\\omegam\\OneDrive - Innova Limited\\scace4\\artifacts\\harness\\engine_identity_resolution.md",
+    "resolution_written": true
+  },
+  "wallclock_s": 5.043,
+  "timestamp": "2026-04-27T00:13:22.343642+00:00"
+}

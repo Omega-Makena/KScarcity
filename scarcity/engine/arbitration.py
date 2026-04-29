@@ -55,11 +55,17 @@ class HypothesisArbiter:
         claims_by_pair = defaultdict(list)
         
         accepted = []
-        
+
+        # Directed types keep variable order so A→B and B→A survive as separate entries.
+        # Correlational is included here because Corr(a,b) and Corr(b,a) are distinct
+        # predictors: Corr(a,b) uses a to predict b, Corr(b,a) uses b to predict a.
+        _directed = {RelationshipType.CAUSAL, RelationshipType.FUNCTIONAL, RelationshipType.CORRELATIONAL}
+
         for h in hypotheses:
-            # Sort variables to create a canonical key for the *relationship* 
-            # (ignoring direction for grouping purposes)
-            pair_key = tuple(sorted(h.variables))
+            if h.rel_type in _directed:
+                pair_key = tuple(h.variables[:2])
+            else:
+                pair_key = tuple(sorted(h.variables[:2]))
             claims_by_pair[pair_key].append(h)
 
         # 2. Process each pair/group
@@ -68,26 +74,17 @@ class HypothesisArbiter:
                 accepted.append(claim_list[0])
                 continue
                 
-            # Sort by strength of claim type
-            # If multiple claims exist, keep the strongest strict subset?
-            # actually we might keep Causal AND Functional, as Functional gives the formula
-            # But Causal supersedes Correlational.
-            
-            # Simple Logic: 
-            # 1. Find max strength type
-            # 2. Keep all hypotheses of that max strength (could be A->B and B->A conflict)
-            # 3. Suppress anything strictly weaker (like Correlation)
-            
-            # Helper to get strength
             def get_strength(h):
-                # Map specific types to broad categories
                 t = h.rel_type
                 if t in [RelationshipType.COMPETITIVE, RelationshipType.SYNERGISTIC]:
                     return 5
                 return self.type_strength.get(t, 0)
 
-            # Sort descending by strength, then confidence
-            claim_list.sort(key=lambda x: (get_strength(x), x.confidence), reverse=True)
+            # Sort descending by confidence first, then type strength as tiebreaker.
+            # Empirical evidence (confidence) wins over theoretical hierarchy: a
+            # high-confidence Correlational is more useful for prediction than a
+            # low-confidence Causal that hasn't yet established direction.
+            claim_list.sort(key=lambda x: (x.confidence, get_strength(x)), reverse=True)
             
             best_h = claim_list[0]
             best_strength = get_strength(best_h)
@@ -123,10 +120,13 @@ class HypothesisArbiter:
         
         conflicts = []
         
-        # Group by variable pair (undirected)
+        _directed = {RelationshipType.CAUSAL, RelationshipType.FUNCTIONAL, RelationshipType.CORRELATIONAL}
         claims_by_pair: Dict[tuple, List[Hypothesis]] = defaultdict(list)
         for h in hypotheses:
-            pair_key = tuple(sorted(h.variables))
+            if h.rel_type in _directed:
+                pair_key = tuple(h.variables[:2])
+            else:
+                pair_key = tuple(sorted(h.variables[:2]))
             claims_by_pair[pair_key].append(h)
         
         for pair, claim_list in claims_by_pair.items():

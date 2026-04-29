@@ -28,7 +28,7 @@ try:
 except ImportError:
     _SCIPY = False
 
-from .discovery import Hypothesis, RelationshipType, HypothesisMetadata
+from .discovery import Hypothesis, RelationshipType, HypothesisMetadata, RegimeTracker
 from .relationship_config import (
     CausalConfig,
     CorrelationalConfig,
@@ -92,6 +92,16 @@ def _rls_step(P: np.ndarray, coef: np.ndarray,
     return P_new, coef_new, residual
 
 
+def _not_ready(evidence: int = 0) -> Dict[str, Any]:
+    """Sentinel return when a hypothesis has not accumulated enough observations yet.
+
+    Returns zero confidence so downstream consumers (MPIE, get_candidate_paths)
+    never mistake cold-start noise for a real signal.
+    """
+    return {'fit_score': 0.0, 'confidence': 0.0, 'evidence': evidence,
+            'stability': 0.0, 'ready': False}
+
+
 # ===========================================================================
 # 1. CAUSAL — Granger Causality with F-test + Transfer Entropy
 # ===========================================================================
@@ -109,11 +119,13 @@ class CausalHypothesis(Hypothesis):
     """
 
     def __init__(self, source: str, target: str, lag: int = 2,
-                 buffer_size: int = 150, config: Optional[CausalConfig] = None):
+                 buffer_size: int = 150, config: Optional[CausalConfig] = None,
+                 max_lag: int = 4):
         super().__init__([source, target], RelationshipType.CAUSAL)
         self.source = source
         self.target = target
         self.lag = lag
+        self.max_lag = max(lag, max_lag)
         self.buffer_x: deque = deque(maxlen=buffer_size)
         self.buffer_y: deque = deque(maxlen=buffer_size)
         self.config = config or CausalConfig()
@@ -125,7 +137,42 @@ class CausalHypothesis(Hypothesis):
         self.direction = 0
         self.transfer_entropy_xy = 0.0
         self.transfer_entropy_yx = 0.0
-        self._coef_aug: Optional[np.ndarray] = None
+        # Forward/backward level-regression coefficients stored separately so
+        # predict_value() can always use the forward path regardless of which
+        # direction the dominant Granger test assigned.
+        self._coef_fwd: Optional[np.ndarray] = None   # X→Y level OLS coefficients
+        self._coef_bwd: Optional[np.ndarray] = None   # Y→X level OLS coefficients
+        self._coef_aug: Optional[np.ndarray] = None   # alias for _coef_fwd (backward compat)
+        self._best_lag: int = lag                      # BIC-selected lag
+        self._use_diff: bool = False                   # True when both series are I(1)
+
+        # Engle-Granger cointegration fields (populated when _use_diff=True)
+        self._is_coint: bool = False
+        self._coint_alpha: float = 0.0
+        self._coint_beta: float = 0.0
+        self._coint_gamma: float = 0.0  # ECM error-correction speed
+        # False after begin_live_stream() resets ECM — prevents re-estimating
+        # cointegration on a pretrain+live+peer mixed buffer which yields
+        # spurious ECM betas and wrong perturbation signs in federated conditions.
+        self._allow_ecm_refit: bool = True
+
+        # Backward Bayesian accumulators — parallel to alpha_success/beta_failure
+        # but tracking p_value_backward signal.  Used for signed directional
+        # confidence: confidence = |conf_fwd - conf_bwd|.  Bidirectional pairs
+        # get confidence ≈ 0; unidirectional pairs accumulate a positive margin.
+        self._alpha_bwd: float = 1.0
+        self._beta_bwd: float = 1.0
+
+        # Live-phase mini-buffers (Fix #2): populated only after begin_live_stream()
+        # sets _allow_ecm_refit=False.  When ≥15 own live rows are present, run a
+        # secondary F-test on live-only data.  If it clearly favours one direction
+        # (ratio ≥1.5, p<0.15), override the mixed-buffer direction assignment.
+        # This prevents the large pretrain corpus from out-voting live signal.
+        self._live_buf_x: deque = deque(maxlen=30)
+        self._live_buf_y: deque = deque(maxlen=30)
+
+        # regime tracking
+        self._regime_tracker = RegimeTracker()
 
     def fit_step(self, row: Dict[str, float]) -> None:
         if self.source in row and self.target in row:
@@ -133,6 +180,15 @@ class CausalHypothesis(Hypothesis):
             if np.isfinite(x) and np.isfinite(y):
                 self.buffer_x.append(x)
                 self.buffer_y.append(y)
+                # Populate live mini-buffer once in live phase (Fix #2)
+                if not self._allow_ecm_refit:
+                    self._live_buf_x.append(x)
+                    self._live_buf_y.append(y)
+                # lag-1 residual as regime instability proxy
+                if len(self.buffer_y) >= 2:
+                    self._update_regime_tracker(
+                        abs(float(self.buffer_y[-1]) - float(self.buffer_y[-2]))
+                    )
 
     def _lag_matrix(self, series: np.ndarray, n_lags: int
                     ) -> Tuple[np.ndarray, np.ndarray]:
@@ -141,50 +197,179 @@ class CausalHypothesis(Hypothesis):
         cols = [series[n_lags - i - 1: len(series) - i - 1] for i in range(n_lags)]
         return target, np.column_stack(cols)
 
-    def _granger_f_test(self, X: np.ndarray, Y: np.ndarray
-                        ) -> Tuple[float, float, Optional[np.ndarray]]:
-        """
-        F-test: does X Granger-cause Y?
+    @staticmethod
+    def _is_nonstationary(series: np.ndarray, threshold: float = 0.85) -> bool:
+        """Lag-1 autocorrelation proxy for unit-root: True if |AC₁| > threshold.
 
-        Restricted model : Y ~ 1 + Y_lags
-        Unrestricted model: Y ~ 1 + Y_lags + X_lags
-        F = ((RSS_r - RSS_u) / lag) / (RSS_u / (n - 2*lag - 1))
+        The AC₁ proxy is intentionally conservative (threshold 0.85): it only
+        flags genuinely near-unit-root series (price levels, credit stocks) as
+        I(1).  Moderately persistent stationary series (GDP growth, inflation)
+        have AC₁ < 0.85 and are treated as I(0), keeping the level Granger
+        F-test which has higher power at n < 50.  Engle-Granger cointegration
+        is then applied separately to I(1) pairs (see _engle_granger_cointegration).
         """
-        lag = self.lag
+        if len(series) < 10:
+            return False
+        x = series - series.mean()
+        if np.std(x) < 1e-10:
+            return False
+        return abs(float(np.corrcoef(x[:-1], x[1:])[0, 1])) > threshold
+
+    @staticmethod
+    def _engle_granger_cointegration(
+        X: np.ndarray, Y: np.ndarray
+    ) -> Tuple[bool, float, float, float]:
+        """Two-step Engle-Granger cointegration test.
+
+        Step 1: OLS level regression Y = alpha + beta*X.
+        Step 2: ADF on residuals with tighter critical value -3.37
+                (MacKinnon 1991, n≈30, no intercept in residual regression).
+
+        Returns (is_cointegrated, alpha, beta, gamma) where gamma is the ECM
+        error-correction speed coefficient (< 0 when cointegrated).
+        """
+        n = len(X)
+        if n < 15:
+            return False, 0.0, 0.0, 0.0
+        # Step 1: level OLS
+        D = np.column_stack([np.ones(n), X])
+        try:
+            coef, *_ = np.linalg.lstsq(D, Y, rcond=None)
+        except Exception:
+            return False, 0.0, 0.0, 0.0
+        alpha, beta = float(coef[0]), float(coef[1])
+        resid = Y - (alpha + beta * X)
+        # Step 2: ADF on residuals (no intercept: residuals are near zero-mean)
+        d_resid = np.diff(resid)
+        r_lag = resid[:-1]
+        n2 = len(d_resid)
+        if n2 < 8:
+            return False, alpha, beta, 0.0
+        denom = float(np.dot(r_lag, r_lag))
+        if denom < 1e-12:
+            return False, alpha, beta, 0.0
+        gamma = float(np.dot(r_lag, d_resid)) / denom
+        fit_r = d_resid - gamma * r_lag
+        sse = float(np.dot(fit_r, fit_r))
+        se_g = float(np.sqrt(max(sse / max(n2 - 1, 1), 1e-12) / denom))
+        if se_g < 1e-12:
+            return False, alpha, beta, gamma
+        t_stat = gamma / se_g
+        # Engle-Granger 5% critical value for cointegrating regression residuals
+        is_coint = t_stat < -3.37
+        return is_coint, alpha, beta, gamma
+
+    @staticmethod
+    def _linear_detrend(series: np.ndarray) -> np.ndarray:
+        """Remove a fitted linear time trend via OLS: return series - (a + b·t)."""
+        n = len(series)
+        t = np.arange(n, dtype=float)
+        D = np.column_stack([np.ones(n), t])
+        try:
+            coef, *_ = np.linalg.lstsq(D, series, rcond=None)
+            return series - D @ coef
+        except Exception:
+            return series - series.mean()
+
+    def _granger_f_test_at_lag(self, X: np.ndarray, Y: np.ndarray, k: int
+                                ) -> Tuple[float, float, Optional[np.ndarray]]:
+        """
+        Granger F-test at explicit lag k.
+
+        The F-test runs on first-differenced series when _use_diff is True so
+        critical values are valid for I(1) data.
+
+        Level-regression coefficients are computed on linearly-detrended series
+        when the corresponding series is I(1) (AC₁ > 0.85).  Detrending removes
+        the shared-trend confound so that coef_level reflects the marginal causal
+        effect (cycle-on-cycle), not the spurious trend correlation.  Since
+        sign(Δprediction) = sign(coef_level[X_slot]) × sign(perturbation), the
+        correct coefficient sign fixes wrong-sign perturbation responses for
+        trending variables (e.g. electricity_access → gdp_growth).
+        """
         ridge = self.config.ridge_alpha
-        n_total = len(Y)
-        if n_total <= 2 * lag + 5:
-            return 0.0, 1.0, None
 
-        Y_target, Y_lags = self._lag_matrix(Y, lag)
-        _, X_lags = self._lag_matrix(X, lag)
+        # Detrend I(1) series for the level-regression only (F-test uses _use_diff).
+        Y_lev = self._linear_detrend(Y) if self._is_nonstationary(Y) else Y
+        X_lev = self._linear_detrend(X) if self._is_nonstationary(X) else X
+
+        # Level-regression coefficients (prediction / sign use)
+        coef_level: Optional[np.ndarray] = None
+        if len(Y_lev) > 2 * k + 5:
+            Yt_l, Yl_l = self._lag_matrix(Y_lev, k)
+            _, Xl_l = self._lag_matrix(X_lev, k)
+            n_l = len(Yt_l)
+            D_l = np.hstack([np.ones((n_l, 1)), Yl_l, Xl_l])
+            try:
+                A_l = D_l.T @ D_l + ridge * np.eye(2 * k + 1)
+                coef_level = np.linalg.solve(A_l, D_l.T @ Yt_l)
+            except np.linalg.LinAlgError:
+                pass
+
+        # Choose series for F-test (differenced if both I(1))
+        Xf = np.diff(X) if self._use_diff else X
+        Yf = np.diff(Y) if self._use_diff else Y
+        n_total = len(Yf)
+        if n_total <= 2 * k + 5:
+            return 0.0, 1.0, coef_level
+
+        Y_target, Y_lags = self._lag_matrix(Yf, k)
+        _, X_lags = self._lag_matrix(Xf, k)
         n = len(Y_target)
         ones = np.ones((n, 1))
 
         D_r = np.hstack([ones, Y_lags])
         try:
-            A_r = D_r.T @ D_r + ridge * np.eye(lag + 1)
+            A_r = D_r.T @ D_r + ridge * np.eye(k + 1)
             coef_r = np.linalg.solve(A_r, D_r.T @ Y_target)
             rss_r = float(np.sum((Y_target - D_r @ coef_r) ** 2))
         except np.linalg.LinAlgError:
-            return 0.0, 1.0, None
+            return 0.0, 1.0, coef_level
 
         D_u = np.hstack([ones, Y_lags, X_lags])
         try:
-            A_u = D_u.T @ D_u + ridge * np.eye(2 * lag + 1)
+            A_u = D_u.T @ D_u + ridge * np.eye(2 * k + 1)
             coef_u = np.linalg.solve(A_u, D_u.T @ Y_target)
             rss_u = float(np.sum((Y_target - D_u @ coef_u) ** 2))
         except np.linalg.LinAlgError:
-            return 0.0, 1.0, None
+            return 0.0, 1.0, coef_level
 
-        df_num = lag
-        df_den = n - 2 * lag - 1
+        df_num, df_den = k, n - 2 * k - 1
         if df_den <= 0 or rss_u < 1e-12:
-            return 0.0, 1.0, coef_u
+            return 0.0, 1.0, coef_level
 
         F = max(0.0, ((rss_r - rss_u) / df_num) / (rss_u / df_den))
-        p = _f_pvalue(F, df_num, df_den)
-        return F, p, coef_u
+        return F, _f_pvalue(F, df_num, df_den), coef_level
+
+    def _granger_f_test(self, X: np.ndarray, Y: np.ndarray
+                        ) -> Tuple[float, float, Optional[np.ndarray]]:
+        """Backward-compatible wrapper: Granger F-test at self.lag."""
+        return self._granger_f_test_at_lag(X, Y, self.lag)
+
+    def _select_best_lag(self, X: np.ndarray, Y: np.ndarray) -> int:
+        """Return BIC-minimising lag in 1..max_lag on the appropriate series."""
+        Xf = np.diff(X) if self._use_diff else X
+        Yf = np.diff(Y) if self._use_diff else Y
+        ridge = self.config.ridge_alpha
+        best_lag, best_bic = self.lag, np.inf
+        for k in range(1, self.max_lag + 1):
+            if len(Yf) <= 2 * k + 5:
+                break
+            Y_target, Y_lags = self._lag_matrix(Yf, k)
+            _, X_lags = self._lag_matrix(Xf, k)
+            n = len(Y_target)
+            n_params = 2 * k + 1
+            D_u = np.hstack([np.ones((n, 1)), Y_lags, X_lags])
+            try:
+                A_u = D_u.T @ D_u + ridge * np.eye(n_params)
+                coef_u = np.linalg.solve(A_u, D_u.T @ Y_target)
+                rss_u = float(np.sum((Y_target - D_u @ coef_u) ** 2))
+            except np.linalg.LinAlgError:
+                continue
+            bic = n * np.log(max(rss_u / n, 1e-12)) + n_params * np.log(max(n, 2))
+            if bic < best_bic:
+                best_bic, best_lag = bic, k
+        return best_lag
 
     def _transfer_entropy(self, X: np.ndarray, Y: np.ndarray,
                           bins: int = 8) -> float:
@@ -194,7 +379,7 @@ class CausalHypothesis(Hypothesis):
         TE(X→Y) = H(Y_t | Y_{t-1}) − H(Y_t | Y_{t-1}, X_{t-1})
         Captures non-linear information flow missed by linear Granger.
         """
-        lag = self.lag
+        lag = self._best_lag
         n_total = len(X)
         if n_total <= lag + 2:
             return 0.0
@@ -242,17 +427,48 @@ class CausalHypothesis(Hypothesis):
         min_n = self.lag * 3 + cfg.min_samples_for_eval
 
         if len(self.buffer_x) < min_n:
-            return {'fit_score': 0.5, 'confidence': 0.5,
-                    'evidence': len(self.buffer_x), 'stability': 0.5}
+            return _not_ready(len(self.buffer_x))
 
         X = np.array(self.buffer_x)
         Y = np.array(self.buffer_y)
 
-        self.f_stat_forward, self.p_value_forward, coef_fwd = self._granger_f_test(X, Y)
-        self.f_stat_backward, self.p_value_backward, _ = self._granger_f_test(Y, X)
+        # Stationarity: if both series are I(1) use differenced F-test for
+        # correct critical values; level coefficients still used for prediction.
+        self._use_diff = self._is_nonstationary(X) and self._is_nonstationary(Y)
+
+        # Cointegration: when both I(1), test for a stable long-run relationship.
+        # ECM fields are updated here and used in predict_value() for sign stability.
+        # Skipped after begin_live_stream() resets _allow_ecm_refit to False: the
+        # pretrain+live+peer concatenated buffer produces spurious cointegration
+        # estimates that override the detrended coef_level with wrong-sign betas.
+        if self._use_diff and self._allow_ecm_refit:
+            is_c, c_alpha, c_beta, c_gamma = self._engle_granger_cointegration(X, Y)
+            self._is_coint = is_c
+            if is_c:
+                self._coint_alpha = c_alpha
+                self._coint_beta = c_beta
+                self._coint_gamma = c_gamma
+
+        # BIC lag selection once enough data exists for all candidate lags
+        if len(X) >= self.max_lag * 3 + cfg.min_samples_for_eval:
+            self._best_lag = self._select_best_lag(X, Y)
+        else:
+            self._best_lag = self.lag
+
+        k = self._best_lag
+
+        self.f_stat_forward, self.p_value_forward, coef_fwd = (
+            self._granger_f_test_at_lag(X, Y, k)
+        )
+        self.f_stat_backward, self.p_value_backward, coef_bwd = (
+            self._granger_f_test_at_lag(Y, X, k)
+        )
 
         if coef_fwd is not None:
-            self._coef_aug = coef_fwd
+            self._coef_fwd = coef_fwd
+            self._coef_aug = coef_fwd  # backward-compat alias
+        if coef_bwd is not None:
+            self._coef_bwd = coef_bwd
 
         if len(X) >= 40:
             self.transfer_entropy_xy = self._transfer_entropy(X, Y)
@@ -263,29 +479,65 @@ class CausalHypothesis(Hypothesis):
         sig_bwd = self.p_value_backward < alpha
         te_net = self.transfer_entropy_xy - self.transfer_entropy_yx
 
-        if sig_fwd and (not sig_bwd or
-                        (self.f_stat_forward > self.f_stat_backward and te_net >= 0)):
+        # Require forward F-stat to be at least 30% larger than backward before
+        # claiming X→Y causality; symmetric for Y→X.  When both directions are
+        # similarly F-significant, leave direction ambiguous (=0) rather than
+        # picking a noisy winner that would pollute ensemble cascade paths.
+        _ASYM = 1.3
+        f_ratio_fwd = self.f_stat_forward / max(self.f_stat_backward, 1e-6)
+        f_ratio_bwd = self.f_stat_backward / max(self.f_stat_forward, 1e-6)
+        if sig_fwd and (not sig_bwd or (f_ratio_fwd >= _ASYM and te_net >= 0)):
             self.direction = 1
-        elif sig_bwd and (not sig_fwd or self.f_stat_backward > self.f_stat_forward):
+        elif sig_bwd and (not sig_fwd or f_ratio_bwd >= _ASYM):
             self.direction = -1
         else:
             self.direction = 0
+
+        # Live-direction override (Fix #2): when ≥15 own live rows exist, run a
+        # secondary Granger F-test on live-only data.  If the live F-ratio
+        # strongly favours one direction (≥1.5×) with p<0.15, that direction wins
+        # over the mixed pretrain+live buffer result — preventing the larger
+        # pretrain corpus from out-voting the live causal signal.
+        if len(self._live_buf_x) >= 15:
+            Xl = np.array(self._live_buf_x)
+            Yl = np.array(self._live_buf_y)
+            k_live = min(self._best_lag, max(1, len(Xl) // 5))
+            try:
+                lf_fwd, lp_fwd, _ = self._granger_f_test_at_lag(Xl, Yl, k_live)
+                lf_bwd, lp_bwd, _ = self._granger_f_test_at_lag(Yl, Xl, k_live)
+                _LIVE_ASYM = 1.5
+                lr_fwd = lf_fwd / max(lf_bwd, 1e-6)
+                lr_bwd = lf_bwd / max(lf_fwd, 1e-6)
+                if lr_fwd >= _LIVE_ASYM and lp_fwd < 0.15:
+                    self.direction = 1
+                elif lr_bwd >= _LIVE_ASYM and lp_bwd < 0.15:
+                    self.direction = -1
+            except Exception:
+                pass
 
         if self.direction == 1:
             p_cause = max(0.0, 1.0 - self.p_value_forward)
         elif self.direction == -1:
             p_cause = max(0.0, 1.0 - self.p_value_backward)
         else:
-            p_cause = 0.0
+            # Ambiguous direction: partial credit from the better p-value
+            p_cause = max(0.0, (1.0 - min(self.p_value_forward, self.p_value_backward)) * 0.4)
 
         te_boost = min(0.15, max(0.0, te_net)) if self.direction == 1 else 0.0
         fit = min(1.0, p_cause + te_boost)
 
+        if self.direction == 1:
+            best_p = self.p_value_forward
+        elif self.direction == -1:
+            best_p = self.p_value_backward
+        else:
+            best_p = min(self.p_value_forward, self.p_value_backward)
+
         return {
             'fit_score': fit,
-            'confidence': fit,
             'evidence': len(self.buffer_x),
             'stability': 0.85 if self.direction != 0 else 0.5,
+            'p_value': best_p,
             'f_stat_forward': self.f_stat_forward,
             'f_stat_backward': self.f_stat_backward,
             'p_value_forward': self.p_value_forward,
@@ -293,24 +545,72 @@ class CausalHypothesis(Hypothesis):
             'direction': self.direction,
             'transfer_entropy_xy': self.transfer_entropy_xy,
             'transfer_entropy_yx': self.transfer_entropy_yx,
+            'best_lag': self._best_lag,
+            'use_diff': self._use_diff,
+            'ready': True,
         }
 
+    def update(self, row: Dict[str, float]):
+        """
+        Override to track separate forward/backward Bayesian accumulators.
+
+        self.confidence stays as conf_fwd (set by base class) so ensemble
+        thresholds and the arbitrator continue to work correctly.
+        The backward accumulators (_alpha_bwd/_beta_bwd) track backward
+        Granger significance for potential directional quality checks;
+        direction selection uses p_value_forward/backward and the F-ratio
+        asymmetry guard in evaluate() directly.
+        """
+        metrics = super().update(row)
+        # p_value_backward is set by evaluate() inside super().update()
+        _lambda = 0.99
+        sig_bwd = max(0.0, 1.0 - float(self.p_value_backward) * 10.0)
+        self._alpha_bwd = _lambda * self._alpha_bwd + sig_bwd
+        self._beta_bwd  = _lambda * self._beta_bwd  + (1.0 - sig_bwd)
+        # confidence stays as conf_fwd set by the base class
+        metrics['confidence'] = self.confidence
+        return metrics
+
     def predict_value(self, row: Dict[str, float]) -> Optional[Tuple[str, float]]:
-        if self.direction != 1 or self._coef_aug is None:
+        # ECM path: cointegrated I(1) series — use long-run level relationship
+        # plus error-correction adjustment for short-run dynamics.
+        if self._is_coint:
+            x_val = row.get(self.source)
+            if x_val is None and len(self.buffer_x) >= 1:
+                x_val = float(self.buffer_x[-1])
+            if x_val is not None:
+                y_hat = self._coint_alpha + self._coint_beta * x_val
+                if len(self.buffer_x) >= 1 and len(self.buffer_y) >= 1:
+                    ecm = (float(self.buffer_y[-1])
+                           - self._coint_alpha
+                           - self._coint_beta * float(self.buffer_x[-1]))
+                    y_hat += self._coint_gamma * ecm
+                return (self.target, y_hat)
+
+        # Fallback: forward level OLS coefficients so perturbation tests work
+        # regardless of which direction the Granger F-test assigned as dominant.
+        coef = self._coef_fwd
+        if coef is None:
             return None
-        if len(self.buffer_y) < self.lag or len(self.buffer_x) < self.lag:
+        k = self._best_lag
+        if len(self.buffer_y) < k or len(self.buffer_x) < k:
             return None
-        y_lags = np.array([self.buffer_y[-i - 1] for i in range(self.lag)])
-        x_lags = np.array([self.buffer_x[-i - 1] for i in range(self.lag)])
+        y_lags = np.array([float(self.buffer_y[-i - 1]) for i in range(k)])
+        x_current = row.get(self.source, float(self.buffer_x[-1]))
+        x_lags = np.array(
+            [x_current] + [float(self.buffer_x[-i - 1]) for i in range(1, k)]
+        )
         features = np.concatenate([[1.0], y_lags, x_lags])
-        if len(features) != len(self._coef_aug):
+        if len(features) != len(coef):
             return None
-        return (self.target, float(np.dot(features, self._coef_aug)))
+        return (self.target, float(np.dot(features, coef)))
 
     def to_dict(self) -> Dict[str, Any]:
         d = super().to_dict()
         d["metrics"].update({
             "lag": self.lag,
+            "best_lag": self._best_lag,
+            "use_diff": self._use_diff,
             "f_stat_forward": float(self.f_stat_forward),
             "p_value_forward": float(self.p_value_forward),
             "f_stat_backward": float(self.f_stat_backward),
@@ -359,6 +659,10 @@ class CorrelationalHypothesis(Hypothesis):
         self.p_value = 1.0
         self.distance_corr = 0.0
 
+        # regime tracking via correlation stability
+        self._regime_tracker = RegimeTracker()
+        self._prev_r = 0.0
+
     def fit_step(self, row: Dict[str, float]) -> None:
         if self.var1 in row and self.var2 in row:
             x, y = row[self.var1], row[self.var2]
@@ -374,6 +678,15 @@ class CorrelationalHypothesis(Hypothesis):
             self.M2_1 += d1 * (x - self.mean1)
             self.M2_2 += d2 * (y - self.mean2)
             self.cov += d1 * (y - self.mean2)
+            # regime tracking: change in running correlation as instability proxy
+            if self.n > 3:
+                var1 = self.M2_1 / self.n
+                var2 = self.M2_2 / self.n
+                covar = self.cov / self.n
+                denom = np.sqrt(max(0.0, var1 * var2))
+                running_r = float(np.clip(covar / (denom + 1e-10), -1.0, 1.0))
+                self._update_regime_tracker(abs(running_r - self._prev_r))
+                self._prev_r = running_r
 
     def _distance_corr(self, X: np.ndarray, Y: np.ndarray) -> float:
         """O(n²) distance correlation — only called at sample-size checkpoints."""
@@ -398,8 +711,7 @@ class CorrelationalHypothesis(Hypothesis):
         cfg = self.config
         n = self.n
         if n < cfg.min_samples:
-            return {'fit_score': 0.5, 'confidence': 0.5,
-                    'evidence': n, 'stability': 0.5}
+            return _not_ready(n)
 
         var1 = self.M2_1 / n
         var2 = self.M2_2 / n
@@ -426,16 +738,25 @@ class CorrelationalHypothesis(Hypothesis):
 
         return {
             'fit_score': abs(self.r),
-            'confidence': confidence,
             'evidence': n,
             'stability': stability,
             'correlation': self.r,
             'p_value': self.p_value,
             'distance_correlation': self.distance_corr,
+            'ready': True,
         }
 
     def predict_value(self, row: Dict[str, float]) -> Optional[Tuple[str, float]]:
-        return None  # correlation is not directionally predictive
+        cfg = self.config
+        if self.n < cfg.min_samples or abs(self.r) < 0.05:
+            return None
+        std1 = np.sqrt(max(0.0, self.M2_1 / self.n))
+        std2 = np.sqrt(max(0.0, self.M2_2 / self.n))
+        if std1 < 1e-10:
+            return None
+        x = row.get(self.var1, self.mean1)
+        y_hat = self.mean2 + self.r * (std2 / std1) * (x - self.mean1)
+        return (self.var2, float(y_hat))
 
 
 # ===========================================================================
@@ -500,8 +821,7 @@ class TemporalHypothesis(Hypothesis):
         n = len(self.buffer)
         min_n = self.lag + cfg.min_samples_for_eval
         if n <= min_n:
-            return {'fit_score': 0.5, 'confidence': 0.5,
-                    'evidence': n, 'stability': 0.5}
+            return _not_ready(n)
 
         self.structural_break = self._cusum > 5.0
 
@@ -526,21 +846,37 @@ class TemporalHypothesis(Hypothesis):
         autocorr = float(np.corrcoef(Y[1:], Y[:-1])[0, 1]) \
             if len(Y) > 2 and np.std(Y) > 1e-9 else 0.0
 
+        # AR(1) significance: Pearson t-test on lag-1 autocorrelation.
+        # p_ar approaches 0 for strongly autocorrelated series (real macro data)
+        # and is large (>0.3) for random noise — feeds base-class signal computation.
+        p_ar = 1.0
+        if n >= 10 and abs(autocorr) < 1.0 - 1e-9:
+            t_ar = autocorr * np.sqrt(n - 2) / np.sqrt(max(1e-10, 1.0 - autocorr ** 2))
+            p_ar = _t_pvalue(t_ar, n - 2)
+
         return {
             'fit_score': r2,
-            'confidence': min(1.0, n / 80) * r2,
             'evidence': n,
             'stability': coef_stab,
+            'p_value': p_ar,
             'autocorrelation': autocorr,
             'coefficients': self.coefficients.tolist(),
             'structural_break': self.structural_break,
             'cusum': float(self._cusum),
+            'ready': True,
         }
+
+    def _regime_consistency(self) -> float:
+        """Uses the built-in CUSUM state instead of a separate RegimeTracker."""
+        return max(0.0, 1.0 - self._cusum / 8.0)
 
     def predict_value(self, row: Dict[str, float]) -> Optional[Tuple[str, float]]:
         if len(self.buffer) <= self.lag:
             return None
-        x = np.array([1.0] + [self.buffer[-i - 1] for i in range(self.lag)])
+        # Use the current row value as lag-0 (most recent), buffer for older lags.
+        y_current = row.get(self.variable, float(self.buffer[-1]))
+        lags = [y_current] + [float(self.buffer[-i - 1]) for i in range(1, self.lag)]
+        x = np.array([1.0] + lags)
         return (self.variable, float(np.dot(x, self.coefficients)))
 
 
@@ -608,8 +944,7 @@ class FunctionalHypothesis(Hypothesis):
         cfg = self.config
         n = len(self.buffer_x)
         if n < cfg.min_samples:
-            return {'fit_score': 0.5, 'confidence': 0.5,
-                    'evidence': n, 'stability': 0.5}
+            return _not_ready(n)
 
         X = np.array(self.buffer_x)
         Y = np.array(self.buffer_y)
@@ -620,30 +955,56 @@ class FunctionalHypothesis(Hypothesis):
         ss_res_poly = float(np.sum((Y - Yhat_poly) ** 2))
         self.poly_r2 = max(0.0, 1.0 - ss_res_poly / (ss_tot + 1e-9))
 
-        k = self.degree + 1
-        adj_r2 = 1.0 - (1.0 - self.poly_r2) * (n - 1) / max(1, n - k - 1)
-        adj_r2 = float(np.clip(adj_r2, 0.0, 1.0))
+        # Adjusted R² penalises polynomial degree
+        n_params = self.degree          # number of slope coefficients
+        n_total_params = self.degree + 1  # intercept + slopes
+        adj_r2 = float(np.clip(
+            1.0 - (1.0 - self.poly_r2) * (n - 1) / max(1, n - n_total_params - 1),
+            0.0, 1.0
+        ))
 
-        if n >= 30 and n % 30 == 0:
+        # Nadaraya-Watson kernel only at n ≥ 50 to avoid high-variance overfitting
+        # on small samples.  Only replaces adj_r2 when the improvement is substantial.
+        if n >= 50 and n % 30 == 0:
             Yhat_kw = self._nadaraya_watson(X, Y, X)
             ss_res_kw = float(np.sum((Y - Yhat_kw) ** 2))
             self.kernel_r2 = max(0.0, 1.0 - ss_res_kw / (ss_tot + 1e-9))
 
-        best_r2 = max(adj_r2, self.kernel_r2)
+        if n >= 50 and self.kernel_r2 > self.poly_r2 + 0.05:
+            best_r2 = self.kernel_r2
+        else:
+            best_r2 = adj_r2
+
         res_std = float(np.std(Y - Yhat_poly))
         y_std = float(np.std(Y))
         is_det = (res_std < cfg.deterministic_threshold * y_std) if y_std > 1e-6 else False
 
+        # OLS F-test: H₀ = all slope coefficients are zero (joint significance test).
+        # F = (R² / n_params) / ((1-R²) / (n - n_params - 1)) ~ F(n_params, n-n_params-1).
+        # Under H₀ the p-value is Uniform(0,1) → E[signal] ≈ 0.025 (calibration-safe).
+        # For weak effects (β=0.15, n=60): R²≈0.12, F≈7.9, p≈0.007 → signal≈0.86.
+        # Equivalent to the t-test on the Pearson r for degree=1 (F = t²).
+        df_model = max(1, n_params)
+        df_resid = n - n_params - 1
+        if df_resid > 1 and 1e-10 < self.poly_r2 < 1.0 - 1e-10:
+            F_stat = (self.poly_r2 / df_model) / ((1.0 - self.poly_r2) / df_resid)
+            p_slope = _f_pvalue(max(0.0, F_stat), df_model, df_resid)
+        elif self.poly_r2 >= 1.0 - 1e-10:
+            p_slope = 0.0   # perfect fit
+        else:
+            p_slope = 1.0   # no variance explained → no signal
+
         return {
             'fit_score': best_r2,
-            'confidence': min(1.0, n / cfg.confidence_scale) * best_r2,
             'evidence': n,
             'stability': 0.9 if is_det else 0.65,
+            'p_value': p_slope,
             'poly_r2': self.poly_r2,
             'kernel_r2': self.kernel_r2,
             'adjusted_r2': adj_r2,
             'coefficients': self.coefficients.tolist(),
             'deterministic': is_det,
+            'ready': True,
         }
 
     def predict_value(self, row: Dict[str, float]) -> Optional[Tuple[str, float]]:
@@ -748,8 +1109,7 @@ class EquilibriumHypothesis(Hypothesis):
         cfg = self.config
         n = len(self.buffer)
         if n < cfg.min_samples_for_eval:
-            return {'fit_score': 0.5, 'confidence': 0.5,
-                    'evidence': n, 'stability': 0.5}
+            return _not_ready(n)
 
         Y = np.array(self.buffer)
         self.reversion_rate, self.equilibrium, self.ou_sigma = self._ou_mle(Y)
@@ -759,18 +1119,21 @@ class EquilibriumHypothesis(Hypothesis):
         self.is_stationary = self.adf_stat < adf_crit
         is_reverting = self.reversion_rate > cfg.reversion_threshold
 
+        # theta in (0.05, 0.80) is genuine economic mean-reversion (AR coeff 0.20–0.95).
+        # theta ≈ 1.0 → i.i.d. noise; theta ≈ 0 → random walk. Both are uninteresting.
+        theta_in_range = 0.05 < self.reversion_rate < 0.80
+
         adf_conf = max(0.0, min(1.0, (adf_crit - self.adf_stat) / 3.0)) \
             if self.is_stationary else 0.2
         ou_conf = min(1.0, self.reversion_rate * 2.0) if is_reverting else 0.2
 
-        if is_reverting or self.is_stationary:
+        if theta_in_range and (is_reverting or self.is_stationary):
             fit = 0.5 * adf_conf + 0.5 * ou_conf
         else:
-            fit = 0.3
+            fit = 0.0  # suppress signal for noise (theta≈1) and random walks (theta≈0)
 
         return {
             'fit_score': fit,
-            'confidence': min(1.0, n / cfg.confidence_scale) * fit,
             'evidence': n,
             'stability': 0.8 if is_reverting else 0.4,
             'equilibrium': self.equilibrium,
@@ -779,6 +1142,7 @@ class EquilibriumHypothesis(Hypothesis):
             'adf_stat': self.adf_stat,
             'is_stationary': self.is_stationary,
             'is_reverting': is_reverting,
+            'ready': True,
         }
 
     def predict_value(self, row: Dict[str, float]) -> Optional[Tuple[str, float]]:
@@ -818,7 +1182,7 @@ class CompositionalHypothesis(Hypothesis):
         cfg = self.config
         n = len(self.buffer_total)
         if n < cfg.min_samples:
-            return {'fit_score': 0.5, 'confidence': 0.5, 'evidence': n, 'stability': 0.5}
+            return _not_ready(n)
 
         parts_sum = sum(np.array(self.buffer_parts[p]) for p in self.parts)
         total = np.array(self.buffer_total)
@@ -832,12 +1196,12 @@ class CompositionalHypothesis(Hypothesis):
 
         return {
             'fit_score': consistency,
-            'confidence': 0.9 if holds else max(0.1, consistency * 0.5),
             'evidence': n,
             'stability': stability,
             'constraint_error': mean_err,
             'constraint_error_std': std_err,
             'constraint_holds': holds,
+            'ready': True,
         }
 
     def predict_value(self, row: Dict[str, float]) -> Optional[Tuple[str, float]]:
@@ -889,7 +1253,7 @@ class CompetitiveHypothesis(Hypothesis):
         cfg = self.config
         n = len(self.buffer1)
         if n < cfg.min_samples:
-            return {'fit_score': 0.5, 'confidence': 0.5, 'evidence': n, 'stability': 0.5}
+            return _not_ready(n)
 
         X = np.array(self.buffer1)
         Y = np.array(self.buffer2)
@@ -900,7 +1264,12 @@ class CompetitiveHypothesis(Hypothesis):
         sx, sy = float(np.std(X)), float(np.std(Y))
         r = float(np.corrcoef(X, Y)[0, 1]) if sx > 1e-9 and sy > 1e-9 else 0.0
         t = r * np.sqrt(n - 2) / np.sqrt(max(1e-10, 1 - r ** 2))
-        p_corr = _t_pvalue(t, n - 2)
+        p_corr = _t_pvalue(t, n - 2)  # two-tailed (used for is_competitive check)
+
+        # One-tailed p-value for H₁: r < 0 (competitive = anti-correlated).
+        # A strongly positive correlation (r > 0) should give p ≈ 1, not p ≈ 0,
+        # so we can't use the two-tailed value directly as signal.
+        p_anticorr = p_corr / 2.0 if r < 0 else 1.0
 
         is_competitive = cv < cfg.cv_threshold and r < cfg.correlation_threshold \
                          and p_corr < 0.05
@@ -915,22 +1284,27 @@ class CompetitiveHypothesis(Hypothesis):
 
         return {
             'fit_score': max(0.0, 1.0 - cv) if r < -0.1 else 0.2,
-            'confidence': 0.9 if is_competitive else 0.3,
             'evidence': n,
             'stability': rolling_stab,
+            'p_value': p_anticorr,
             'sum_cv': cv,
             'correlation': r,
-            'p_anticorr': p_corr,
+            'p_anticorr': p_anticorr,
             'is_competitive': is_competitive,
             'constant_sum': self._sum_mean,
+            'ready': True,
         }
 
     def predict_value(self, row: Dict[str, float]) -> Optional[Tuple[str, float]]:
         if len(self.buffer1) < self.config.min_samples:
             return None
-        if self.var1 in row and self.var2 not in row:
+        # Always predict var2 from var1 when var1 is present (forward direction).
+        # The constant-sum constraint gives var2 = C - var1 regardless of whether
+        # var2 is also in the row — this is correct for perturbation tests where
+        # the row always contains all variables.
+        if self.var1 in row:
             return (self.var2, self._sum_mean - row[self.var1])
-        if self.var2 in row and self.var1 not in row:
+        if self.var2 in row:
             return (self.var1, self._sum_mean - row[self.var2])
         return None
 
@@ -1004,7 +1378,7 @@ class SynergisticHypothesis(Hypothesis):
         cfg = self.config
         n = self._n
         if n < cfg.min_samples:
-            return {'fit_score': 0.5, 'confidence': 0.5, 'evidence': n, 'stability': 0.5}
+            return _not_ready(n)
 
         if len(self._rss_full) >= 10:
             rss_f = float(np.sum(self._rss_full))
@@ -1022,13 +1396,14 @@ class SynergisticHypothesis(Hypothesis):
 
         return {
             'fit_score': fit,
-            'confidence': max(0.0, 1.0 - self.interaction_p_value) if has_synergy else 0.3,
             'evidence': n,
             'stability': 0.75,
+            'p_value': self.interaction_p_value,
             'interaction_coefficient': self.interaction_coef,
             'interaction_f_stat': self.interaction_f_stat,
             'interaction_p_value': self.interaction_p_value,
             'has_synergy': has_synergy,
+            'ready': True,
         }
 
     def predict_value(self, row: Dict[str, float]) -> Optional[Tuple[str, float]]:
@@ -1113,8 +1488,7 @@ class ProbabilisticHypothesis(Hypothesis):
         cfg = self.config
         n0, n1 = len(self.buffer_y_low), len(self.buffer_y_high)
         if n0 < cfg.min_samples_per_group or n1 < cfg.min_samples_per_group:
-            return {'fit_score': 0.5, 'confidence': 0.5,
-                    'evidence': n0 + n1, 'stability': 0.5}
+            return _not_ready(n0 + n1)
 
         A = np.array(self.buffer_y_low)
         B = np.array(self.buffer_y_high)
@@ -1141,18 +1515,30 @@ class ProbabilisticHypothesis(Hypothesis):
 
         return {
             'fit_score': fit,
-            'confidence': max(0.0, 1.0 - self.ks_p_value) if significant else 0.3,
             'evidence': n0 + n1,
             'stability': 0.7,
+            'p_value': self.ks_p_value,
             'ks_stat': self.ks_stat,
             'ks_p_value': self.ks_p_value,
             'js_divergence': self.js_div,
             'effect_size': effect_size,
             'mean_shift': float(B.mean() - A.mean()),
+            'ready': True,
         }
 
     def predict_value(self, row: Dict[str, float]) -> Optional[Tuple[str, float]]:
-        return None
+        # Conditional mean: given whether condition is above/below threshold, return
+        # the mean of the target distribution for that regime.
+        if self.condition not in row:
+            return None
+        n0 = len(self.buffer_y_low)
+        n1 = len(self.buffer_y_high)
+        cfg = self.config
+        if n0 < cfg.min_samples_per_group or n1 < cfg.min_samples_per_group:
+            return None
+        if row[self.condition] > self._x_threshold():
+            return (self.target, float(np.mean(self.buffer_y_high)))
+        return (self.target, float(np.mean(self.buffer_y_low)))
 
 
 # ===========================================================================
@@ -1197,11 +1583,11 @@ class StructuralHypothesis(Hypothesis):
     def evaluate(self, row: Dict[str, float]) -> Dict[str, float]:
         cfg = self.config
         if len(self.group_data) < cfg.min_groups:
-            return {'fit_score': 0.5, 'confidence': 0.5, 'evidence': 0, 'stability': 0.5}
+            return _not_ready()
 
         groups = [np.array(v) for v in self.group_data.values() if len(v) >= 3]
         if len(groups) < 2:
-            return {'fit_score': 0.5, 'confidence': 0.5, 'evidence': 0, 'stability': 0.5}
+            return _not_ready()
 
         if _SCIPY:
             f, p = scipy_stats.f_oneway(*groups)
@@ -1237,15 +1623,14 @@ class StructuralHypothesis(Hypothesis):
 
         return {
             'fit_score': self.eta_squared,
-            'confidence': max(0.0, 1.0 - self.p_value) * self.eta_squared
-                          if significant else 0.2,
             'evidence': total_n,
             'stability': 0.75 if significant else 0.4,
-            'f_stat': self.f_stat,
             'p_value': self.p_value,
+            'f_stat': self.f_stat,
             'eta_squared': self.eta_squared,
             'icc': self.icc,
             'n_groups': len(groups),
+            'ready': True,
         }
 
     def predict_value(self, row: Dict[str, float]) -> Optional[Tuple[str, float]]:

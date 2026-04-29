@@ -1,0 +1,3 @@
+mean_n_train,n_features_per_indicator,mae,note,method
+19.0,1,0.8598,"univariate lag-1, 1 parameter per indicator",Local-AR1
+19.0,18,1.0258,"all 18 cross-variable lags, L2 alpha=10",Ridge-Lag (alpha=10)

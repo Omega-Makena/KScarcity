@@ -1,0 +1,59 @@
+{
+  "stage": "11.2",
+  "name": "buffer_sweep",
+  "status": "PASS",
+  "target": "MAE monotonically improves (or plateaus) as buffer_size grows",
+  "result": {
+    "n_seeds": 1,
+    "buffer_sizes": [
+      25,
+      50,
+      100,
+      200
+    ],
+    "results": {
+      "buf_25": {
+        "buffer_size": 25,
+        "mean_mae": 1.0632,
+        "std_mae": 0.0
+      },
+      "buf_50": {
+        "buffer_size": 50,
+        "mean_mae": 1.0632,
+        "std_mae": 0.0
+      },
+      "buf_100": {
+        "buffer_size": 100,
+        "mean_mae": 1.0632,
+        "std_mae": 0.0
+      },
+      "buf_200": {
+        "buffer_size": 200,
+        "mean_mae": 1.0632,
+        "std_mae": 0.0
+      }
+    },
+    "monotone_improvement": true,
+    "mae_sequence": [
+      [
+        25,
+        1.0632
+      ],
+      [
+        50,
+        1.0632
+      ],
+      [
+        100,
+        1.0632
+      ],
+      [
+        200,
+        1.0632
+      ]
+    ],
+    "interpretation": "Larger buffer = more history for hypothesis fitting. MAE should decrease or plateau; a rise signals overfitting or noise. n_active_hypotheses tracks discovery richness vs buffer size."
+  },
+  "wallclock_s": 0.425,
+  "timestamp": "2026-04-26T17:43:54.272940+00:00"
+}
