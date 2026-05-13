@@ -292,19 +292,46 @@ MetaSupervisor runtime fields
 
 ```
 scarcity/engine/
-├── engine.py          MPIEOrchestrator   — pipeline coordinator
-├── bandit_router.py   BanditRouter       — Thompson Sampling path selection
-├── encoder.py         Encoder            — feature extraction + sketching
-├── evaluator.py       Evaluator          — bootstrap R² gain + CI bounds
-├── store.py           HypergraphStore    — edge persistence + decay
-├── exporter.py        Exporter           — insight broadcast
-├── discovery.py       Hypothesis         — relational hypothesis base class
-│                      HypothesisPool     — hypothesis lifecycle management
-├── types.py           Candidate/EvalResult/Reward — runtime contracts
-├── controller.py      MetaController     — state machine for hypothesis lifecycle
-├── arbitration.py     HypothesisArbiter  — conflict resolution between hypotheses
-├── resource_profile.py                  — default profile dict
-└── __init__.py        OnlineDiscoveryEngine export surface (Engine alias + __all__)
+├── algorithms_online.py       — Online updating algorithms (RLS, Welford, EMA)
+├── anomaly.py                 — RRCF anomaly detection
+├── arbitration.py             — HypothesisArbiter conflict resolution
+├── bandit_router.py           — Thompson Sampling path selection
+├── baskets.py                 — Hypothesis basket management
+├── controller.py              — MetaController state machine
+├── discovery.py               — Hypothesis base class / HypothesisPool
+├── economic_engine.py         — Economic engine integrations
+├── encoder.py                 — Encoder feature extraction + sketching
+├── engine.py                  — Legacy pipeline coordinator
+├── engine_v2.py               — OnlineDiscoveryEngine (current orchestrator)
+├── evaluator.py               — Bootstrap R² gain + CI bounds
+├── exporter.py                — Insight broadcast
+├── federation_hub.py          — Hub logic for federated aggregation
+├── federation_node.py         — Node logic for federated updates
+├── forecasting.py             — Bayesian VARX forecasting
+├── gpu_batch_rls.py           — GPU accelerated batch RLS
+├── gpu_hypothesis_pool.py     — GPU hypothesis pool implementation
+├── grouping.py                — Data grouping/clustering utilities
+├── relationship_config.py     — Configuration for hypothesis relationships
+├── relationships.py           — 15 core hypothesis types
+├── relationships_extended.py  — Extended relationship operators
+├── resource_manager.py        — Compute and memory resource management
+├── resource_profile.py        — Default profile dictionary
+├── robustness.py              — Robustness tests
+├── simulation.py              — Simulation integration bindings
+├── store.py                   — HypergraphStore edge persistence
+├── types.py                   — Runtime contracts (Candidate, EvalResult, etc.)
+├── utils.py                   — Engine utilities
+├── vectorized_core.py         — Batch RLS via numpy.einsum
+├── operators/                 — Composable operator modules
+│   ├── attention_ops.py
+│   ├── causal_semantic_ops.py
+│   ├── evaluation_ops.py
+│   ├── integrative_ops.py
+│   ├── relational_ops.py
+│   ├── sketch_ops.py
+│   ├── stability_ops.py
+│   └── structural_ops.py
+└── __init__.py                — Export surface
 ```
 
 ### 2.2 Pipeline: One Data Window

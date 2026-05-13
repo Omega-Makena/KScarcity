@@ -366,16 +366,60 @@ Key toggles:
 ```
 scace4/
 ├── scarcity/                         # Foundation Layer (pip-installable)
+│   ├── .gitignore                    # Git ignore rules
+│   ├── economic_config.py            # Global economic config constants
+│   ├── setup.py                      # Package definition
+│   ├── __init__.py                   # Package root
+│   ├── analytics/                    # Policy terrain utilities
+│   │   ├── terrain.py
+│   │   └── __init__.py
+│   ├── causal/                       # DoWhy causal inference
+│   │   ├── artifacts.py
+│   │   ├── engine.py                 # CausalRunner
+│   │   ├── estimation.py             # Linear / Forest estimators
+│   │   ├── feature_layer.py
+│   │   ├── graph.py
+│   │   ├── identification.py         # Backdoor / IV
+│   │   ├── reporting.py
+│   │   ├── specs.py
+│   │   ├── time_series.py            # Granger causality
+│   │   ├── validation.py             # Refutation tests
+│   │   └── __init__.py
+│   ├── dashboard/                    # Scarcity dashboard components
+│   │   ├── server.py                 # Dashboard server
+│   │   └── __init__.py
 │   ├── engine/                       # Hypothesis discovery
-│   │   ├── engine_v2.py              # OnlineDiscoveryEngine (current)
-│   │   ├── engine.py                 # Legacy engine
-│   │   ├── relationships.py          # 15 hypothesis types
-│   │   ├── relationships_extended.py # Extended relationship operators
-│   │   ├── vectorized_core.py        # Batch RLS via numpy.einsum
+│   │   ├── algorithms_online.py      # Online updating algorithms
 │   │   ├── anomaly.py                # RRCF anomaly detection
-│   │   ├── forecasting.py            # Bayesian VARX forecasting
 │   │   ├── arbitration.py            # Hypothesis arbitration
 │   │   ├── bandit_router.py          # Thompson sampling router
+│   │   ├── baskets.py                # Hypothesis basket management
+│   │   ├── controller.py             # MetaController state machine
+│   │   ├── discovery.py              # Hypothesis pool base class
+│   │   ├── economic_engine.py        # Economic engine wrapper
+│   │   ├── encoder.py                # Encoder feature extraction
+│   │   ├── engine.py                 # Legacy engine
+│   │   ├── engine_v2.py              # OnlineDiscoveryEngine (current)
+│   │   ├── evaluator.py              # Evaluator bootstrap R² gain
+│   │   ├── exporter.py               # Insight broadcast
+│   │   ├── federation_hub.py         # Federation hub
+│   │   ├── federation_node.py        # Federation node
+│   │   ├── forecasting.py            # Bayesian VARX forecasting
+│   │   ├── gpu_batch_rls.py          # GPU batch RLS implementations
+│   │   ├── gpu_hypothesis_pool.py    # GPU accelerated hypothesis pool
+│   │   ├── grouping.py               # Grouping utilities
+│   │   ├── relationship_config.py    # Relationship configurations
+│   │   ├── relationships.py          # 15 hypothesis types
+│   │   ├── relationships_extended.py # Extended relationship operators
+│   │   ├── resource_manager.py       # Resource management
+│   │   ├── resource_profile.py       # Default profile dict
+│   │   ├── robustness.py             # Robustness testing
+│   │   ├── simulation.py             # Simulation utilities
+│   │   ├── store.py                  # HypergraphStore edge persistence
+│   │   ├── types.py                  # Runtime contracts
+│   │   ├── utils.py                  # Engine utilities
+│   │   ├── vectorized_core.py        # Batch RLS via numpy.einsum
+│   │   ├── __init__.py
 │   │   └── operators/                # Composable operator modules
 │   │       ├── attention_ops.py
 │   │       ├── causal_semantic_ops.py
@@ -384,67 +428,169 @@ scace4/
 │   │       ├── relational_ops.py
 │   │       ├── sketch_ops.py
 │   │       ├── stability_ops.py
-│   │       └── structural_ops.py
-│   ├── simulation/                   # SFC economic model
-│   │   ├── sfc.py                    # SFCEconomy (legacy, 4-sector)
-│   │   ├── sfc_engine.py             # MultiSectorSFCEngine (typed)
-│   │   ├── io_structure.py           # 9-sector KNBS IO + aggregation
-│   │   ├── parameters.py             # AllParams (KNBS-reconciled)
-│   │   ├── types.py                  # Typed contracts
-│   │   ├── production.py             # CES production block
-│   │   ├── labor_market.py           # Labor + wage dynamics
-│   │   ├── price_system.py           # CPI + import prices
-│   │   ├── households.py             # Income + consumption
-│   │   ├── government.py             # Fiscal block
-│   │   ├── monetary.py               # Taylor Rule + pass-through
-│   │   ├── foreign.py                # External sector + FX
-│   │   ├── banking.py                # Credit + CAR + NPL
-│   │   ├── coupling_interface.py     # Cross-sector feedback
-│   │   ├── accounting.py             # SFC identity checks
-│   │   ├── bayesian.py               # Bayesian VARX
-│   │   ├── financial_accelerator.py  # BGG accelerator
-│   │   ├── heterogeneous.py          # Heterogeneous agents
-│   │   ├── agents.py                 # Agent-based overlay
-│   │   ├── open_economy.py           # Open economy extensions
-│   │   ├── learned_sfc.py            # ScarcityBridge-trained SFC
-│   │   ├── research_sfc.py           # Research variants
-│   │   ├── whatif.py                 # Counterfactual engine
-│   │   ├── dynamics.py               # Dynamics utilities
-│   │   ├── scenario.py               # Scenario management
-│   │   ├── scheduler.py              # Run scheduler
-│   │   ├── monitor.py                # Runtime monitoring
-│   │   ├── storage.py                # Artifact persistence
-│   │   ├── visualization3d.py        # 3D visualisation
-│   │   └── tests/                    # Simulation test suite
+│   │       ├── structural_ops.py
+│   │       └── __init__.py
 │   ├── federation/                   # Federated learning
-│   │   ├── client_agent.py           # FederationClientAgent
 │   │   ├── aggregator.py             # Trimmed-Mean / Median
-│   │   ├── secure_aggregation.py     # Shamir secret sharing
-│   │   ├── privacy_guard.py          # Differential privacy
+│   │   ├── basket.py
+│   │   ├── buffer.py
+│   │   ├── client_agent.py           # FederationClientAgent
+│   │   ├── codec.py
+│   │   ├── coordinator.py
+│   │   ├── domain_server.py
+│   │   ├── global_meta_memory.py
 │   │   ├── gossip.py                 # Gossip protocol
 │   │   ├── hierarchical.py           # Two-layer aggregation
+│   │   ├── layers.py
+│   │   ├── packets.py
+│   │   ├── privacy_guard.py          # Differential privacy
+│   │   ├── reconciler.py
+│   │   ├── scheduler.py
+│   │   ├── secure_aggregation.py     # Shamir secret sharing
+│   │   ├── transport.py
 │   │   ├── trust_scorer.py           # Node trust scoring
-│   │   └── ws_transport.py           # WebSocket transport
-│   ├── causal/                       # DoWhy causal inference
-│   │   ├── engine.py                 # CausalRunner
-│   │   ├── identification.py         # Backdoor / IV
-│   │   ├── estimation.py             # Linear / Forest estimators
-│   │   ├── validation.py             # Refutation tests
-│   │   └── time_series.py            # Granger causality
-│   ├── meta/                         # Meta-learning
-│   │   ├── meta_learning.py          # MetaLearner (Reptile)
-│   │   ├── integrative_meta.py       # Cross-domain meta
-│   │   └── optimizer.py              # Reptile / MAML optimizer
-│   ├── governor/                     # Resource governance
-│   │   ├── drg_core.py               # DynamicResourceGovernor
-│   │   ├── monitor.py                # CPU/memory sensors
-│   │   ├── actuators.py              # Workload shedding
-│   │   └── policies.py               # Throttle policies
+│   │   ├── validator.py
+│   │   ├── ws_transport.py           # WebSocket transport
+│   │   └── __init__.py
 │   ├── fmi/                          # Federated Metadata Interchange
-│   ├── stream/                       # Data ingestion / windowing
+│   │   ├── aggregator.py
+│   │   ├── contracts.py
+│   │   ├── emitter.py
+│   │   ├── encoder.py
+│   │   ├── router.py
+│   │   ├── service.py
+│   │   ├── telemetry.py
+│   │   ├── validator.py
+│   │   └── __init__.py
+│   ├── governor/                     # Resource governance
+│   │   ├── actuators.py              # Workload shedding
+│   │   ├── drg_core.py               # DynamicResourceGovernor
+│   │   ├── hooks.py
+│   │   ├── monitor.py                # CPU/memory sensors
+│   │   ├── policies.py               # Throttle policies
+│   │   ├── profiler.py
+│   │   ├── registry.py
+│   │   ├── sensors.py
+│   │   └── __init__.py
+│   ├── meta/                         # Meta-learning
+│   │   ├── adaptation.py
+│   │   ├── cross_meta.py
+│   │   ├── domain_meta.py
+│   │   ├── domain_server_meta.py
+│   │   ├── encoder.py
+│   │   ├── integrative_config.py
+│   │   ├── integrative_meta.py       # Cross-domain meta
+│   │   ├── memory.py
+│   │   ├── meta_learning.py          # MetaLearner (Reptile)
+│   │   ├── optimizer.py              # Reptile / MAML optimizer
+│   │   ├── scheduler.py
+│   │   ├── storage.py
+│   │   ├── telemetry_hooks.py
+│   │   ├── validator.py
+│   │   └── __init__.py
 │   ├── runtime/                      # EventBus, telemetry
+│   │   ├── bus.py
+│   │   ├── telemetry.py
+│   │   └── __init__.py
+│   ├── simulation/                   # SFC economic model
+│   │   ├── accounting.py             # SFC identity checks
+│   │   ├── agents.py                 # Agent-based overlay
+│   │   ├── banking.py                # Credit + CAR + NPL
+│   │   ├── bayesian.py               # Bayesian VARX
+│   │   ├── coupling_interface.py     # Cross-sector feedback
+│   │   ├── dynamics.py               # Dynamics utilities
+│   │   ├── engine.py                 # General simulation engine
+│   │   ├── environment.py
+│   │   ├── financial_accelerator.py  # BGG accelerator
+│   │   ├── foreign.py                # External sector + FX
+│   │   ├── government.py             # Fiscal block
+│   │   ├── heterogeneous.py          # Heterogeneous agents
+│   │   ├── households.py             # Income + consumption
+│   │   ├── io_structure.py           # 9-sector KNBS IO + aggregation
+│   │   ├── labor_market.py           # Labor + wage dynamics
+│   │   ├── learned_sfc.py            # ScarcityBridge-trained SFC
+│   │   ├── monetary.py               # Taylor Rule + pass-through
+│   │   ├── monitor.py                # Runtime monitoring
+│   │   ├── open_economy.py           # Open economy extensions
+│   │   ├── parameters.py             # AllParams (KNBS-reconciled)
+│   │   ├── price_system.py           # CPI + import prices
+│   │   ├── production.py             # CES production block
+│   │   ├── research_sfc.py           # Research variants
+│   │   ├── scenario.py               # Scenario management
+│   │   ├── scheduler.py              # Run scheduler
+│   │   ├── sfc.py                    # SFCEconomy (legacy, 4-sector)
+│   │   ├── sfc_engine.py             # MultiSectorSFCEngine (typed)
+│   │   ├── storage.py                # Artifact persistence
+│   │   ├── types.py                  # Typed contracts
+│   │   ├── visualization3d.py        # 3D visualisation
+│   │   ├── whatif.py                 # Counterfactual engine
+│   │   ├── __init__.py
+│   │   └── tests/                    # Simulation test suite
+│   │       ├── test_accounting.py
+│   │       ├── test_coupling.py
+│   │       ├── test_production.py
+│   │       ├── test_sfc_plugins.py
+│   │       ├── test_steady_state.py
+│   │       └── __init__.py
+│   ├── stream/                       # Data ingestion / windowing
+│   │   ├── cache.py
+│   │   ├── federator.py
+│   │   ├── replay.py
+│   │   ├── schema.py
+│   │   ├── sharder.py
+│   │   ├── source.py
+│   │   ├── window.py
+│   │   └── __init__.py
 │   ├── synthetic/                    # Test data generators
-│   └── analytics/                    # Policy terrain utilities
+│   │   ├── accounts.py
+│   │   ├── behavior.py
+│   │   ├── content.py
+│   │   ├── pipeline.py
+│   │   ├── policy_events.py
+│   │   ├── scenarios.py
+│   │   ├── vocabulary.py
+│   │   └── __init__.py
+│   └── tests/                        # Comprehensive test suite
+│       ├── conftest.py
+│       ├── demo_real_data.py
+│       ├── test_adaptation_packets.py
+│       ├── test_audit_federation_aggregation.py
+│       ├── test_audit_fmi_aggregation.py
+│       ├── test_audit_fmi_emitter.py
+│       ├── test_audit_fmi_validator.py
+│       ├── test_audit_granger.py
+│       ├── test_audit_hypotheses_types.py
+│       ├── test_audit_meta_update.py
+│       ├── test_audit_online_algorithms.py
+│       ├── test_audit_privacy_guard.py
+│       ├── test_audit_secure_agg.py
+│       ├── test_audit_smoke.py
+│       ├── test_audit_telemetry.py
+│       ├── test_audit_transport.py
+│       ├── test_audit_winsorizer.py
+│       ├── test_causal_multispec.py
+│       ├── test_causal_pipeline.py
+│       ├── test_cross_domain_meta_learner.py
+│       ├── test_domain_server.py
+│       ├── test_domain_server_meta.py
+│       ├── test_engine_integration.py
+│       ├── test_federation.py
+│       ├── test_global_meta_memory.py
+│       ├── test_hierarchical_federation.py
+│       ├── test_learned_sfc_shocks.py
+│       ├── test_meta.py
+│       ├── test_meta_adaptation.py
+│       ├── test_meta_encoder.py
+│       ├── test_meta_memory.py
+│       ├── test_online_learning.py
+│       ├── test_relationships.py
+│       ├── test_sfc.py
+│       ├── test_synthetic.py
+│       ├── test_ws_transport.py
+│       ├── __init__.py
+│       └── fixtures/
+│           ├── synthetic.py
+│           └── __init__.py
 │
 ├── kshiked/                          # Intelligence Layer (Kenya-specific)
 │   ├── core/                         # Governance + ScarcityBridge
