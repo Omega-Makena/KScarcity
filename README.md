@@ -153,8 +153,28 @@ Real-time social media threat detection pipeline.
 ### 2. Scarcity Engine (`scarcity/`)
 Industrial-grade online machine learning infrastructure.
 
+**Role: relationship discovery, not forecasting.** Scarcity's output is a knowledge graph
+of discovered causal/correlational relationships among economic indicators. This graph is
+then handed to downstream forecasters (Prophet, ARIMA) as structured prior knowledge —
+Scarcity does not forecast directly. This architecture separates discovery from prediction,
+letting each component do what it does best.
+
 **15 Relational Hypotheses tested continuously:**
 Causal (Granger), Correlational (Pearson), Temporal (VAR-p), Functional (Polynomial), Equilibrium (Mean-Reverting), Compositional (Sum Constraints), Competitive (Trade-off), Synergistic (Interaction), Probabilistic (Distribution Shift), Structural (Hierarchical), Mediating (Baron-Kenny), Moderating (Conditional), Graph (Network), Similarity (Clustering), Logical (Boolean Rules).
+
+All 15 types are active in `small_dataset_mode=True` (annual macro series, N=20–50),
+including sparse types (compositional, equilibrium, mediating, moderating) that require
+pool capacity ≥ 2000 and `kill_threshold=0.0` to survive short time-series without being
+silently pruned.
+
+**Federation multiplies discovery power:** Pooling Kenya + Tanzania + Uganda (3 × 34 years
+= ~102 effective observations) gives Granger tests 3× more statistical power. The federated
+graph discovers 198 edges (vs 114 single-country), 13 KNOWN economic relationships (vs 0),
+and mean confidence rises from 0.574 to 0.735. GDP graph coverage rises from 32% to 100%
+of test years. PROPHET+SCARCITY (federated) achieves MAE=1.7873 on Kenya GDP growth vs
+plain Prophet MAE=1.7947 — a consistent marginal improvement driven by structured parent
+knowledge available in every forecast year. Graph-informed models do not improve inflation
+forecasting (inflation is driven by its own momentum at annual frequency on short series).
 
 **Key innovations:**
 - Vectorized Batch RLS (`numpy.einsum`) — thousands of equations in O(1) Python overhead
@@ -162,6 +182,7 @@ Causal (Granger), Correlational (Pearson), Temporal (VAR-p), Functional (Polynom
 - CountSketch + Tensor Sketch — high-speed dimensionality reduction
 - Counterfactual Jacobian perturbation — "what-if" causal analysis
 - Multi-hop causal BFS — discovers indirect chains (A→B→C)
+- Graph-informed forecasting handoff — top-K parents (by confidence) passed to Prophet/ARIMA with lag-1 to prevent future leakage
 
 ---
 
@@ -327,6 +348,23 @@ The Dynamic Resource Governor (DRG) assigns an assurance level to all projection
 
 | Commit | Feature |
 |--------|---------|
+| *(2026-05-21)* | Computational cost comparison (§56) — XGBoost+Scarcity amortized 24× ARIMA (554ms/target vs 23ms), not 224× as per-call measurement shows; discovery dominates (99% of cost); Prophet unjustified at 17× for annual macro; Chronos 44× at inference; `benchmark/scripts/benchmark_compute_cost.py` |
+| *(2026-05-21)* | Chronos-T5-tiny zero-shot on Kenya (§57) — aggregate h=1 MAE=2.22 vs ARIMA 2.15 (delta=0.07, CIs overlap — statistically indistinguishable); wins inflation_cpi (3.64 vs ARIMA 4.17, −13%); loses on unemployment/exports/imports; XGBoost+Scarcity beats Chronos on imports_gdp (2.64 vs 3.21); Chronos ~50× slower than ARIMA at inference; `benchmark/scripts/benchmark_forecasting_extended.py` |
+| *(2026-05-21)* | Structural break robustness test (§55) — pre-2008 graph frozen vs rolling post-GFC; frozen graph underperforms rolling at all 3 countries (KEN frozen 2.66 vs rolling 2.45); GFC invalidated most pre-2008 edges; ARIMA beats both graph conditions in aggregate (rolling re-discovery is essential); 2 KEN targets (current_account, real_interest_rate) have stable cross-regime structure; `benchmark/scripts/benchmark_structural_break.py` |
+| *(2026-05-21)* | Synthetic N×SNR sweep (§54) — 6×4 grid of (N, SNR) conditions, 10 seeds each; graph-conditioning HELPS at N=50 (real-data regime) at ALL SNR levels; HURTS at N=100–200 with SNR=1; NEUTRAL at N≥500; discovery F1=0.95–1.00 throughout; theoretical justification for scarcity engine utility at N=34; crossover at SNR=1: N≈500; no crossover for SNR≥2; `benchmark/scripts/benchmark_n_sweep.py` |
+| *(2026-05-21)* | 7-country expansion (§53) — RWA, ETH, MOZ, ZMB standalone backtests (9 methods × 4 horizons × 24 cutoffs each); imports_gdp and govt_consumption benefit from federation in every country; Prophet catastrophic on ZMB (7.22 vs Persistence 2.48, 2.9×); ETH (50.9% missing) limits graph formation; exports_gdp federation country-specific (helps RWA/ETH, hurts MOZ/ZMB due to asymmetric trade linkages); `benchmark/scripts/benchmark_country_standalone.py` |
+| *(2026-05-21)* | TZA and UGA standalone rolling-origin backtests (§52) — 9 methods × 4 horizons × 24 cutoffs per country; TZA aggregate h=1 XgS MAE=1.645 (most predictable, ARIMA dominates h=1–3); UGA aggregate h=1 XgS MAE=2.375 (LightGBM+Scarcity wins h=3,5,10 — unique finding); Prophet catastrophically bad for TZA (3.14 vs ARIMA 1.35, 2.3×); real_interest_rate federation: KEN +1.71, TZA +0.40, UGA −1.355 — country-specific not universal; delta_coh routing cannot transfer across countries without recomputing; `benchmark/scripts/benchmark_country_standalone.py` |
+| *(2026-05-21)* | delta_coh Claim 4 full validation — all 10 targets at h=1; XGBoost+Scarcity single vs federated rolling-origin backtest (24 cutoffs); Spearman rho(delta_coh, actual_h1_delta)=+0.503 (p=0.138), 8/10 direction correct (80%); two misses: current_account (+0.52 actual, NO_FED predicted) and broad_money (+0.66 actual, NO_FED predicted) benefit from federation via graph-sparsity rescue at early cutoffs; Claim 4 downgraded from "fully predictable (rho=1.0)" to "moderate evidence (rho=+0.5)"; §51 added to BENCHMARK_FINDINGS.md; `benchmark/scripts/benchmark_federation_delta.py` |
+| *(2026-05-15)* | Federation routing via cross-country parent coherence diagnostic — `delta_coh = f_coh − s_coh` predicts federation benefit direction for all 3 validated targets (3/3, Spearman rho=+1.000 on 3-point validation set; see §51 for full 10-target result); routing rule: USE_FED when federated parents are more coherent across countries than single-country parents; real_interest_rate helped by federation because single-country parents (broad_money coh=0.17, exports_gdp coh=0.00) are KEN-specific noise that TZA/UGA correctly reject; inflation hurt because federation removes high-coherence parents (broad_money coh=0.93) and replaces with 10-parent diluted set; 2 of 10 targets route to USE_FED (gdp_growth, real_interest_rate); §47.8 attribution to monetary transmission channels refuted — broad_money is REMOVED by federation; `benchmark/scripts/benchmark_federation_diagnostic.py` |
+| *(2026-05-15)* | BVAR Minnesota prior + Chronos zero-shot + Bootstrap CIs — 8,100 records (10 targets × 4 horizons × 24 cutoffs, KEN-single); BVAR h=1 MAE=2.87 [2.44, 3.38] vs ARIMA 2.11 [1.77, 2.49]: delta +0.76, CIs overlap (not significant at N_test=24); BVAR catastrophically unstable h>1: h=3=6.27, h=5=11.88, h=10=**41.19** [33.10, 50.17] — 9× ARIMA, non-overlapping CIs confirmed; h=1 winner per target: Persistence (4/10: inflation, current_account, broad_money, govt_consumption), ARIMA (4/10: unemployment, exports_gdp, real_interest_rate, private_credit), XGBoost+Scarcity (1/10: imports_gdp), Prophet (1/10: gdp_growth); only statistically significant h=1 difference: ARIMA vs LightGBM (non-overlapping CIs — LightGBM significantly worse); Chronos-T5 N/A (HuggingFace CDN blocked); artifact: `artifacts/benchmark_extended/results.csv`; `benchmark/scripts/benchmark_forecasting_extended.py` |
+| *(2026-05-15)* | Per-parent causal ablation (§48.8) — reconstructed DoWhy vote decisions for all 17 rolling-origin cutoffs for exports_gdp (+1.009 hurt) and govt_consumption (−0.155 improved); 86% of filtered parents are predictively useful (Granger R²≥0.05) but fail DoWhy's causal vote — dominant failure mode is proxy-predictor problem (confounded/shared-trend correlation, not direct causation); exports_gdp filtered parents: electricity_access (R²=0.562, sig_rate=0.17) and inflation_cpi (R²=0.439, sig_rate=0.11) — both causally borderline proxies; govt_consumption retains only life_expectancy (R²=0.689, sig_rate=0.89) — one dominant predictor outperforms five noisy proxies at N<34; 0% real-but-unidentified (zero DoWhy identification failures); `benchmark/scripts/benchmark_causal_ablation.py` |
+| *(2026-05-14)* | Causal identification benchmark — DoWhy 7-estimand (ATE/ATT/ATC/CATE/LATE/NDE/NIE) majority-vote filter on Scarcity-discovered parents; 9,720 records; ATE/ATT/ATC are effectively one vote at N<35 (100% agreement); CATE diverges for real_interest_rate (46.7% vs 23.5% ATE); Prophet+Causal wins at long horizons (−0.118 at h=5); XGBoost+Causal worse than +Graph at all horizons (spurious-but-predictive parents); LATE/MEDIATION inactive on 19-variable Kenya graph; retention 36.7%–100% across targets; `benchmark/scripts/benchmark_forecasting_causal.py` |
+| *(2026-05-14)* | Multi-target multi-horizon forecasting — 10 targets × h=1,3,5,10 × 9 methods; Prophet degrades catastrophically for inflation (MAE 4.92→15.13 at h=10, +207%); ARIMA beats Prophet on aggregate at short horizons; LightGBM has flattest degradation (+0.38 vs Prophet +2.01); graph selection helps at h=1 but hurts at h=5+ as structure shifts; XGBoost+Scarcity wins 6-7/10 targets at every horizon; `benchmark/scripts/benchmark_forecasting_horizons.py` |
+| *(2026-05-14)* | Downstream forecasting comparison — Prophet (data-scarce reference) vs XGBoost+lag / LightGBM+lag / TFT-lite, blind and Scarcity-graph-conditioned; 9 methods × 2 conditions (single-country + federated); XGBoost+Scarcity beats Prophet for inflation (MAE=4.14 vs 4.92, −17%); graph feature selection reduces 18→3–5 parent features preventing overfit at N_train=10; Prophet dominates GDP (MAE=1.82); `benchmark/scripts/benchmark_forecasting_models.py` |
+| *(2026-05-14)* | Federated anomaly detection (KEN+TZA+UGA, N_eff=102) — GraphResiduals now catches TYPE_2 economic relationship breaks (exports_gdp→gdp_growth) that Z-score cannot; +0.020 F1 lift over single-country; Z-score and GraphResiduals shown to be complementary detectors; `benchmark/scripts/benchmark_anomaly_real_federated.py` |
+| *(2026-05-14)* | Real-data anomaly detection benchmark (N=34 Kenya) — Z-score wins (F1=0.444); GraphResiduals hurts at N=34 (F1=0.191, 5× FPR); break-even for graph-conditioning benefit is 200–300 observations; RRCF catastrophically miscalibrated (FPR=70%) at small windows; `benchmark/scripts/benchmark_anomaly_real.py` |
+| *(2026-05-14)* | Graph-conditioned anomaly detection benchmark (synthetic N=300) — GraphResiduals F1=0.545 vs production RRCF F1=0.029, Z-score F1=0.444; catches structural decoupling anomalies (TYPE_2 rel-break) invisible to all blind detectors; RRCF threshold miscalibrated for static windows; discovery quality degrades gracefully (approx graph = oracle F1); `benchmark/evaluation/anomaly_detection.py` + `benchmark/scripts/benchmark_anomaly.py` |
+| *(2026-05-14)* | East Africa federation benchmark — all 15 hypothesis types in pool (KEN+TZA+UGA); graph-informed Prophet/ARIMA; PROPHET+SCARCITY federated MAE=1.7873 vs Prophet 1.7947 on Kenya GDP (graph in 100% of years); multi-variable graph extractor fix; per-model parent budgets |
 | `26f9a39` | PDF export as primary format with enriched instant-analysis interpretation |
 | `cc16176` | Hybrid delay costing + unified dashboard report export |
 | `2124399` | DRG-backed assurance explainability |

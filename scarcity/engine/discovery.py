@@ -243,7 +243,7 @@ class Hypothesis(abc.ABC):
         self.fit_step(row)
         self.evidence += 1
 
-        # 4. exponentially-weighted Bayesian accumulators (λ = 0.99)
+        # 4. exponentially-weighted Bayesian accumulators (λ = 0.99).
         # Steady-state confidence converges to signal_mean, allowing the
         # accumulator to track regime changes rather than being permanently
         # anchored by early observations.

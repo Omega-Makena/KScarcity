@@ -1,0 +1,23 @@
+{
+  "git_commit": "df2a6a0d0d631307aaa10e4059d1c49e3dd23f63",
+  "B_perm": 200,
+  "B_boot": 50,
+  "fdr_q": 0.1,
+  "stability_min": 0.6,
+  "block_size": 4,
+  "device": "cuda",
+  "torch_version": "2.5.1+cu121",
+  "numpy_version": "2.3.5",
+  "platform": "Windows-10-10.0.26200-SP0",
+  "run_time_utc": "2026-05-12T06:42:27Z",
+  "engine_class": "OnlineDiscoveryEngine (genuine T_obs)",
+  "bootstrap_class": "GPUBatchRLS (LifecycleEmulator)",
+  "n_gpu_hypotheses": 3174,
+  "lifecycle_meta": {
+    "total_lc_kills": 133300,
+    "total_lc_survive": 25400,
+    "kill_rate": 0.8399495904221802,
+    "elapsed_s": 2399.3
+  },
+  "elapsed_seconds": 2403.8
+}

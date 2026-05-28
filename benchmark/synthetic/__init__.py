@@ -1,0 +1,3 @@
+"""
+Scarcity Synthetic Benchmark Framework.
+"""

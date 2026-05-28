@@ -61,19 +61,26 @@ class OnlineDiscoveryEngine:
     VALID_MODES = {"balanced", "performance"}
 
     def __init__(self, explore_interval: int = 10, mode: str = "balanced",
-                 buffer_size: int = 150):
+                 buffer_size: int = 150, small_dataset_mode: bool = False,
+                 vectorized: bool = True, device: str = 'cpu'):
         """
         Initializes the discovery engine and its sub-components.
 
         Args:
-            explore_interval: The number of steps between exploration phases
-                (currently a placeholder for future active learning expansion).
+            explore_interval: Steps between exploration phases.
+            vectorized: When True (default), delegates process_row() to the
+                batch-tensor backend (GPUDiscoveryEngine) instead of iterating
+                Python Hypothesis objects.  2-3× faster for N<200.  Uses the
+                same lifecycle thresholds as small_dataset_mode when that flag
+                is also set.
+            device: Tensor device for vectorized mode ('cpu' or 'cuda').
+                CPU is the default — CUDA only helps when B_perm ≥ 50.
         """
         self.hypotheses = HypothesisPool()
         self.grouper = AdaptiveGrouper()
         self.arbiter = HypothesisArbiter()
         self.meta_controller = MetaController()
-        
+
         self.buffer_size = buffer_size
         self.step_count = 0
         self.explore_interval = explore_interval
@@ -84,6 +91,21 @@ class OnlineDiscoveryEngine:
         self.grouping_enabled = True
         self.exploration_enabled = True
         self.update_error_total = 0
+        self.small_dataset_mode = small_dataset_mode
+
+        if small_dataset_mode:
+            self.hypotheses = HypothesisPool(capacity=2000)
+            self.meta_controller = MetaController.small_dataset()
+
+        # Vectorized backend — replaces Python loop in process_row()
+        self._vec_engine = None
+        if vectorized:
+            from .gpu_engine import GPUDiscoveryEngine
+            self._vec_engine = GPUDiscoveryEngine(
+                device=device,
+                small_dataset_mode=small_dataset_mode,
+            )
+
         self.set_mode(mode)
 
     def set_mode(self, mode: str) -> None:
@@ -168,6 +190,10 @@ class OnlineDiscoveryEngine:
 
         self.grouper.initialize(var_names)
 
+        # Vectorized backend — initialise in parallel with Python pool
+        if self._vec_engine is not None:
+            self._vec_engine.initialize_v2(schema, use_causal=use_causal)
+
         logger.info(f"Initializing V2 engine with {len(var_names)} variables")
         
         # 1. For each variable: Temporal (AR) and Equilibrium
@@ -187,6 +213,10 @@ class OnlineDiscoveryEngine:
         all_triplets = list(itertools.combinations(var_names, 3))
         triplets = all_triplets if len(all_triplets) <= 100 else all_triplets[:100]
 
+        # lag=1 in small_dataset_mode saves 2 df per Granger test (df_den +2),
+        # improving F-test power when n < 50.
+        causal_lag = 1 if self.small_dataset_mode else 2
+
         for a, b in pairs:
             # Correlational — both directions: each is a distinct predictor for shock propagation.
             # Corr(a,b) uses a to predict b; Corr(b,a) uses b to predict a.
@@ -199,8 +229,8 @@ class OnlineDiscoveryEngine:
 
             # Causal/Granger (both directions)
             if use_causal:
-                self.hypotheses.add(CausalHypothesis(a, b, lag=2, buffer_size=bs))
-                self.hypotheses.add(CausalHypothesis(b, a, lag=2, buffer_size=bs))
+                self.hypotheses.add(CausalHypothesis(a, b, lag=causal_lag, buffer_size=bs))
+                self.hypotheses.add(CausalHypothesis(b, a, lag=causal_lag, buffer_size=bs))
             # Note: Competitive, Probabilistic, Structural, Graph are added by _explore_step()
             # for pairs where the above three types show strong signal, keeping init < capacity.
 
@@ -273,13 +303,15 @@ class OnlineDiscoveryEngine:
             count, meta-controller summary, and grouping stats.
         """
         self.step_count += 1
-        
+
         # 1. Sanitize
         safe_row = self._sanitize_row(row)
-        
-        # 2. Update Hypotheses (Evaluate -> Fit -> UpdateConf)
-        # Note: This calls the new Hypothesis.update which returns the Dict of metrics
-        self.hypotheses.update_all(safe_row)
+
+        # 2. Update hypotheses — vectorized batch-tensor path or Python loop
+        if self._vec_engine is not None:
+            self._vec_engine.process_row(safe_row)
+        else:
+            self.hypotheses.update_all(safe_row)
         row_update_errors = int(getattr(self.hypotheses, "last_update_errors", 0))
         self.update_error_total += row_update_errors
         
@@ -347,17 +379,21 @@ class OnlineDiscoveryEngine:
         """
         Executes a periodic arbitration phase.
 
-        Invokes the `HypothesisArbiter` to review all ACTIVE hypotheses and identify
-        conflicts (e.g., cycles, contradictory directions). Conflicted or weaker
-        hypotheses are killed.
+        Invokes the `HypothesisArbiter` to review ACTIVE hypotheses and identify
+        conflicts (e.g., cycles, contradictory directions). Only ACTIVE hypotheses
+        compete; TENTATIVE ones are still gathering evidence and are not pruned here.
+        This ensures rare types (compositional, moderating, similarity) survive long
+        enough to accumulate federation evidence before being judged.
         """
-        active = list(self.hypotheses.population.values())
+        active = [h for h in self.hypotheses.population.values()
+                  if h.meta.state == HypothesisState.ACTIVE]
+        if not active:
+            return
         kept_hyps = self.arbiter.arbitrate(active)
         kept_ids = {h.meta.id for h in kept_hyps}
-        
-        all_ids = list(self.hypotheses.population.keys())
-        for hid in all_ids:
-            if hid not in kept_ids:
+
+        for hid, hyp in list(self.hypotheses.population.items()):
+            if hyp.meta.state == HypothesisState.ACTIVE and hid not in kept_ids:
                 self.hypotheses._kill(hid)
 
     def _explore_step(self) -> None:
@@ -397,6 +433,7 @@ class OnlineDiscoveryEngine:
                 lambda a, b: CompetitiveHypothesis(a, b, buffer_size=bs),
                 lambda a, b: ProbabilisticHypothesis(a, b, buffer_size=bs),
                 lambda a, b: GraphHypothesis(a, b, buffer_size=bs),
+                lambda a, b: StructuralHypothesis(a, b, buffer_size=bs),
                 lambda a, b: FunctionalHypothesis(a, b, degree=2, buffer_size=bs),
                 lambda a, b: FunctionalHypothesis(b, a, degree=2, buffer_size=bs),
             ]
@@ -499,14 +536,21 @@ class OnlineDiscoveryEngine:
             for Z_name, Z_raw in var_series.items():
                 if Z_name in (X_name, Y_name):
                     continue
-                Z = Z_raw[:n]
+                Z = np.asarray(Z_raw).ravel()[:n]
                 if len(Z) != n:
                     continue
                 std_Z = float(np.std(Z))
                 if std_Z < 1e-9:
                     continue
-                corr_ZX = float(np.corrcoef(Z, X)[0, 1]) if np.std(X) > 1e-9 else 0.0
-                corr_ZY = float(np.corrcoef(Z, Y)[0, 1]) if np.std(Y) > 1e-9 else 0.0
+                X1d = np.asarray(X).ravel()
+                Y1d = np.asarray(Y).ravel()
+                if len(X1d) != n or len(Y1d) != n:
+                    continue
+                try:
+                    corr_ZX = float(np.corrcoef(Z, X1d)[0, 1]) if np.std(X1d) > 1e-9 else 0.0
+                    corr_ZY = float(np.corrcoef(Z, Y1d)[0, 1]) if np.std(Y1d) > 1e-9 else 0.0
+                except Exception:
+                    continue
                 if abs(corr_ZX) > 0.4 and abs(corr_ZY) < 0.15:
                     iv_strength = abs(corr_ZX) * (1.0 - abs(corr_ZY))
                     boost = 0.02 * iv_strength

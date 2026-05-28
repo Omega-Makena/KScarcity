@@ -1,0 +1,1633 @@
+{
+  "first_gt_rank": 4,
+  "null_fpr": 0.0,
+  "n_selected": 93,
+  "precision": {
+    "5": 0.2,
+    "10": 0.1,
+    "15": 0.06666666666666667,
+    "20": 0.05
+  },
+  "recall": {
+    "5": 0.037037037037037035,
+    "10": 0.037037037037037035,
+    "15": 0.037037037037037035,
+    "20": 0.037037037037037035
+  },
+  "total_ranked": 484,
+  "B_perm": 200,
+  "B_boot": 50,
+  "device": "cuda",
+  "elapsed_seconds": 2403.8,
+  "lifecycle_meta": {
+    "total_lc_kills": 133300,
+    "total_lc_survive": 25400,
+    "kill_rate": 0.8399495904221802,
+    "elapsed_s": 2399.3
+  },
+  "discovery_analysis": {
+    "n_discovered": 93,
+    "n_gt_found": 3,
+    "n_gt_missed": 24,
+    "n_gt_total": 27,
+    "discovery_rate": 0.1111111111111111,
+    "type_distribution": {
+      "correlational": 40,
+      "temporal": 6,
+      "graph": 17,
+      "causal": 6,
+      "equilibrium": 1,
+      "mediating": 23
+    },
+    "miss_reasons": [
+      {
+        "gt": {
+          "source": "inflation_cpi",
+          "target": "inflation_cpi",
+          "type": "temporal",
+          "expected_sign": 1,
+          "strength": "strong",
+          "theoretical_basis": "Inflation persistence \u2014 adaptive expectations, wage-price spirals (Blanchard Ch.8; Gordon 1990)"
+        },
+        "reason": "weak signal (R\u00b2=0.000) \u2014 relationship too weak at n-sample"
+      },
+      {
+        "gt": {
+          "source": "gdp_growth",
+          "target": "gdp_growth",
+          "type": "temporal",
+          "expected_sign": 1,
+          "strength": "strong",
+          "theoretical_basis": "GDP growth mean-reversion \u2014 business cycle persistence (Hamilton 1989; Blanchard Ch.9)"
+        },
+        "reason": "weak signal (R\u00b2=0.000) \u2014 relationship too weak at n-sample"
+      },
+      {
+        "gt": {
+          "source": "real_interest_rate",
+          "target": "real_interest_rate",
+          "type": "temporal",
+          "expected_sign": 1,
+          "strength": "strong",
+          "theoretical_basis": "Interest rate smoothing \u2014 central bank gradualism (Woodford 2003; Taylor 1993)"
+        },
+        "reason": "weak signal (R\u00b2=0.000) \u2014 relationship too weak at n-sample"
+      },
+      {
+        "gt": {
+          "source": "inflation_cpi",
+          "target": "real_interest_rate",
+          "type": "causal",
+          "expected_sign": 1,
+          "strength": "strong",
+          "theoretical_basis": "Taylor Rule \u2014 CB raises nominal rate more than 1:1 with inflation (Taylor 1993; Clarida et al. 1999)"
+        },
+        "reason": "weak signal (R\u00b2=0.000) \u2014 relationship too weak at n-sample"
+      },
+      {
+        "gt": {
+          "source": "gdp_growth",
+          "target": "unemployment",
+          "type": "causal",
+          "expected_sign": -1,
+          "strength": "strong",
+          "theoretical_basis": "Okun's Law \u2014 output gap reduces unemployment (Okun 1962; Ball et al. 2017)"
+        },
+        "reason": "high p-value (0.502) \u2014 indistinguishable from null distribution"
+      },
+      {
+        "gt": {
+          "source": "real_interest_rate",
+          "target": "private_credit",
+          "type": "causal",
+          "expected_sign": -1,
+          "strength": "strong",
+          "theoretical_basis": "Credit channel \u2014 higher rates reduce lending (Bernanke & Gertler 1995; Mishkin 1996)"
+        },
+        "reason": "weak signal (R\u00b2=0.000) \u2014 relationship too weak at n-sample"
+      },
+      {
+        "gt": {
+          "source": "govt_debt",
+          "target": "real_interest_rate",
+          "type": "causal",
+          "expected_sign": 1,
+          "strength": "moderate",
+          "theoretical_basis": "Crowding-out \u2014 fiscal deficits raise rates (Mankiw Ch.3; Laubach 2009)"
+        },
+        "reason": "weak signal (R\u00b2=0.000) \u2014 relationship too weak at n-sample"
+      },
+      {
+        "gt": {
+          "source": "private_credit",
+          "target": "gdp_growth",
+          "type": "causal",
+          "expected_sign": 1,
+          "strength": "moderate",
+          "theoretical_basis": "Financial deepening \u2014 credit enables investment (King & Levine 1993; Rajan & Zingales 1998)"
+        },
+        "reason": "weak signal (R\u00b2=0.000) \u2014 relationship too weak at n-sample"
+      },
+      {
+        "gt": {
+          "source": "govt_consumption",
+          "target": "gdp_growth",
+          "type": "causal",
+          "expected_sign": 1,
+          "strength": "moderate",
+          "theoretical_basis": "Fiscal multiplier \u2014 government spending raises output (Blanchard & Perotti 2002; Ramey 2011)"
+        },
+        "reason": "weak signal (R\u00b2=0.000) \u2014 relationship too weak at n-sample"
+      },
+      {
+        "gt": {
+          "source": "exports_gdp",
+          "target": "imports_gdp",
+          "type": "correlational",
+          "expected_sign": 1,
+          "strength": "strong",
+          "theoretical_basis": "Trade openness \u2014 both driven by liberalisation, FX regime, global demand (Obstfeld & Rogoff Ch.1; Frankel & Romer 1999)"
+        },
+        "reason": "weak signal (R\u00b2=0.000) \u2014 relationship too weak at n-sample"
+      },
+      {
+        "gt": {
+          "source": "gdp_growth",
+          "target": "gcf",
+          "type": "correlational",
+          "expected_sign": 1,
+          "strength": "strong",
+          "theoretical_basis": "Accelerator \u2014 investment and output co-move; direction is simultaneous (Samuelson 1939; Clark 1917)"
+        },
+        "reason": "weak signal (R\u00b2=0.000) \u2014 relationship too weak at n-sample"
+      },
+      {
+        "gt": {
+          "source": "school_enrollment",
+          "target": "life_expectancy",
+          "type": "correlational",
+          "expected_sign": 1,
+          "strength": "moderate",
+          "theoretical_basis": "Human capital co-movement \u2014 education and health driven by development spending (Sen 1999; UNDP HDI methodology)"
+        },
+        "reason": "weak signal (R\u00b2=0.000) \u2014 relationship too weak at n-sample"
+      },
+      {
+        "gt": {
+          "source": "govt_consumption",
+          "target": "private_credit",
+          "type": "competitive",
+          "expected_sign": -1,
+          "strength": "moderate",
+          "theoretical_basis": "Fiscal crowding-out of private sector \u2014 government borrowing absorbs domestic credit (Mankiw Ch.3; Friedman 1978)"
+        },
+        "reason": "weak signal (R\u00b2=0.000) \u2014 relationship too weak at n-sample"
+      },
+      {
+        "gt": {
+          "source": "imports_gdp",
+          "target": "current_account",
+          "type": "competitive",
+          "expected_sign": -1,
+          "strength": "strong",
+          "theoretical_basis": "Balance of payments identity \u2014 imports reduce CA balance by construction (Obstfeld & Rogoff Ch.1)"
+        },
+        "reason": "weak signal (R\u00b2=0.000) \u2014 relationship too weak at n-sample"
+      },
+      {
+        "gt": {
+          "source": "exports_gdp",
+          "target": "current_account",
+          "type": "compositional",
+          "expected_sign": 1,
+          "strength": "strong",
+          "theoretical_basis": "CA = Exports - Imports + Net income + Net transfers (BPM6; Obstfeld & Rogoff Ch.1)"
+        },
+        "reason": "weak signal (R\u00b2=0.000) \u2014 relationship too weak at n-sample"
+      },
+      {
+        "gt": {
+          "source": "govt_consumption",
+          "target": "gdp_growth",
+          "type": "compositional",
+          "expected_sign": 1,
+          "strength": "strong",
+          "theoretical_basis": "GDP = C + I + G + NX; govt consumption is a GDP component (SNA 2008; Mankiw Ch.2)"
+        },
+        "reason": "weak signal (R\u00b2=0.000) \u2014 relationship too weak at n-sample"
+      },
+      {
+        "gt": {
+          "source": "current_account",
+          "target": "current_account",
+          "type": "equilibrium",
+          "expected_sign": 0,
+          "strength": "moderate",
+          "theoretical_basis": "Intertemporal CA sustainability \u2014 CA/GDP reverts to sustainable deficit level (Obstfeld & Rogoff Ch.2; Trehan & Walsh 1991)"
+        },
+        "reason": "weak signal (R\u00b2=0.000) \u2014 relationship too weak at n-sample"
+      },
+      {
+        "gt": {
+          "source": "real_interest_rate",
+          "target": "real_interest_rate",
+          "type": "equilibrium",
+          "expected_sign": 0,
+          "strength": "moderate",
+          "theoretical_basis": "Natural rate of interest \u2014 real rate reverts to r* (Wicksell 1898; Laubach & Williams 2003)"
+        },
+        "reason": "weak signal (R\u00b2=0.000) \u2014 relationship too weak at n-sample"
+      },
+      {
+        "gt": {
+          "source": "inflation_cpi",
+          "mediator": "real_interest_rate",
+          "target": "private_credit",
+          "type": "mediating",
+          "expected_sign": -1,
+          "strength": "strong",
+          "theoretical_basis": "Monetary transmission \u2014 inflation triggers rate hikes which reduce credit (Bernanke & Gertler 1995; Mishkin 1996)"
+        },
+        "reason": "weak signal (R\u00b2=0.000) \u2014 relationship too weak at n-sample"
+      },
+      {
+        "gt": {
+          "source": "gdp_growth",
+          "mediator": "unemployment",
+          "target": "govt_consumption",
+          "type": "mediating",
+          "expected_sign": 1,
+          "strength": "weak",
+          "theoretical_basis": "Automatic stabilisers \u2014 GDP affects spending through unemployment insurance and tax revenue (Blanchard Ch.22; Auerbach & Gorodnichenko 2012)"
+        },
+        "reason": "weak signal (R\u00b2=0.000) \u2014 relationship too weak at n-sample"
+      },
+      {
+        "gt": {
+          "source": "private_credit",
+          "moderator": "electricity_access",
+          "target": "gdp_growth",
+          "type": "synergistic",
+          "expected_sign": 1,
+          "strength": "moderate",
+          "theoretical_basis": "Credit x infrastructure complementarity \u2014 credit is more productive where infrastructure exists (Sahay et al. 2015; Demirguc-Kunt & Levine 2008)"
+        },
+        "reason": "weak signal (R\u00b2=0.000) \u2014 relationship too weak at n-sample"
+      },
+      {
+        "gt": {
+          "source": "school_enrollment",
+          "moderator": "electricity_access",
+          "target": "gdp_growth",
+          "type": "synergistic",
+          "expected_sign": 1,
+          "strength": "moderate",
+          "theoretical_basis": "Human capital x infrastructure \u2014 educated workers more productive with electricity/internet access (Hanushek & Woessmann 2012; World Bank 2019)"
+        },
+        "reason": "weak signal (R\u00b2=0.000) \u2014 relationship too weak at n-sample"
+      },
+      {
+        "gt": {
+          "source": "inflation_cpi",
+          "target": "inflation_cpi",
+          "type": "structural",
+          "expected_sign": 0,
+          "strength": "moderate",
+          "theoretical_basis": "Inflation targeting regime shift \u2014 Kenya adopted IT framework in 2011; distribution of inflation changed (CBK Monetary Policy Statement; IMF Art. IV 2012)"
+        },
+        "reason": "weak signal (R\u00b2=0.000) \u2014 relationship too weak at n-sample"
+      },
+      {
+        "gt": {
+          "source": "gdp_growth",
+          "target": "life_expectancy",
+          "type": "functional",
+          "expected_sign": 1,
+          "strength": "strong",
+          "theoretical_basis": "Preston Curve \u2014 log-linear relationship between income and life expectancy (Preston 1975; Deaton 2013)"
+        },
+        "reason": "weak signal (R\u00b2=0.000) \u2014 relationship too weak at n-sample"
+      }
+    ]
+  },
+  "selected_hypotheses": [
+    {
+      "source": "gdp_growth",
+      "target": "mobile_subscriptions",
+      "variables": [
+        "gdp_growth",
+        "mobile_subscriptions"
+      ],
+      "rel_type": "correlational",
+      "T_obs": 0.07935018384674619,
+      "p_value": 0.004975124378109453,
+      "fdr_adjusted_p": 0.02666898067800532,
+      "selection_frequency": 1.0,
+      "passes_dual_threshold": true
+    },
+    {
+      "source": "inflation_cpi",
+      "target": "gdp_growth",
+      "variables": [
+        "inflation_cpi",
+        "gdp_growth"
+      ],
+      "rel_type": "correlational",
+      "T_obs": 0.014058035958377957,
+      "p_value": 0.004975124378109453,
+      "fdr_adjusted_p": 0.02666898067800532,
+      "selection_frequency": 1.0,
+      "passes_dual_threshold": true
+    },
+    {
+      "source": "urban_population",
+      "target": "gdp_growth",
+      "variables": [
+        "urban_population",
+        "gdp_growth"
+      ],
+      "rel_type": "correlational",
+      "T_obs": 0.08451198089071055,
+      "p_value": 0.004975124378109453,
+      "fdr_adjusted_p": 0.02666898067800532,
+      "selection_frequency": 1.0,
+      "passes_dual_threshold": true
+    },
+    {
+      "source": "unemployment",
+      "target": "unemployment",
+      "variables": [
+        "unemployment"
+      ],
+      "rel_type": "temporal",
+      "T_obs": 0.656405161761316,
+      "p_value": 0.004975124378109453,
+      "fdr_adjusted_p": 0.02666898067800532,
+      "selection_frequency": 1.0,
+      "passes_dual_threshold": true
+    },
+    {
+      "source": "unemployment",
+      "target": "electricity_access",
+      "variables": [
+        "unemployment",
+        "electricity_access"
+      ],
+      "rel_type": "graph",
+      "T_obs": 0.3918503088273222,
+      "p_value": 0.004975124378109453,
+      "fdr_adjusted_p": 0.02666898067800532,
+      "selection_frequency": 1.0,
+      "passes_dual_threshold": true
+    },
+    {
+      "source": "unemployment",
+      "target": "govt_debt",
+      "variables": [
+        "unemployment",
+        "govt_debt"
+      ],
+      "rel_type": "graph",
+      "T_obs": 0.20138550270237643,
+      "p_value": 0.004975124378109453,
+      "fdr_adjusted_p": 0.02666898067800532,
+      "selection_frequency": 1.0,
+      "passes_dual_threshold": true
+    },
+    {
+      "source": "imports_gdp",
+      "target": "unemployment",
+      "variables": [
+        "imports_gdp",
+        "unemployment"
+      ],
+      "rel_type": "causal",
+      "T_obs": 0.6600703980059694,
+      "p_value": 0.004975124378109453,
+      "fdr_adjusted_p": 0.02666898067800532,
+      "selection_frequency": 1.0,
+      "passes_dual_threshold": true
+    },
+    {
+      "source": "electricity_access",
+      "target": "unemployment",
+      "variables": [
+        "electricity_access",
+        "unemployment"
+      ],
+      "rel_type": "correlational",
+      "T_obs": 0.19878837734402754,
+      "p_value": 0.004975124378109453,
+      "fdr_adjusted_p": 0.02666898067800532,
+      "selection_frequency": 1.0,
+      "passes_dual_threshold": true
+    },
+    {
+      "source": "life_expectancy",
+      "target": "unemployment",
+      "variables": [
+        "life_expectancy",
+        "unemployment"
+      ],
+      "rel_type": "causal",
+      "T_obs": 0.6486014912257149,
+      "p_value": 0.004975124378109453,
+      "fdr_adjusted_p": 0.02666898067800532,
+      "selection_frequency": 1.0,
+      "passes_dual_threshold": true
+    },
+    {
+      "source": "urban_population",
+      "target": "unemployment",
+      "variables": [
+        "urban_population",
+        "unemployment"
+      ],
+      "rel_type": "causal",
+      "T_obs": 0.6511197363356886,
+      "p_value": 0.004975124378109453,
+      "fdr_adjusted_p": 0.02666898067800532,
+      "selection_frequency": 1.0,
+      "passes_dual_threshold": true
+    },
+    {
+      "source": "mobile_subscriptions",
+      "target": "unemployment",
+      "variables": [
+        "mobile_subscriptions",
+        "unemployment"
+      ],
+      "rel_type": "correlational",
+      "T_obs": 0.1966734621279267,
+      "p_value": 0.004975124378109453,
+      "fdr_adjusted_p": 0.02666898067800532,
+      "selection_frequency": 1.0,
+      "passes_dual_threshold": true
+    },
+    {
+      "source": "govt_debt",
+      "target": "unemployment",
+      "variables": [
+        "govt_debt",
+        "unemployment"
+      ],
+      "rel_type": "correlational",
+      "T_obs": 0.5907489834997474,
+      "p_value": 0.004975124378109453,
+      "fdr_adjusted_p": 0.02666898067800532,
+      "selection_frequency": 1.0,
+      "passes_dual_threshold": true
+    },
+    {
+      "source": "real_interest_rate",
+      "target": "internet_users",
+      "variables": [
+        "real_interest_rate",
+        "internet_users"
+      ],
+      "rel_type": "graph",
+      "T_obs": 0.06689059447265977,
+      "p_value": 0.004975124378109453,
+      "fdr_adjusted_p": 0.02666898067800532,
+      "selection_frequency": 1.0,
+      "passes_dual_threshold": true
+    },
+    {
+      "source": "private_credit",
+      "target": "internet_users",
+      "variables": [
+        "private_credit",
+        "internet_users"
+      ],
+      "rel_type": "correlational",
+      "T_obs": 0.4451145656575869,
+      "p_value": 0.004975124378109453,
+      "fdr_adjusted_p": 0.02666898067800532,
+      "selection_frequency": 1.0,
+      "passes_dual_threshold": true
+    },
+    {
+      "source": "private_credit",
+      "target": "mobile_subscriptions",
+      "variables": [
+        "private_credit",
+        "mobile_subscriptions"
+      ],
+      "rel_type": "correlational",
+      "T_obs": 0.48994432650424513,
+      "p_value": 0.004975124378109453,
+      "fdr_adjusted_p": 0.02666898067800532,
+      "selection_frequency": 1.0,
+      "passes_dual_threshold": true
+    },
+    {
+      "source": "govt_consumption",
+      "target": "electricity_access",
+      "variables": [
+        "govt_consumption",
+        "electricity_access"
+      ],
+      "rel_type": "graph",
+      "T_obs": 0.4636804212186222,
+      "p_value": 0.004975124378109453,
+      "fdr_adjusted_p": 0.02666898067800532,
+      "selection_frequency": 1.0,
+      "passes_dual_threshold": true
+    },
+    {
+      "source": "govt_consumption",
+      "target": "internet_users",
+      "variables": [
+        "govt_consumption",
+        "internet_users"
+      ],
+      "rel_type": "graph",
+      "T_obs": 0.4328436591761381,
+      "p_value": 0.004975124378109453,
+      "fdr_adjusted_p": 0.02666898067800532,
+      "selection_frequency": 1.0,
+      "passes_dual_threshold": true
+    },
+    {
+      "source": "govt_consumption",
+      "target": "mobile_subscriptions",
+      "variables": [
+        "govt_consumption",
+        "mobile_subscriptions"
+      ],
+      "rel_type": "graph",
+      "T_obs": 0.5949172130957587,
+      "p_value": 0.004975124378109453,
+      "fdr_adjusted_p": 0.02666898067800532,
+      "selection_frequency": 1.0,
+      "passes_dual_threshold": true
+    },
+    {
+      "source": "exports_gdp",
+      "target": "exports_gdp",
+      "variables": [
+        "exports_gdp"
+      ],
+      "rel_type": "equilibrium",
+      "T_obs": 0.1583928941468008,
+      "p_value": 0.004975124378109453,
+      "fdr_adjusted_p": 0.02666898067800532,
+      "selection_frequency": 1.0,
+      "passes_dual_threshold": true
+    },
+    {
+      "source": "exports_gdp",
+      "target": "internet_users",
+      "variables": [
+        "exports_gdp",
+        "internet_users"
+      ],
+      "rel_type": "correlational",
+      "T_obs": 0.45980671578449905,
+      "p_value": 0.004975124378109453,
+      "fdr_adjusted_p": 0.02666898067800532,
+      "selection_frequency": 1.0,
+      "passes_dual_threshold": true
+    },
+    {
+      "source": "exports_gdp",
+      "target": "mobile_subscriptions",
+      "variables": [
+        "exports_gdp",
+        "mobile_subscriptions"
+      ],
+      "rel_type": "correlational",
+      "T_obs": 0.5465424780059747,
+      "p_value": 0.004975124378109453,
+      "fdr_adjusted_p": 0.02666898067800532,
+      "selection_frequency": 1.0,
+      "passes_dual_threshold": true
+    },
+    {
+      "source": "imports_gdp",
+      "target": "exports_gdp",
+      "variables": [
+        "imports_gdp",
+        "exports_gdp"
+      ],
+      "rel_type": "correlational",
+      "T_obs": 0.057809453946065736,
+      "p_value": 0.004975124378109453,
+      "fdr_adjusted_p": 0.02666898067800532,
+      "selection_frequency": 1.0,
+      "passes_dual_threshold": true
+    },
+    {
+      "source": "imports_gdp",
+      "target": "electricity_access",
+      "variables": [
+        "imports_gdp",
+        "electricity_access"
+      ],
+      "rel_type": "correlational",
+      "T_obs": 0.43451552770391344,
+      "p_value": 0.004975124378109453,
+      "fdr_adjusted_p": 0.02666898067800532,
+      "selection_frequency": 1.0,
+      "passes_dual_threshold": true
+    },
+    {
+      "source": "imports_gdp",
+      "target": "internet_users",
+      "variables": [
+        "imports_gdp",
+        "internet_users"
+      ],
+      "rel_type": "correlational",
+      "T_obs": 0.2995147449538179,
+      "p_value": 0.004975124378109453,
+      "fdr_adjusted_p": 0.02666898067800532,
+      "selection_frequency": 1.0,
+      "passes_dual_threshold": true
+    },
+    {
+      "source": "imports_gdp",
+      "target": "mobile_subscriptions",
+      "variables": [
+        "imports_gdp",
+        "mobile_subscriptions"
+      ],
+      "rel_type": "correlational",
+      "T_obs": 0.3695891377301612,
+      "p_value": 0.004975124378109453,
+      "fdr_adjusted_p": 0.02666898067800532,
+      "selection_frequency": 1.0,
+      "passes_dual_threshold": true
+    },
+    {
+      "source": "current_account",
+      "target": "urban_population",
+      "variables": [
+        "current_account",
+        "urban_population"
+      ],
+      "rel_type": "causal",
+      "T_obs": 0.6659931608755939,
+      "p_value": 0.004975124378109453,
+      "fdr_adjusted_p": 0.02666898067800532,
+      "selection_frequency": 1.0,
+      "passes_dual_threshold": true
+    },
+    {
+      "source": "life_expectancy",
+      "target": "current_account",
+      "variables": [
+        "life_expectancy",
+        "current_account"
+      ],
+      "rel_type": "graph",
+      "T_obs": 0.0788767348586622,
+      "p_value": 0.004975124378109453,
+      "fdr_adjusted_p": 0.02666898067800532,
+      "selection_frequency": 1.0,
+      "passes_dual_threshold": true
+    },
+    {
+      "source": "gcf",
+      "target": "urban_population",
+      "variables": [
+        "gcf",
+        "urban_population"
+      ],
+      "rel_type": "correlational",
+      "T_obs": 0.0005722537014695162,
+      "p_value": 0.004975124378109453,
+      "fdr_adjusted_p": 0.02666898067800532,
+      "selection_frequency": 1.0,
+      "passes_dual_threshold": true
+    },
+    {
+      "source": "electricity_access",
+      "target": "electricity_access",
+      "variables": [
+        "electricity_access"
+      ],
+      "rel_type": "temporal",
+      "T_obs": 0.9366491879600234,
+      "p_value": 0.004975124378109453,
+      "fdr_adjusted_p": 0.02666898067800532,
+      "selection_frequency": 1.0,
+      "passes_dual_threshold": true
+    },
+    {
+      "source": "electricity_access",
+      "target": "internet_users",
+      "variables": [
+        "electricity_access",
+        "internet_users"
+      ],
+      "rel_type": "correlational",
+      "T_obs": 0.8823141025201324,
+      "p_value": 0.004975124378109453,
+      "fdr_adjusted_p": 0.02666898067800532,
+      "selection_frequency": 1.0,
+      "passes_dual_threshold": true
+    },
+    {
+      "source": "electricity_access",
+      "target": "mobile_subscriptions",
+      "variables": [
+        "electricity_access",
+        "mobile_subscriptions"
+      ],
+      "rel_type": "correlational",
+      "T_obs": 0.893266347747162,
+      "p_value": 0.004975124378109453,
+      "fdr_adjusted_p": 0.02666898067800532,
+      "selection_frequency": 1.0,
+      "passes_dual_threshold": true
+    },
+    {
+      "source": "life_expectancy",
+      "target": "electricity_access",
+      "variables": [
+        "life_expectancy",
+        "electricity_access"
+      ],
+      "rel_type": "correlational",
+      "T_obs": 0.32255110475974147,
+      "p_value": 0.004975124378109453,
+      "fdr_adjusted_p": 0.02666898067800532,
+      "selection_frequency": 1.0,
+      "passes_dual_threshold": true
+    },
+    {
+      "source": "broad_money",
+      "target": "electricity_access",
+      "variables": [
+        "broad_money",
+        "electricity_access"
+      ],
+      "rel_type": "correlational",
+      "T_obs": 0.03354834721897837,
+      "p_value": 0.004975124378109453,
+      "fdr_adjusted_p": 0.02666898067800532,
+      "selection_frequency": 1.0,
+      "passes_dual_threshold": true
+    },
+    {
+      "source": "urban_population",
+      "target": "electricity_access",
+      "variables": [
+        "urban_population",
+        "electricity_access"
+      ],
+      "rel_type": "correlational",
+      "T_obs": 0.5028044874552408,
+      "p_value": 0.004975124378109453,
+      "fdr_adjusted_p": 0.02666898067800532,
+      "selection_frequency": 1.0,
+      "passes_dual_threshold": true
+    },
+    {
+      "source": "mobile_subscriptions",
+      "target": "electricity_access",
+      "variables": [
+        "mobile_subscriptions",
+        "electricity_access"
+      ],
+      "rel_type": "correlational",
+      "T_obs": 0.8456155479420134,
+      "p_value": 0.004975124378109453,
+      "fdr_adjusted_p": 0.02666898067800532,
+      "selection_frequency": 1.0,
+      "passes_dual_threshold": true
+    },
+    {
+      "source": "govt_debt",
+      "target": "electricity_access",
+      "variables": [
+        "govt_debt",
+        "electricity_access"
+      ],
+      "rel_type": "correlational",
+      "T_obs": 0.7064619614156569,
+      "p_value": 0.004975124378109453,
+      "fdr_adjusted_p": 0.02666898067800532,
+      "selection_frequency": 1.0,
+      "passes_dual_threshold": true
+    },
+    {
+      "source": "gdp_growth",
+      "target": "electricity_access",
+      "variables": [
+        "gdp_growth",
+        "unemployment",
+        "electricity_access"
+      ],
+      "rel_type": "mediating",
+      "T_obs": 0.6265160393405079,
+      "p_value": 0.004975124378109453,
+      "fdr_adjusted_p": 0.02666898067800532,
+      "selection_frequency": 1.0,
+      "passes_dual_threshold": true
+    },
+    {
+      "source": "gdp_growth",
+      "target": "electricity_access",
+      "variables": [
+        "gdp_growth",
+        "private_credit",
+        "electricity_access"
+      ],
+      "rel_type": "mediating",
+      "T_obs": 0.47089365369869174,
+      "p_value": 0.004975124378109453,
+      "fdr_adjusted_p": 0.02666898067800532,
+      "selection_frequency": 1.0,
+      "passes_dual_threshold": true
+    },
+    {
+      "source": "gdp_growth",
+      "target": "electricity_access",
+      "variables": [
+        "gdp_growth",
+        "exports_gdp",
+        "electricity_access"
+      ],
+      "rel_type": "mediating",
+      "T_obs": 0.4937730333058039,
+      "p_value": 0.004975124378109453,
+      "fdr_adjusted_p": 0.02666898067800532,
+      "selection_frequency": 1.0,
+      "passes_dual_threshold": true
+    },
+    {
+      "source": "gdp_growth",
+      "target": "electricity_access",
+      "variables": [
+        "gdp_growth",
+        "imports_gdp",
+        "electricity_access"
+      ],
+      "rel_type": "mediating",
+      "T_obs": 0.48729390709296294,
+      "p_value": 0.004975124378109453,
+      "fdr_adjusted_p": 0.02666898067800532,
+      "selection_frequency": 1.0,
+      "passes_dual_threshold": true
+    },
+    {
+      "source": "internet_users",
+      "target": "internet_users",
+      "variables": [
+        "internet_users"
+      ],
+      "rel_type": "temporal",
+      "T_obs": 0.9543199836684555,
+      "p_value": 0.004975124378109453,
+      "fdr_adjusted_p": 0.02666898067800532,
+      "selection_frequency": 1.0,
+      "passes_dual_threshold": true
+    },
+    {
+      "source": "life_expectancy",
+      "target": "internet_users",
+      "variables": [
+        "life_expectancy",
+        "internet_users"
+      ],
+      "rel_type": "correlational",
+      "T_obs": 0.2762985323756192,
+      "p_value": 0.004975124378109453,
+      "fdr_adjusted_p": 0.02666898067800532,
+      "selection_frequency": 1.0,
+      "passes_dual_threshold": true
+    },
+    {
+      "source": "mobile_subscriptions",
+      "target": "internet_users",
+      "variables": [
+        "mobile_subscriptions",
+        "internet_users"
+      ],
+      "rel_type": "correlational",
+      "T_obs": 0.8682904534556255,
+      "p_value": 0.004975124378109453,
+      "fdr_adjusted_p": 0.02666898067800532,
+      "selection_frequency": 1.0,
+      "passes_dual_threshold": true
+    },
+    {
+      "source": "govt_debt",
+      "target": "internet_users",
+      "variables": [
+        "govt_debt",
+        "internet_users"
+      ],
+      "rel_type": "correlational",
+      "T_obs": 0.5876529955839366,
+      "p_value": 0.004975124378109453,
+      "fdr_adjusted_p": 0.02666898067800532,
+      "selection_frequency": 1.0,
+      "passes_dual_threshold": true
+    },
+    {
+      "source": "gdp_growth",
+      "target": "internet_users",
+      "variables": [
+        "gdp_growth",
+        "unemployment",
+        "internet_users"
+      ],
+      "rel_type": "mediating",
+      "T_obs": 0.5157206174865334,
+      "p_value": 0.004975124378109453,
+      "fdr_adjusted_p": 0.02666898067800532,
+      "selection_frequency": 1.0,
+      "passes_dual_threshold": true
+    },
+    {
+      "source": "gdp_growth",
+      "target": "internet_users",
+      "variables": [
+        "gdp_growth",
+        "private_credit",
+        "internet_users"
+      ],
+      "rel_type": "mediating",
+      "T_obs": 0.5061348818273782,
+      "p_value": 0.004975124378109453,
+      "fdr_adjusted_p": 0.02666898067800532,
+      "selection_frequency": 1.0,
+      "passes_dual_threshold": true
+    },
+    {
+      "source": "gdp_growth",
+      "target": "internet_users",
+      "variables": [
+        "gdp_growth",
+        "govt_consumption",
+        "internet_users"
+      ],
+      "rel_type": "mediating",
+      "T_obs": 0.4168182775707333,
+      "p_value": 0.004975124378109453,
+      "fdr_adjusted_p": 0.02666898067800532,
+      "selection_frequency": 1.0,
+      "passes_dual_threshold": true
+    },
+    {
+      "source": "gdp_growth",
+      "target": "internet_users",
+      "variables": [
+        "gdp_growth",
+        "exports_gdp",
+        "internet_users"
+      ],
+      "rel_type": "mediating",
+      "T_obs": 0.548430006054907,
+      "p_value": 0.004975124378109453,
+      "fdr_adjusted_p": 0.02666898067800532,
+      "selection_frequency": 1.0,
+      "passes_dual_threshold": true
+    },
+    {
+      "source": "gdp_growth",
+      "target": "internet_users",
+      "variables": [
+        "gdp_growth",
+        "imports_gdp",
+        "internet_users"
+      ],
+      "rel_type": "mediating",
+      "T_obs": 0.42798926829261985,
+      "p_value": 0.004975124378109453,
+      "fdr_adjusted_p": 0.02666898067800532,
+      "selection_frequency": 1.0,
+      "passes_dual_threshold": true
+    },
+    {
+      "source": "life_expectancy",
+      "target": "urban_population",
+      "variables": [
+        "life_expectancy",
+        "urban_population"
+      ],
+      "rel_type": "correlational",
+      "T_obs": 0.21123451185937614,
+      "p_value": 0.004975124378109453,
+      "fdr_adjusted_p": 0.02666898067800532,
+      "selection_frequency": 1.0,
+      "passes_dual_threshold": true
+    },
+    {
+      "source": "life_expectancy",
+      "target": "mobile_subscriptions",
+      "variables": [
+        "life_expectancy",
+        "mobile_subscriptions"
+      ],
+      "rel_type": "correlational",
+      "T_obs": 0.3710271511025174,
+      "p_value": 0.004975124378109453,
+      "fdr_adjusted_p": 0.02666898067800532,
+      "selection_frequency": 1.0,
+      "passes_dual_threshold": true
+    },
+    {
+      "source": "broad_money",
+      "target": "mobile_subscriptions",
+      "variables": [
+        "broad_money",
+        "mobile_subscriptions"
+      ],
+      "rel_type": "correlational",
+      "T_obs": 0.030497178521806556,
+      "p_value": 0.004975124378109453,
+      "fdr_adjusted_p": 0.02666898067800532,
+      "selection_frequency": 1.0,
+      "passes_dual_threshold": true
+    },
+    {
+      "source": "urban_population",
+      "target": "urban_population",
+      "variables": [
+        "urban_population"
+      ],
+      "rel_type": "temporal",
+      "T_obs": 0.675141378183364,
+      "p_value": 0.004975124378109453,
+      "fdr_adjusted_p": 0.02666898067800532,
+      "selection_frequency": 1.0,
+      "passes_dual_threshold": true
+    },
+    {
+      "source": "urban_population",
+      "target": "mobile_subscriptions",
+      "variables": [
+        "urban_population",
+        "mobile_subscriptions"
+      ],
+      "rel_type": "causal",
+      "T_obs": 0.9923312538382293,
+      "p_value": 0.004975124378109453,
+      "fdr_adjusted_p": 0.02666898067800532,
+      "selection_frequency": 1.0,
+      "passes_dual_threshold": true
+    },
+    {
+      "source": "mobile_subscriptions",
+      "target": "urban_population",
+      "variables": [
+        "mobile_subscriptions",
+        "urban_population"
+      ],
+      "rel_type": "correlational",
+      "T_obs": 0.2070009363979437,
+      "p_value": 0.004975124378109453,
+      "fdr_adjusted_p": 0.02666898067800532,
+      "selection_frequency": 1.0,
+      "passes_dual_threshold": true
+    },
+    {
+      "source": "gdp_growth",
+      "target": "urban_population",
+      "variables": [
+        "gdp_growth",
+        "private_credit",
+        "urban_population"
+      ],
+      "rel_type": "mediating",
+      "T_obs": 0.022951472747382073,
+      "p_value": 0.004975124378109453,
+      "fdr_adjusted_p": 0.02666898067800532,
+      "selection_frequency": 1.0,
+      "passes_dual_threshold": true
+    },
+    {
+      "source": "mobile_subscriptions",
+      "target": "mobile_subscriptions",
+      "variables": [
+        "mobile_subscriptions"
+      ],
+      "rel_type": "temporal",
+      "T_obs": 0.9839120726490759,
+      "p_value": 0.004975124378109453,
+      "fdr_adjusted_p": 0.02666898067800532,
+      "selection_frequency": 1.0,
+      "passes_dual_threshold": true
+    },
+    {
+      "source": "mobile_subscriptions",
+      "target": "govt_debt",
+      "variables": [
+        "mobile_subscriptions",
+        "govt_debt"
+      ],
+      "rel_type": "correlational",
+      "T_obs": 0.019421970238682085,
+      "p_value": 0.004975124378109453,
+      "fdr_adjusted_p": 0.02666898067800532,
+      "selection_frequency": 1.0,
+      "passes_dual_threshold": true
+    },
+    {
+      "source": "govt_debt",
+      "target": "mobile_subscriptions",
+      "variables": [
+        "govt_debt",
+        "mobile_subscriptions"
+      ],
+      "rel_type": "correlational",
+      "T_obs": 0.4978857645019358,
+      "p_value": 0.004975124378109453,
+      "fdr_adjusted_p": 0.02666898067800532,
+      "selection_frequency": 1.0,
+      "passes_dual_threshold": true
+    },
+    {
+      "source": "gdp_growth",
+      "target": "mobile_subscriptions",
+      "variables": [
+        "gdp_growth",
+        "unemployment",
+        "mobile_subscriptions"
+      ],
+      "rel_type": "mediating",
+      "T_obs": 0.5336857314621168,
+      "p_value": 0.004975124378109453,
+      "fdr_adjusted_p": 0.02666898067800532,
+      "selection_frequency": 1.0,
+      "passes_dual_threshold": true
+    },
+    {
+      "source": "gdp_growth",
+      "target": "mobile_subscriptions",
+      "variables": [
+        "gdp_growth",
+        "private_credit",
+        "mobile_subscriptions"
+      ],
+      "rel_type": "mediating",
+      "T_obs": 0.49949925500818326,
+      "p_value": 0.004975124378109453,
+      "fdr_adjusted_p": 0.02666898067800532,
+      "selection_frequency": 1.0,
+      "passes_dual_threshold": true
+    },
+    {
+      "source": "gdp_growth",
+      "target": "mobile_subscriptions",
+      "variables": [
+        "gdp_growth",
+        "govt_consumption",
+        "mobile_subscriptions"
+      ],
+      "rel_type": "mediating",
+      "T_obs": 0.5466096770236308,
+      "p_value": 0.004975124378109453,
+      "fdr_adjusted_p": 0.02666898067800532,
+      "selection_frequency": 1.0,
+      "passes_dual_threshold": true
+    },
+    {
+      "source": "gdp_growth",
+      "target": "mobile_subscriptions",
+      "variables": [
+        "gdp_growth",
+        "exports_gdp",
+        "mobile_subscriptions"
+      ],
+      "rel_type": "mediating",
+      "T_obs": 0.5682516202682646,
+      "p_value": 0.004975124378109453,
+      "fdr_adjusted_p": 0.02666898067800532,
+      "selection_frequency": 1.0,
+      "passes_dual_threshold": true
+    },
+    {
+      "source": "gdp_growth",
+      "target": "mobile_subscriptions",
+      "variables": [
+        "gdp_growth",
+        "imports_gdp",
+        "mobile_subscriptions"
+      ],
+      "rel_type": "mediating",
+      "T_obs": 0.5072923647513368,
+      "p_value": 0.004975124378109453,
+      "fdr_adjusted_p": 0.02666898067800532,
+      "selection_frequency": 1.0,
+      "passes_dual_threshold": true
+    },
+    {
+      "source": "govt_debt",
+      "target": "govt_debt",
+      "variables": [
+        "govt_debt"
+      ],
+      "rel_type": "temporal",
+      "T_obs": 0.37632373768494765,
+      "p_value": 0.004975124378109453,
+      "fdr_adjusted_p": 0.02666898067800532,
+      "selection_frequency": 1.0,
+      "passes_dual_threshold": true
+    },
+    {
+      "source": "gdp_growth",
+      "target": "govt_debt",
+      "variables": [
+        "gdp_growth",
+        "unemployment",
+        "govt_debt"
+      ],
+      "rel_type": "mediating",
+      "T_obs": 0.4198740217911481,
+      "p_value": 0.004975124378109453,
+      "fdr_adjusted_p": 0.02666898067800532,
+      "selection_frequency": 1.0,
+      "passes_dual_threshold": true
+    },
+    {
+      "source": "electricity_access",
+      "target": "govt_debt",
+      "variables": [
+        "electricity_access",
+        "govt_debt"
+      ],
+      "rel_type": "correlational",
+      "T_obs": 0.2470440872630758,
+      "p_value": 0.004975124378109453,
+      "fdr_adjusted_p": 0.02666898067800532,
+      "selection_frequency": 0.98,
+      "passes_dual_threshold": true
+    },
+    {
+      "source": "gdp_growth",
+      "target": "electricity_access",
+      "variables": [
+        "gdp_growth",
+        "govt_consumption",
+        "electricity_access"
+      ],
+      "rel_type": "mediating",
+      "T_obs": 0.2992948715169601,
+      "p_value": 0.004975124378109453,
+      "fdr_adjusted_p": 0.02666898067800532,
+      "selection_frequency": 0.98,
+      "passes_dual_threshold": true
+    },
+    {
+      "source": "unemployment",
+      "target": "mobile_subscriptions",
+      "variables": [
+        "unemployment",
+        "mobile_subscriptions"
+      ],
+      "rel_type": "graph",
+      "T_obs": 0.22557568031373865,
+      "p_value": 0.004975124378109453,
+      "fdr_adjusted_p": 0.02666898067800532,
+      "selection_frequency": 0.94,
+      "passes_dual_threshold": true
+    },
+    {
+      "source": "exports_gdp",
+      "target": "electricity_access",
+      "variables": [
+        "exports_gdp",
+        "electricity_access"
+      ],
+      "rel_type": "correlational",
+      "T_obs": 0.505200533648153,
+      "p_value": 0.004975124378109453,
+      "fdr_adjusted_p": 0.02666898067800532,
+      "selection_frequency": 0.94,
+      "passes_dual_threshold": true
+    },
+    {
+      "source": "gdp_growth",
+      "target": "mobile_subscriptions",
+      "variables": [
+        "gdp_growth",
+        "real_interest_rate",
+        "mobile_subscriptions"
+      ],
+      "rel_type": "mediating",
+      "T_obs": 0.08989250015701877,
+      "p_value": 0.004975124378109453,
+      "fdr_adjusted_p": 0.02666898067800532,
+      "selection_frequency": 0.94,
+      "passes_dual_threshold": true
+    },
+    {
+      "source": "gdp_growth",
+      "target": "internet_users",
+      "variables": [
+        "gdp_growth",
+        "internet_users"
+      ],
+      "rel_type": "graph",
+      "T_obs": 0.1498919864434044,
+      "p_value": 0.004975124378109453,
+      "fdr_adjusted_p": 0.02666898067800532,
+      "selection_frequency": 0.92,
+      "passes_dual_threshold": true
+    },
+    {
+      "source": "govt_consumption",
+      "target": "urban_population",
+      "variables": [
+        "govt_consumption",
+        "urban_population"
+      ],
+      "rel_type": "causal",
+      "T_obs": 0.6652762884357467,
+      "p_value": 0.004975124378109453,
+      "fdr_adjusted_p": 0.02666898067800532,
+      "selection_frequency": 0.92,
+      "passes_dual_threshold": true
+    },
+    {
+      "source": "unemployment",
+      "target": "internet_users",
+      "variables": [
+        "unemployment",
+        "internet_users"
+      ],
+      "rel_type": "graph",
+      "T_obs": 0.23063368041645294,
+      "p_value": 0.004975124378109453,
+      "fdr_adjusted_p": 0.02698273339186421,
+      "selection_frequency": 0.92,
+      "passes_dual_threshold": true
+    },
+    {
+      "source": "gcf",
+      "target": "gdp_growth",
+      "variables": [
+        "gcf",
+        "gdp_growth"
+      ],
+      "rel_type": "correlational",
+      "T_obs": 0.01607302641477848,
+      "p_value": 0.009950248756218905,
+      "fdr_adjusted_p": 0.049323276092655,
+      "selection_frequency": 1.0,
+      "passes_dual_threshold": true
+    },
+    {
+      "source": "life_expectancy",
+      "target": "gdp_growth",
+      "variables": [
+        "life_expectancy",
+        "gdp_growth"
+      ],
+      "rel_type": "correlational",
+      "T_obs": 0.00987969270673661,
+      "p_value": 0.009950248756218905,
+      "fdr_adjusted_p": 0.049323276092655,
+      "selection_frequency": 1.0,
+      "passes_dual_threshold": true
+    },
+    {
+      "source": "gdp_growth",
+      "target": "electricity_access",
+      "variables": [
+        "gdp_growth",
+        "current_account",
+        "electricity_access"
+      ],
+      "rel_type": "mediating",
+      "T_obs": 0.011053102699444484,
+      "p_value": 0.009950248756218905,
+      "fdr_adjusted_p": 0.049323276092655,
+      "selection_frequency": 1.0,
+      "passes_dual_threshold": true
+    },
+    {
+      "source": "gdp_growth",
+      "target": "electricity_access",
+      "variables": [
+        "gdp_growth",
+        "electricity_access"
+      ],
+      "rel_type": "graph",
+      "T_obs": 0.06570426456206513,
+      "p_value": 0.009950248756218905,
+      "fdr_adjusted_p": 0.049323276092655,
+      "selection_frequency": 0.98,
+      "passes_dual_threshold": true
+    },
+    {
+      "source": "gcf",
+      "target": "electricity_access",
+      "variables": [
+        "gcf",
+        "electricity_access"
+      ],
+      "rel_type": "correlational",
+      "T_obs": 0.02713604319673979,
+      "p_value": 0.009950248756218905,
+      "fdr_adjusted_p": 0.049323276092655,
+      "selection_frequency": 0.98,
+      "passes_dual_threshold": true
+    },
+    {
+      "source": "current_account",
+      "target": "mobile_subscriptions",
+      "variables": [
+        "current_account",
+        "mobile_subscriptions"
+      ],
+      "rel_type": "graph",
+      "T_obs": 0.013942041414019224,
+      "p_value": 0.009950248756218905,
+      "fdr_adjusted_p": 0.049323276092655,
+      "selection_frequency": 0.96,
+      "passes_dual_threshold": true
+    },
+    {
+      "source": "real_interest_rate",
+      "target": "mobile_subscriptions",
+      "variables": [
+        "real_interest_rate",
+        "mobile_subscriptions"
+      ],
+      "rel_type": "graph",
+      "T_obs": 0.06306373393571618,
+      "p_value": 0.004975124378109453,
+      "fdr_adjusted_p": 0.02666898067800532,
+      "selection_frequency": 0.86,
+      "passes_dual_threshold": true
+    },
+    {
+      "source": "real_interest_rate",
+      "target": "electricity_access",
+      "variables": [
+        "real_interest_rate",
+        "electricity_access"
+      ],
+      "rel_type": "graph",
+      "T_obs": 0.057437612782675895,
+      "p_value": 0.014925373134328358,
+      "fdr_adjusted_p": 0.07242733699921446,
+      "selection_frequency": 1.0,
+      "passes_dual_threshold": true
+    },
+    {
+      "source": "broad_money",
+      "target": "internet_users",
+      "variables": [
+        "broad_money",
+        "internet_users"
+      ],
+      "rel_type": "correlational",
+      "T_obs": 0.06373831835054766,
+      "p_value": 0.014925373134328358,
+      "fdr_adjusted_p": 0.07242733699921446,
+      "selection_frequency": 1.0,
+      "passes_dual_threshold": true
+    },
+    {
+      "source": "gcf",
+      "target": "internet_users",
+      "variables": [
+        "gcf",
+        "internet_users"
+      ],
+      "rel_type": "correlational",
+      "T_obs": 0.05331216858952814,
+      "p_value": 0.009950248756218905,
+      "fdr_adjusted_p": 0.049323276092655,
+      "selection_frequency": 0.92,
+      "passes_dual_threshold": true
+    },
+    {
+      "source": "internet_users",
+      "target": "electricity_access",
+      "variables": [
+        "internet_users",
+        "electricity_access"
+      ],
+      "rel_type": "graph",
+      "T_obs": 0.10057421220462337,
+      "p_value": 0.004975124378109453,
+      "fdr_adjusted_p": 0.02666898067800532,
+      "selection_frequency": 0.82,
+      "passes_dual_threshold": true
+    },
+    {
+      "source": "gdp_growth",
+      "target": "mobile_subscriptions",
+      "variables": [
+        "gdp_growth",
+        "inflation_cpi",
+        "mobile_subscriptions"
+      ],
+      "rel_type": "mediating",
+      "T_obs": 0.09667905123922582,
+      "p_value": 0.004975124378109453,
+      "fdr_adjusted_p": 0.02666898067800532,
+      "selection_frequency": 0.82,
+      "passes_dual_threshold": true
+    },
+    {
+      "source": "inflation_cpi",
+      "target": "electricity_access",
+      "variables": [
+        "inflation_cpi",
+        "electricity_access"
+      ],
+      "rel_type": "graph",
+      "T_obs": 0.00879873160063771,
+      "p_value": 0.004975124378109453,
+      "fdr_adjusted_p": 0.02666898067800532,
+      "selection_frequency": 0.76,
+      "passes_dual_threshold": true
+    },
+    {
+      "source": "gdp_growth",
+      "target": "internet_users",
+      "variables": [
+        "gdp_growth",
+        "real_interest_rate",
+        "internet_users"
+      ],
+      "rel_type": "mediating",
+      "T_obs": 0.07779407151590167,
+      "p_value": 0.004975124378109453,
+      "fdr_adjusted_p": 0.02666898067800532,
+      "selection_frequency": 0.76,
+      "passes_dual_threshold": true
+    },
+    {
+      "source": "private_credit",
+      "target": "electricity_access",
+      "variables": [
+        "private_credit",
+        "electricity_access"
+      ],
+      "rel_type": "correlational",
+      "T_obs": 0.48807567446930467,
+      "p_value": 0.004975124378109453,
+      "fdr_adjusted_p": 0.02698273339186421,
+      "selection_frequency": 0.72,
+      "passes_dual_threshold": true
+    },
+    {
+      "source": "gdp_growth",
+      "target": "electricity_access",
+      "variables": [
+        "gdp_growth",
+        "inflation_cpi",
+        "electricity_access"
+      ],
+      "rel_type": "mediating",
+      "T_obs": 0.01072424812881334,
+      "p_value": 0.004975124378109453,
+      "fdr_adjusted_p": 0.02666898067800532,
+      "selection_frequency": 0.7,
+      "passes_dual_threshold": true
+    },
+    {
+      "source": "gcf",
+      "target": "mobile_subscriptions",
+      "variables": [
+        "gcf",
+        "mobile_subscriptions"
+      ],
+      "rel_type": "graph",
+      "T_obs": 0.05348183629279846,
+      "p_value": 0.004975124378109453,
+      "fdr_adjusted_p": 0.02666898067800532,
+      "selection_frequency": 0.64,
+      "passes_dual_threshold": true
+    },
+    {
+      "source": "urban_population",
+      "target": "internet_users",
+      "variables": [
+        "urban_population",
+        "internet_users"
+      ],
+      "rel_type": "correlational",
+      "T_obs": 0.4358691622954498,
+      "p_value": 0.004975124378109453,
+      "fdr_adjusted_p": 0.02666898067800532,
+      "selection_frequency": 0.62,
+      "passes_dual_threshold": true
+    },
+    {
+      "source": "gdp_growth",
+      "target": "internet_users",
+      "variables": [
+        "gdp_growth",
+        "inflation_cpi",
+        "internet_users"
+      ],
+      "rel_type": "mediating",
+      "T_obs": 0.07885091694531121,
+      "p_value": 0.004975124378109453,
+      "fdr_adjusted_p": 0.02577002627312874,
+      "selection_frequency": 0.62,
+      "passes_dual_threshold": true
+    }
+  ]
+}

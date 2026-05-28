@@ -1,0 +1,451 @@
+{
+  "n_discovered": 93,
+  "n_gt_found": 3,
+  "n_gt_missed": 24,
+  "n_gt_total": 27,
+  "discovery_rate": 0.1111111111111111,
+  "type_distribution": {
+    "correlational": 40,
+    "temporal": 6,
+    "graph": 17,
+    "causal": 6,
+    "equilibrium": 1,
+    "mediating": 23
+  },
+  "gt_found": [
+    {
+      "source": "unemployment",
+      "target": "unemployment",
+      "type": "temporal",
+      "strict_match": true
+    },
+    {
+      "source": "electricity_access",
+      "target": "internet_users",
+      "type": "correlational",
+      "strict_match": true
+    },
+    {
+      "source": "gcf",
+      "target": "gdp_growth",
+      "type": "compositional",
+      "strict_match": false
+    }
+  ],
+  "gt_missed": [
+    {
+      "source": "inflation_cpi",
+      "target": "inflation_cpi",
+      "type": "temporal",
+      "reason": "weak signal (R\u00b2=0.000) \u2014 relationship too weak at n-sample"
+    },
+    {
+      "source": "gdp_growth",
+      "target": "gdp_growth",
+      "type": "temporal",
+      "reason": "weak signal (R\u00b2=0.000) \u2014 relationship too weak at n-sample"
+    },
+    {
+      "source": "real_interest_rate",
+      "target": "real_interest_rate",
+      "type": "temporal",
+      "reason": "weak signal (R\u00b2=0.000) \u2014 relationship too weak at n-sample"
+    },
+    {
+      "source": "inflation_cpi",
+      "target": "real_interest_rate",
+      "type": "causal",
+      "reason": "weak signal (R\u00b2=0.000) \u2014 relationship too weak at n-sample"
+    },
+    {
+      "source": "gdp_growth",
+      "target": "unemployment",
+      "type": "causal",
+      "reason": "high p-value (0.502) \u2014 indistinguishable from null distribution"
+    },
+    {
+      "source": "real_interest_rate",
+      "target": "private_credit",
+      "type": "causal",
+      "reason": "weak signal (R\u00b2=0.000) \u2014 relationship too weak at n-sample"
+    },
+    {
+      "source": "govt_debt",
+      "target": "real_interest_rate",
+      "type": "causal",
+      "reason": "weak signal (R\u00b2=0.000) \u2014 relationship too weak at n-sample"
+    },
+    {
+      "source": "private_credit",
+      "target": "gdp_growth",
+      "type": "causal",
+      "reason": "weak signal (R\u00b2=0.000) \u2014 relationship too weak at n-sample"
+    },
+    {
+      "source": "govt_consumption",
+      "target": "gdp_growth",
+      "type": "causal",
+      "reason": "weak signal (R\u00b2=0.000) \u2014 relationship too weak at n-sample"
+    },
+    {
+      "source": "exports_gdp",
+      "target": "imports_gdp",
+      "type": "correlational",
+      "reason": "weak signal (R\u00b2=0.000) \u2014 relationship too weak at n-sample"
+    },
+    {
+      "source": "gdp_growth",
+      "target": "gcf",
+      "type": "correlational",
+      "reason": "weak signal (R\u00b2=0.000) \u2014 relationship too weak at n-sample"
+    },
+    {
+      "source": "school_enrollment",
+      "target": "life_expectancy",
+      "type": "correlational",
+      "reason": "weak signal (R\u00b2=0.000) \u2014 relationship too weak at n-sample"
+    },
+    {
+      "source": "govt_consumption",
+      "target": "private_credit",
+      "type": "competitive",
+      "reason": "weak signal (R\u00b2=0.000) \u2014 relationship too weak at n-sample"
+    },
+    {
+      "source": "imports_gdp",
+      "target": "current_account",
+      "type": "competitive",
+      "reason": "weak signal (R\u00b2=0.000) \u2014 relationship too weak at n-sample"
+    },
+    {
+      "source": "exports_gdp",
+      "target": "current_account",
+      "type": "compositional",
+      "reason": "weak signal (R\u00b2=0.000) \u2014 relationship too weak at n-sample"
+    },
+    {
+      "source": "govt_consumption",
+      "target": "gdp_growth",
+      "type": "compositional",
+      "reason": "weak signal (R\u00b2=0.000) \u2014 relationship too weak at n-sample"
+    },
+    {
+      "source": "current_account",
+      "target": "current_account",
+      "type": "equilibrium",
+      "reason": "weak signal (R\u00b2=0.000) \u2014 relationship too weak at n-sample"
+    },
+    {
+      "source": "real_interest_rate",
+      "target": "real_interest_rate",
+      "type": "equilibrium",
+      "reason": "weak signal (R\u00b2=0.000) \u2014 relationship too weak at n-sample"
+    },
+    {
+      "source": "inflation_cpi",
+      "target": "private_credit",
+      "type": "mediating",
+      "reason": "weak signal (R\u00b2=0.000) \u2014 relationship too weak at n-sample"
+    },
+    {
+      "source": "gdp_growth",
+      "target": "govt_consumption",
+      "type": "mediating",
+      "reason": "weak signal (R\u00b2=0.000) \u2014 relationship too weak at n-sample"
+    },
+    {
+      "source": "private_credit",
+      "target": "gdp_growth",
+      "type": "synergistic",
+      "reason": "weak signal (R\u00b2=0.000) \u2014 relationship too weak at n-sample"
+    },
+    {
+      "source": "school_enrollment",
+      "target": "gdp_growth",
+      "type": "synergistic",
+      "reason": "weak signal (R\u00b2=0.000) \u2014 relationship too weak at n-sample"
+    },
+    {
+      "source": "inflation_cpi",
+      "target": "inflation_cpi",
+      "type": "structural",
+      "reason": "weak signal (R\u00b2=0.000) \u2014 relationship too weak at n-sample"
+    },
+    {
+      "source": "gdp_growth",
+      "target": "life_expectancy",
+      "type": "functional",
+      "reason": "weak signal (R\u00b2=0.000) \u2014 relationship too weak at n-sample"
+    }
+  ],
+  "miss_reasons": [
+    {
+      "gt": {
+        "source": "inflation_cpi",
+        "target": "inflation_cpi",
+        "type": "temporal",
+        "expected_sign": 1,
+        "strength": "strong",
+        "theoretical_basis": "Inflation persistence \u2014 adaptive expectations, wage-price spirals (Blanchard Ch.8; Gordon 1990)"
+      },
+      "reason": "weak signal (R\u00b2=0.000) \u2014 relationship too weak at n-sample"
+    },
+    {
+      "gt": {
+        "source": "gdp_growth",
+        "target": "gdp_growth",
+        "type": "temporal",
+        "expected_sign": 1,
+        "strength": "strong",
+        "theoretical_basis": "GDP growth mean-reversion \u2014 business cycle persistence (Hamilton 1989; Blanchard Ch.9)"
+      },
+      "reason": "weak signal (R\u00b2=0.000) \u2014 relationship too weak at n-sample"
+    },
+    {
+      "gt": {
+        "source": "real_interest_rate",
+        "target": "real_interest_rate",
+        "type": "temporal",
+        "expected_sign": 1,
+        "strength": "strong",
+        "theoretical_basis": "Interest rate smoothing \u2014 central bank gradualism (Woodford 2003; Taylor 1993)"
+      },
+      "reason": "weak signal (R\u00b2=0.000) \u2014 relationship too weak at n-sample"
+    },
+    {
+      "gt": {
+        "source": "inflation_cpi",
+        "target": "real_interest_rate",
+        "type": "causal",
+        "expected_sign": 1,
+        "strength": "strong",
+        "theoretical_basis": "Taylor Rule \u2014 CB raises nominal rate more than 1:1 with inflation (Taylor 1993; Clarida et al. 1999)"
+      },
+      "reason": "weak signal (R\u00b2=0.000) \u2014 relationship too weak at n-sample"
+    },
+    {
+      "gt": {
+        "source": "gdp_growth",
+        "target": "unemployment",
+        "type": "causal",
+        "expected_sign": -1,
+        "strength": "strong",
+        "theoretical_basis": "Okun's Law \u2014 output gap reduces unemployment (Okun 1962; Ball et al. 2017)"
+      },
+      "reason": "high p-value (0.502) \u2014 indistinguishable from null distribution"
+    },
+    {
+      "gt": {
+        "source": "real_interest_rate",
+        "target": "private_credit",
+        "type": "causal",
+        "expected_sign": -1,
+        "strength": "strong",
+        "theoretical_basis": "Credit channel \u2014 higher rates reduce lending (Bernanke & Gertler 1995; Mishkin 1996)"
+      },
+      "reason": "weak signal (R\u00b2=0.000) \u2014 relationship too weak at n-sample"
+    },
+    {
+      "gt": {
+        "source": "govt_debt",
+        "target": "real_interest_rate",
+        "type": "causal",
+        "expected_sign": 1,
+        "strength": "moderate",
+        "theoretical_basis": "Crowding-out \u2014 fiscal deficits raise rates (Mankiw Ch.3; Laubach 2009)"
+      },
+      "reason": "weak signal (R\u00b2=0.000) \u2014 relationship too weak at n-sample"
+    },
+    {
+      "gt": {
+        "source": "private_credit",
+        "target": "gdp_growth",
+        "type": "causal",
+        "expected_sign": 1,
+        "strength": "moderate",
+        "theoretical_basis": "Financial deepening \u2014 credit enables investment (King & Levine 1993; Rajan & Zingales 1998)"
+      },
+      "reason": "weak signal (R\u00b2=0.000) \u2014 relationship too weak at n-sample"
+    },
+    {
+      "gt": {
+        "source": "govt_consumption",
+        "target": "gdp_growth",
+        "type": "causal",
+        "expected_sign": 1,
+        "strength": "moderate",
+        "theoretical_basis": "Fiscal multiplier \u2014 government spending raises output (Blanchard & Perotti 2002; Ramey 2011)"
+      },
+      "reason": "weak signal (R\u00b2=0.000) \u2014 relationship too weak at n-sample"
+    },
+    {
+      "gt": {
+        "source": "exports_gdp",
+        "target": "imports_gdp",
+        "type": "correlational",
+        "expected_sign": 1,
+        "strength": "strong",
+        "theoretical_basis": "Trade openness \u2014 both driven by liberalisation, FX regime, global demand (Obstfeld & Rogoff Ch.1; Frankel & Romer 1999)"
+      },
+      "reason": "weak signal (R\u00b2=0.000) \u2014 relationship too weak at n-sample"
+    },
+    {
+      "gt": {
+        "source": "gdp_growth",
+        "target": "gcf",
+        "type": "correlational",
+        "expected_sign": 1,
+        "strength": "strong",
+        "theoretical_basis": "Accelerator \u2014 investment and output co-move; direction is simultaneous (Samuelson 1939; Clark 1917)"
+      },
+      "reason": "weak signal (R\u00b2=0.000) \u2014 relationship too weak at n-sample"
+    },
+    {
+      "gt": {
+        "source": "school_enrollment",
+        "target": "life_expectancy",
+        "type": "correlational",
+        "expected_sign": 1,
+        "strength": "moderate",
+        "theoretical_basis": "Human capital co-movement \u2014 education and health driven by development spending (Sen 1999; UNDP HDI methodology)"
+      },
+      "reason": "weak signal (R\u00b2=0.000) \u2014 relationship too weak at n-sample"
+    },
+    {
+      "gt": {
+        "source": "govt_consumption",
+        "target": "private_credit",
+        "type": "competitive",
+        "expected_sign": -1,
+        "strength": "moderate",
+        "theoretical_basis": "Fiscal crowding-out of private sector \u2014 government borrowing absorbs domestic credit (Mankiw Ch.3; Friedman 1978)"
+      },
+      "reason": "weak signal (R\u00b2=0.000) \u2014 relationship too weak at n-sample"
+    },
+    {
+      "gt": {
+        "source": "imports_gdp",
+        "target": "current_account",
+        "type": "competitive",
+        "expected_sign": -1,
+        "strength": "strong",
+        "theoretical_basis": "Balance of payments identity \u2014 imports reduce CA balance by construction (Obstfeld & Rogoff Ch.1)"
+      },
+      "reason": "weak signal (R\u00b2=0.000) \u2014 relationship too weak at n-sample"
+    },
+    {
+      "gt": {
+        "source": "exports_gdp",
+        "target": "current_account",
+        "type": "compositional",
+        "expected_sign": 1,
+        "strength": "strong",
+        "theoretical_basis": "CA = Exports - Imports + Net income + Net transfers (BPM6; Obstfeld & Rogoff Ch.1)"
+      },
+      "reason": "weak signal (R\u00b2=0.000) \u2014 relationship too weak at n-sample"
+    },
+    {
+      "gt": {
+        "source": "govt_consumption",
+        "target": "gdp_growth",
+        "type": "compositional",
+        "expected_sign": 1,
+        "strength": "strong",
+        "theoretical_basis": "GDP = C + I + G + NX; govt consumption is a GDP component (SNA 2008; Mankiw Ch.2)"
+      },
+      "reason": "weak signal (R\u00b2=0.000) \u2014 relationship too weak at n-sample"
+    },
+    {
+      "gt": {
+        "source": "current_account",
+        "target": "current_account",
+        "type": "equilibrium",
+        "expected_sign": 0,
+        "strength": "moderate",
+        "theoretical_basis": "Intertemporal CA sustainability \u2014 CA/GDP reverts to sustainable deficit level (Obstfeld & Rogoff Ch.2; Trehan & Walsh 1991)"
+      },
+      "reason": "weak signal (R\u00b2=0.000) \u2014 relationship too weak at n-sample"
+    },
+    {
+      "gt": {
+        "source": "real_interest_rate",
+        "target": "real_interest_rate",
+        "type": "equilibrium",
+        "expected_sign": 0,
+        "strength": "moderate",
+        "theoretical_basis": "Natural rate of interest \u2014 real rate reverts to r* (Wicksell 1898; Laubach & Williams 2003)"
+      },
+      "reason": "weak signal (R\u00b2=0.000) \u2014 relationship too weak at n-sample"
+    },
+    {
+      "gt": {
+        "source": "inflation_cpi",
+        "mediator": "real_interest_rate",
+        "target": "private_credit",
+        "type": "mediating",
+        "expected_sign": -1,
+        "strength": "strong",
+        "theoretical_basis": "Monetary transmission \u2014 inflation triggers rate hikes which reduce credit (Bernanke & Gertler 1995; Mishkin 1996)"
+      },
+      "reason": "weak signal (R\u00b2=0.000) \u2014 relationship too weak at n-sample"
+    },
+    {
+      "gt": {
+        "source": "gdp_growth",
+        "mediator": "unemployment",
+        "target": "govt_consumption",
+        "type": "mediating",
+        "expected_sign": 1,
+        "strength": "weak",
+        "theoretical_basis": "Automatic stabilisers \u2014 GDP affects spending through unemployment insurance and tax revenue (Blanchard Ch.22; Auerbach & Gorodnichenko 2012)"
+      },
+      "reason": "weak signal (R\u00b2=0.000) \u2014 relationship too weak at n-sample"
+    },
+    {
+      "gt": {
+        "source": "private_credit",
+        "moderator": "electricity_access",
+        "target": "gdp_growth",
+        "type": "synergistic",
+        "expected_sign": 1,
+        "strength": "moderate",
+        "theoretical_basis": "Credit x infrastructure complementarity \u2014 credit is more productive where infrastructure exists (Sahay et al. 2015; Demirguc-Kunt & Levine 2008)"
+      },
+      "reason": "weak signal (R\u00b2=0.000) \u2014 relationship too weak at n-sample"
+    },
+    {
+      "gt": {
+        "source": "school_enrollment",
+        "moderator": "electricity_access",
+        "target": "gdp_growth",
+        "type": "synergistic",
+        "expected_sign": 1,
+        "strength": "moderate",
+        "theoretical_basis": "Human capital x infrastructure \u2014 educated workers more productive with electricity/internet access (Hanushek & Woessmann 2012; World Bank 2019)"
+      },
+      "reason": "weak signal (R\u00b2=0.000) \u2014 relationship too weak at n-sample"
+    },
+    {
+      "gt": {
+        "source": "inflation_cpi",
+        "target": "inflation_cpi",
+        "type": "structural",
+        "expected_sign": 0,
+        "strength": "moderate",
+        "theoretical_basis": "Inflation targeting regime shift \u2014 Kenya adopted IT framework in 2011; distribution of inflation changed (CBK Monetary Policy Statement; IMF Art. IV 2012)"
+      },
+      "reason": "weak signal (R\u00b2=0.000) \u2014 relationship too weak at n-sample"
+    },
+    {
+      "gt": {
+        "source": "gdp_growth",
+        "target": "life_expectancy",
+        "type": "functional",
+        "expected_sign": 1,
+        "strength": "strong",
+        "theoretical_basis": "Preston Curve \u2014 log-linear relationship between income and life expectancy (Preston 1975; Deaton 2013)"
+      },
+      "reason": "weak signal (R\u00b2=0.000) \u2014 relationship too weak at n-sample"
+    }
+  ]
+}

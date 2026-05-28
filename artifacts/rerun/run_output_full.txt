@@ -1,0 +1,852 @@
+  Per-pair selection: 342 pairwise + 20 univariate -> 362 representatives
+  Type distribution of winners:
+    correlational: 185
+    structural: 76
+    probabilistic: 25
+    functional: 18
+    equilibrium: 17
+    causal: 16
+    competitive: 13
+    mediating: 4
+    synergistic: 2
+    graph: 2
+    temporal: 2
+    logical: 1
+    similarity: 1
+  FDR q=0.10: 319/362 significant (88.1%)
+  Per-pair selection: 342 pairwise + 20 univariate -> 362 representatives
+  Type distribution of winners:
+    correlational: 153
+    structural: 106
+    probabilistic: 30
+    causal: 30
+    equilibrium: 15
+    functional: 14
+    competitive: 9
+    temporal: 4
+    similarity: 1
+  FDR q=0.10: 345/362 significant (95.3%)
+  Per-pair selection: 342 pairwise + 20 univariate -> 362 representatives
+  Type distribution of winners:
+    correlational: 123
+    structural: 99
+    probabilistic: 50
+    causal: 42
+    competitive: 14
+    functional: 14
+    equilibrium: 13
+    temporal: 6
+    similarity: 1
+  FDR q=0.10: 311/362 significant (85.9%)
+  Per-pair selection: 342 pairwise + 20 univariate -> 362 representatives
+  Type distribution of winners:
+    correlational: 153
+    structural: 99
+    probabilistic: 40
+    causal: 17
+    competitive: 17
+    equilibrium: 14
+    functional: 13
+    temporal: 5
+    mediating: 2
+    logical: 1
+    similarity: 1
+  FDR q=0.10: 340/362 significant (93.9%)
+  Per-pair selection: 342 pairwise + 20 univariate -> 362 representatives
+  Type distribution of winners:
+    correlational: 122
+    graph: 71
+    causal: 49
+    probabilistic: 36
+    logical: 18
+    competitive: 15
+    equilibrium: 14
+    mediating: 11
+    synergistic: 10
+    functional: 10
+    temporal: 5
+    similarity: 1
+  FDR q=0.10: 278/362 significant (76.8%)
+  Per-pair selection: 342 pairwise + 20 univariate -> 362 representatives
+  Type distribution of winners:
+    correlational: 170
+    graph: 51
+    probabilistic: 29
+    functional: 26
+    logical: 22
+    competitive: 18
+    equilibrium: 14
+    causal: 11
+    mediating: 8
+    synergistic: 7
+    temporal: 5
+    similarity: 1
+  FDR q=0.10: 289/362 significant (79.8%)
+  Per-pair selection: 342 pairwise + 20 univariate -> 362 representatives
+  Type distribution of winners:
+    correlational: 164
+    structural: 62
+    probabilistic: 61
+    causal: 44
+    equilibrium: 16
+    functional: 9
+    temporal: 3
+    competitive: 2
+    similarity: 1
+  FDR q=0.10: 308/362 significant (85.1%)
+  Per-pair selection: 342 pairwise + 20 univariate -> 362 representatives
+  Type distribution of winners:
+    correlational: 118
+    structural: 83
+    probabilistic: 65
+    causal: 52
+    equilibrium: 15
+    functional: 7
+    competitive: 6
+    synergistic: 6
+    logical: 5
+    temporal: 4
+    similarity: 1
+  FDR q=0.10: 300/362 significant (82.9%)
+  Per-pair selection: 342 pairwise + 20 univariate -> 362 representatives
+  Type distribution of winners:
+    correlational: 177
+    graph: 42
+    causal: 32
+    probabilistic: 23
+    functional: 22
+    logical: 17
+    competitive: 12
+    equilibrium: 12
+    mediating: 9
+    synergistic: 7
+    temporal: 7
+    moderating: 1
+    similarity: 1
+  FDR q=0.10: 292/362 significant (80.7%)
+  Per-pair selection: 342 pairwise + 20 univariate -> 362 representatives
+  Type distribution of winners:
+    correlational: 138
+    causal: 55
+    probabilistic: 50
+    graph: 43
+    functional: 18
+    competitive: 16
+    equilibrium: 11
+    mediating: 10
+    logical: 9
+    temporal: 8
+    synergistic: 2
+    moderating: 1
+    similarity: 1
+  FDR q=0.10: 285/362 significant (78.7%)
+  Per-pair selection: 342 pairwise + 20 univariate -> 362 representatives
+  Type distribution of winners:
+    correlational: 117
+    probabilistic: 81
+    structural: 72
+    causal: 49
+    functional: 12
+    competitive: 11
+    equilibrium: 11
+    temporal: 8
+    similarity: 1
+  FDR q=0.10: 309/362 significant (85.4%)
+  Per-pair selection: 342 pairwise + 20 univariate -> 362 representatives
+  Type distribution of winners:
+    correlational: 134
+    probabilistic: 60
+    causal: 59
+    graph: 37
+    functional: 16
+    competitive: 14
+    equilibrium: 13
+    logical: 10
+    temporal: 6
+    mediating: 5
+    synergistic: 4
+    structural: 3
+    similarity: 1
+  FDR q=0.10: 301/362 significant (83.1%)
+  Per-pair selection: 342 pairwise + 20 univariate -> 362 representatives
+  Type distribution of winners:
+    correlational: 128
+    structural: 107
+    causal: 53
+    probabilistic: 40
+    equilibrium: 16
+    functional: 9
+    competitive: 5
+    temporal: 3
+    similarity: 1
+  FDR q=0.10: 310/362 significant (85.6%)
+  Per-pair selection: 342 pairwise + 20 univariate -> 362 representatives
+  Type distribution of winners:
+    structural: 126
+    correlational: 123
+    causal: 48
+    probabilistic: 29
+    functional: 12
+    equilibrium: 12
+    temporal: 7
+    competitive: 4
+    similarity: 1
+  FDR q=0.10: 308/362 significant (85.1%)
+  Per-pair selection: 342 pairwise + 20 univariate -> 362 representatives
+  Type distribution of winners:
+    correlational: 142
+    structural: 133
+    probabilistic: 35
+    competitive: 21
+    equilibrium: 16
+    functional: 7
+    causal: 4
+    temporal: 3
+    similarity: 1
+  FDR q=0.10: 346/362 significant (95.6%)
+  Per-pair selection: 342 pairwise + 20 univariate -> 362 representatives
+  Type distribution of winners:
+    correlational: 130
+    structural: 93
+    causal: 45
+    probabilistic: 44
+    equilibrium: 15
+    functional: 11
+    competitive: 11
+    synergistic: 4
+    temporal: 4
+    logical: 3
+    mediating: 1
+    similarity: 1
+  FDR q=0.10: 296/362 significant (81.8%)
+  Per-pair selection: 342 pairwise + 20 univariate -> 362 representatives
+  Type distribution of winners:
+    correlational: 178
+    graph: 52
+    probabilistic: 40
+    competitive: 25
+    equilibrium: 15
+    functional: 13
+    causal: 13
+    mediating: 8
+    synergistic: 7
+    logical: 6
+    temporal: 4
+    similarity: 1
+  FDR q=0.10: 308/362 significant (85.1%)
+  Per-pair selection: 342 pairwise + 20 univariate -> 362 representatives
+  Type distribution of winners:
+    correlational: 128
+    structural: 104
+    probabilistic: 42
+    causal: 41
+    competitive: 15
+    equilibrium: 15
+    functional: 12
+    temporal: 4
+    similarity: 1
+  FDR q=0.10: 310/362 significant (85.6%)
+  Per-pair selection: 342 pairwise + 20 univariate -> 362 representatives
+  Type distribution of winners:
+    correlational: 137
+    structural: 121
+    causal: 44
+    probabilistic: 28
+    equilibrium: 16
+    competitive: 6
+    functional: 6
+    temporal: 3
+    similarity: 1
+  FDR q=0.10: 307/362 significant (84.8%)
+  Per-pair selection: 342 pairwise + 20 univariate -> 362 representatives
+  Type distribution of winners:
+    correlational: 175
+    probabilistic: 45
+    graph: 40
+    functional: 21
+    competitive: 21
+    causal: 17
+    logical: 16
+    equilibrium: 16
+    mediating: 6
+    temporal: 3
+    synergistic: 1
+    similarity: 1
+  FDR q=0.10: 314/362 significant (86.7%)
+  Per-pair selection: 342 pairwise + 20 univariate -> 362 representatives
+  Type distribution of winners:
+    correlational: 135
+    structural: 84
+    causal: 62
+    probabilistic: 39
+    equilibrium: 16
+    competitive: 13
+    functional: 9
+    temporal: 3
+    similarity: 1
+  FDR q=0.10: 309/362 significant (85.4%)
+  Per-pair selection: 342 pairwise + 20 univariate -> 362 representatives
+  Type distribution of winners:
+    correlational: 176
+    structural: 80
+    causal: 34
+    probabilistic: 29
+    equilibrium: 16
+    functional: 12
+    competitive: 6
+    synergistic: 3
+    temporal: 3
+    logical: 2
+    similarity: 1
+  FDR q=0.10: 335/362 significant (92.5%)
+  Per-pair selection: 342 pairwise + 20 univariate -> 362 representatives
+  Type distribution of winners:
+    correlational: 132
+    structural: 97
+    causal: 52
+    probabilistic: 43
+    functional: 14
+    equilibrium: 12
+    temporal: 7
+    competitive: 4
+    similarity: 1
+  FDR q=0.10: 309/362 significant (85.4%)
+  Per-pair selection: 342 pairwise + 20 univariate -> 362 representatives
+  Type distribution of winners:
+    correlational: 120
+    structural: 101
+    causal: 53
+    probabilistic: 46
+    equilibrium: 16
+    competitive: 11
+    functional: 11
+    temporal: 3
+    similarity: 1
+  FDR q=0.10: 309/362 significant (85.4%)
+  Per-pair selection: 342 pairwise + 20 univariate -> 362 representatives
+  Type distribution of winners:
+    correlational: 153
+    graph: 51
+    causal: 47
+    probabilistic: 46
+    functional: 19
+    equilibrium: 15
+    competitive: 11
+    logical: 9
+    mediating: 5
+    temporal: 4
+    synergistic: 1
+    similarity: 1
+  FDR q=0.10: 305/362 significant (84.3%)
+  Per-pair selection: 342 pairwise + 20 univariate -> 362 representatives
+  Type distribution of winners:
+    correlational: 173
+    probabilistic: 52
+    causal: 51
+    structural: 50
+    equilibrium: 16
+    functional: 12
+    competitive: 4
+    temporal: 3
+    similarity: 1
+  FDR q=0.10: 313/362 significant (86.5%)
+  Per-pair selection: 342 pairwise + 20 univariate -> 362 representatives
+  Type distribution of winners:
+    correlational: 126
+    structural: 109
+    causal: 47
+    probabilistic: 27
+    functional: 16
+    equilibrium: 15
+    competitive: 10
+    mediating: 4
+    temporal: 4
+    synergistic: 2
+    logical: 1
+    similarity: 1
+  FDR q=0.10: 303/362 significant (83.7%)
+  Per-pair selection: 342 pairwise + 20 univariate -> 362 representatives
+  Type distribution of winners:
+    correlational: 151
+    structural: 88
+    probabilistic: 48
+    causal: 42
+    equilibrium: 13
+    functional: 11
+    temporal: 6
+    competitive: 2
+    similarity: 1
+  FDR q=0.10: 310/362 significant (85.6%)
+  Per-pair selection: 342 pairwise + 20 univariate -> 362 representatives
+  Type distribution of winners:
+    correlational: 189
+    structural: 66
+    causal: 24
+    probabilistic: 24
+    equilibrium: 15
+    competitive: 12
+    functional: 11
+    logical: 9
+    synergistic: 6
+    temporal: 4
+    mediating: 1
+    similarity: 1
+  FDR q=0.10: 310/362 significant (85.6%)
+  Per-pair selection: 342 pairwise + 20 univariate -> 362 representatives
+  Type distribution of winners:
+    correlational: 188
+    structural: 77
+    probabilistic: 38
+    competitive: 22
+    functional: 14
+    equilibrium: 14
+    temporal: 5
+    causal: 3
+    similarity: 1
+  FDR q=0.10: 345/362 significant (95.3%)
+  Per-pair selection: 342 pairwise + 20 univariate -> 362 representatives
+  Type distribution of winners:
+    correlational: 151
+    structural: 88
+    causal: 45
+    probabilistic: 35
+    equilibrium: 14
+    functional: 9
+    competitive: 8
+    temporal: 5
+    logical: 3
+    synergistic: 2
+    mediating: 1
+    similarity: 1
+  FDR q=0.10: 304/362 significant (84.0%)
+  Per-pair selection: 342 pairwise + 20 univariate -> 362 representatives
+  Type distribution of winners:
+    correlational: 166
+    causal: 54
+    graph: 37
+    probabilistic: 23
+    functional: 20
+    competitive: 13
+    equilibrium: 13
+    logical: 12
+    mediating: 8
+    temporal: 6
+    synergistic: 5
+    moderating: 4
+    similarity: 1
+  FDR q=0.10: 263/362 significant (72.7%)
+  Per-pair selection: 342 pairwise + 20 univariate -> 362 representatives
+  Type distribution of winners:
+    correlational: 142
+    graph: 77
+    causal: 59
+    probabilistic: 29
+    functional: 13
+    equilibrium: 11
+    mediating: 9
+    temporal: 8
+    logical: 7
+    competitive: 5
+    synergistic: 1
+    similarity: 1
+  FDR q=0.10: 298/362 significant (82.3%)
+  Per-pair selection: 342 pairwise + 20 univariate -> 362 representatives
+  Type distribution of winners:
+    correlational: 168
+    probabilistic: 69
+    graph: 37
+    functional: 19
+    competitive: 18
+    equilibrium: 14
+    causal: 13
+    logical: 7
+    temporal: 5
+    synergistic: 4
+    mediating: 4
+    structural: 3
+    similarity: 1
+  FDR q=0.10: 318/362 significant (87.8%)
+  Per-pair selection: 342 pairwise + 20 univariate -> 362 representatives
+  Type distribution of winners:
+    correlational: 161
+    structural: 138
+    causal: 17
+    equilibrium: 14
+    probabilistic: 12
+    functional: 7
+    competitive: 7
+    temporal: 5
+    similarity: 1
+  FDR q=0.10: 345/362 significant (95.3%)
+  Per-pair selection: 342 pairwise + 20 univariate -> 362 representatives
+  Type distribution of winners:
+    correlational: 170
+    probabilistic: 64
+    structural: 59
+    causal: 16
+    equilibrium: 15
+    functional: 14
+    competitive: 11
+    temporal: 4
+    graph: 3
+    logical: 2
+    synergistic: 2
+    mediating: 1
+    similarity: 1
+  FDR q=0.10: 313/362 significant (86.5%)
+  Per-pair selection: 342 pairwise + 20 univariate -> 362 representatives
+  Type distribution of winners:
+    correlational: 162
+    structural: 97
+    probabilistic: 45
+    functional: 20
+    equilibrium: 14
+    competitive: 11
+    causal: 7
+    temporal: 5
+    similarity: 1
+  FDR q=0.10: 342/362 significant (94.5%)
+  Per-pair selection: 342 pairwise + 20 univariate -> 362 representatives
+  Type distribution of winners:
+    correlational: 148
+    structural: 111
+    probabilistic: 37
+    causal: 25
+    equilibrium: 16
+    competitive: 12
+    functional: 8
+    temporal: 3
+    graph: 1
+    similarity: 1
+  FDR q=0.10: 347/362 significant (95.9%)
+  Per-pair selection: 342 pairwise + 20 univariate -> 362 representatives
+  Type distribution of winners:
+    correlational: 164
+    structural: 109
+    probabilistic: 35
+    equilibrium: 14
+    functional: 12
+    competitive: 11
+    causal: 9
+    temporal: 5
+    synergistic: 1
+    logical: 1
+    similarity: 1
+  FDR q=0.10: 340/362 significant (93.9%)
+  Per-pair selection: 342 pairwise + 20 univariate -> 362 representatives
+  Type distribution of winners:
+    correlational: 176
+    structural: 95
+    probabilistic: 37
+    functional: 13
+    equilibrium: 13
+    competitive: 12
+    temporal: 6
+    causal: 4
+    mediating: 2
+    synergistic: 2
+    logical: 1
+    similarity: 1
+  FDR q=0.10: 321/362 significant (88.7%)
+  Per-pair selection: 342 pairwise + 20 univariate -> 362 representatives
+  Type distribution of winners:
+    correlational: 176
+    probabilistic: 55
+    graph: 40
+    competitive: 20
+    logical: 17
+    equilibrium: 16
+    functional: 14
+    synergistic: 9
+    causal: 6
+    mediating: 5
+    temporal: 3
+    similarity: 1
+  FDR q=0.10: 302/362 significant (83.4%)
+  Per-pair selection: 342 pairwise + 20 univariate -> 362 representatives
+  Type distribution of winners:
+    correlational: 146
+    probabilistic: 60
+    graph: 52
+    causal: 43
+    equilibrium: 16
+    competitive: 12
+    functional: 8
+    logical: 8
+    mediating: 7
+    synergistic: 6
+    temporal: 3
+    similarity: 1
+  FDR q=0.10: 294/362 significant (81.2%)
+  Per-pair selection: 342 pairwise + 20 univariate -> 362 representatives
+  Type distribution of winners:
+    structural: 112
+    correlational: 108
+    probabilistic: 58
+    causal: 45
+    equilibrium: 17
+    functional: 11
+    competitive: 8
+    temporal: 2
+    similarity: 1
+  FDR q=0.10: 311/362 significant (85.9%)
+  Per-pair selection: 342 pairwise + 20 univariate -> 362 representatives
+  Type distribution of winners:
+    correlational: 175
+    probabilistic: 49
+    graph: 29
+    causal: 26
+    functional: 23
+    equilibrium: 14
+    competitive: 13
+    mediating: 10
+    logical: 8
+    synergistic: 8
+    temporal: 5
+    moderating: 1
+    similarity: 1
+  FDR q=0.10: 308/362 significant (85.1%)
+  Per-pair selection: 342 pairwise + 20 univariate -> 362 representatives
+  Type distribution of winners:
+    correlational: 135
+    structural: 107
+    causal: 42
+    probabilistic: 35
+    functional: 16
+    equilibrium: 13
+    competitive: 7
+    temporal: 6
+    similarity: 1
+  FDR q=0.10: 314/362 significant (86.7%)
+  Per-pair selection: 342 pairwise + 20 univariate -> 362 representatives
+  Type distribution of winners:
+    correlational: 150
+    graph: 45
+    causal: 45
+    probabilistic: 31
+    logical: 18
+    competitive: 18
+    functional: 17
+    equilibrium: 17
+    mediating: 10
+    synergistic: 7
+    temporal: 2
+    moderating: 1
+    similarity: 1
+  FDR q=0.10: 270/362 significant (74.6%)
+  Per-pair selection: 342 pairwise + 20 univariate -> 362 representatives
+  Type distribution of winners:
+    correlational: 169
+    structural: 84
+    probabilistic: 57
+    functional: 18
+    equilibrium: 15
+    competitive: 8
+    causal: 6
+    temporal: 4
+    similarity: 1
+  FDR q=0.10: 340/362 significant (93.9%)
+  Per-pair selection: 342 pairwise + 20 univariate -> 362 representatives
+  Type distribution of winners:
+    correlational: 127
+    structural: 106
+    causal: 52
+    probabilistic: 43
+    equilibrium: 17
+    functional: 8
+    competitive: 6
+    temporal: 2
+    similarity: 1
+  FDR q=0.10: 313/362 significant (86.5%)
+  Per-pair selection: 342 pairwise + 20 univariate -> 362 representatives
+  Type distribution of winners:
+    correlational: 198
+    graph: 47
+    probabilistic: 36
+    functional: 20
+    competitive: 19
+    equilibrium: 17
+    mediating: 8
+    logical: 7
+    synergistic: 4
+    causal: 3
+    temporal: 2
+    similarity: 1
+  FDR q=0.10: 322/362 significant (89.0%)
+  Per-pair selection: 342 pairwise + 20 univariate -> 362 representatives
+  Type distribution of winners:
+    correlational: 163
+    structural: 115
+    competitive: 17
+    probabilistic: 17
+    equilibrium: 16
+    causal: 13
+    functional: 13
+    temporal: 3
+    synergistic: 2
+    logical: 1
+    mediating: 1
+    similarity: 1
+  FDR q=0.10: 339/362 significant (93.6%)
+Mode: FULL (B_boot=50, B_perm=50) — engine-routed, 6 workers
+
+Loading Kenya macro data...
+Data: 34 obs x 19 variables
+GT entries: 27, null pairs: 4
+
+[ENGINE] Initializing OnlineDiscoveryEngine...
+[ENGINE] Initialized 1000 hypotheses for 19 variables
+[ENGINE] Extracted fit_score from 184 hypotheses
+
+[STEP 1-4] Running on original data (engine-routed)...
+  [engine-15] 342 pairs × 8 pairwise + 19 vars × 2 univ + 969 triplets × 4 triplet + 1 collective = 6651 tests, B=50
+  [engine-15] Pairwise: 85/342 pairs (25%)
+  [engine-15] Pairwise: 170/342 pairs (50%)
+  [engine-15] Pairwise: 255/342 pairs (75%)
+  [engine-15] Pairwise: 340/342 pairs (99%)
+  [engine-15] Triplets: 242/969 (25%)
+  [engine-15] Triplets: 484/969 (50%)
+  [engine-15] Triplets: 726/969 (75%)
+  [engine-15] Triplets: 968/969 (100%)
+  [engine-15] SimilarityHypothesis: T_obs=0.0000, p=1.0000
+  Per-pair selection: 342 pairwise + 20 univariate -> 362 representatives
+  Type distribution of winners:
+    correlational: 146
+    causal: 52
+    probabilistic: 38
+    logical: 22
+    graph: 19
+    functional: 19
+    competitive: 19
+    mediating: 15
+    temporal: 11
+    synergistic: 10
+    equilibrium: 8
+    moderating: 2
+    similarity: 1
+  FDR q=0.10: 246/362 significant (68.0%)
+
+[STEP 5] Stability selection: 50 resamples, 50 perms each (6 workers)
+  Resample 1/50: 319 significant at q=0.10
+  Resample 2/50: 292 significant at q=0.10
+  Resample 3/50: 303 significant at q=0.10
+  Resample 4/50: 311 significant at q=0.10
+  Resample 5/50: 345 significant at q=0.10
+  Resample 6/50: 310 significant at q=0.10
+  Resample 7/50: 285 significant at q=0.10
+  Resample 8/50: 308 significant at q=0.10
+  Resample 9/50: 345 significant at q=0.10
+  Resample 10/50: 313 significant at q=0.10
+  Resample 11/50: 307 significant at q=0.10
+  Resample 12/50: 310 significant at q=0.10
+  Resample 13/50: 309 significant at q=0.10
+  Resample 14/50: 311 significant at q=0.10
+  Resample 15/50: 314 significant at q=0.10
+  Resample 16/50: 310 significant at q=0.10
+  Resample 17/50: 342 significant at q=0.10
+  Resample 18/50: 314 significant at q=0.10
+  Resample 19/50: 301 significant at q=0.10
+  Resample 20/50: 340 significant at q=0.10
+  Resample 21/50: 309 significant at q=0.10
+  Resample 22/50: 270 significant at q=0.10
+  Resample 23/50: 345 significant at q=0.10
+  Resample 24/50: 347 significant at q=0.10
+  Resample 25/50: 278 significant at q=0.10
+  Resample 26/50: 310 significant at q=0.10
+  Resample 27/50: 335 significant at q=0.10
+  Resample 28/50: 304 significant at q=0.10
+  Resample 29/50: 340 significant at q=0.10
+  Resample 30/50: 340 significant at q=0.10
+  Resample 31/50: 289 significant at q=0.10
+  Resample 32/50: 308 significant at q=0.10
+  Resample 33/50: 309 significant at q=0.10
+  Resample 34/50: 263 significant at q=0.10
+  Resample 35/50: 313 significant at q=0.10
+  Resample 36/50: 321 significant at q=0.10
+  Resample 37/50: 308 significant at q=0.10
+  Resample 38/50: 346 significant at q=0.10
+  Resample 39/50: 298 significant at q=0.10
+  Resample 40/50: 309 significant at q=0.10
+  Resample 41/50: 322 significant at q=0.10
+  Resample 42/50: 302 significant at q=0.10
+  Resample 43/50: 296 significant at q=0.10
+  Resample 44/50: 305 significant at q=0.10
+  Resample 45/50: 300 significant at q=0.10
+  Resample 46/50: 318 significant at q=0.10
+  Resample 47/50: 339 significant at q=0.10
+  Resample 48/50: 294 significant at q=0.10
+  Resample 49/50: 308 significant at q=0.10
+  Resample 50/50: 313 significant at q=0.10
+
+  Type distribution of winners:
+    correlational: 146
+    causal: 52
+    probabilistic: 38
+    logical: 22
+    graph: 19
+    functional: 19
+    competitive: 19
+    mediating: 15
+    temporal: 11
+    synergistic: 10
+    equilibrium: 8
+    moderating: 2
+    similarity: 1
+  FDR q=0.10: 110/362 significant and stable
+
+[STEP 6] Final ranking + evaluation...
+
+  Dual-threshold report (362 hypotheses):
+    FDR q   pi_min   #passed   % passed   Est. FDP
+  --------------------------------------------------
+     0.05     0.50       115      31.8%      0.05
+     0.05     0.60       108      29.8%      0.05
+     0.05     0.70       102      28.2%      0.05
+     0.10     0.50       118      32.6%      0.10
+     0.10     0.60       110      30.4%      0.10
+     0.10     0.70       102      28.2%      0.10
+     0.20     0.50       119      32.9%      0.20
+     0.20     0.60       110      30.4%      0.20
+     0.20     0.70       102      28.2%      0.20
+
+  Calibrated Ranking Evaluation (n=362 hypotheses):
+      k       P@k       R@k
+  ------------------------------
+      5    0.0000    0.0000
+     10    0.0000    0.0000
+     15    0.0000    0.0000
+     20    0.0000    0.0000
+     30    0.0000    0.0000
+     50    0.0400    0.0741
+
+  First GT rank: 31
+  Mean GT rank:  172.7
+  Null FPR (selected): 0.000
+  Selected (dual threshold): 110
+  GT matches in selected: 4
+
+  vs. Old system:
+    Old first GT rank: 123 (all top-100 Bayesian conf = FPs)
+    New first GT rank: 31
+    Improvement: 4.0x
+
+============================================================
+Engine re-run complete. Total time: 21961s
+First GT rank: 31
+Null FPR: 0.000
+#Selected: 110
+  P@5=0.000  R@5=0.000
+  P@10=0.000  R@10=0.000
+  P@15=0.000  R@15=0.000
+  P@20=0.000  R@20=0.000
+
+Artifact D written: artifacts/rerun/results.json
+Artifact C written: artifacts/rerun/provenance.json
+Artifact E written: artifacts/rerun/SELF_AUDIT.md
+
+All artifacts written to artifacts/rerun/
+  A: engine_trace.jsonl  (339,201 records)
+  B: engine_call_log.txt (346,076 lines)
+  C: provenance.json
+  D: results.json
+  E: SELF_AUDIT.md

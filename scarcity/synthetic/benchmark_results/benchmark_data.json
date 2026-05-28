@@ -1,0 +1,5094 @@
+{
+  "n_samples": 3000,
+  "metrics": {
+    "strict": {
+      "precision": 1.0,
+      "recall": 1.0,
+      "f1": 1.0,
+      "tp": 17,
+      "fp": 0,
+      "fn": 0
+    },
+    "family": {
+      "precision": 1.0,
+      "recall": 1.0,
+      "f1": 1.0,
+      "tp": 17,
+      "fp": 0,
+      "fn": 0
+    },
+    "edge": {
+      "precision": 1.0,
+      "recall": 1.0,
+      "f1": 1.0,
+      "tp": 13,
+      "fp": 0,
+      "fn": 0
+    },
+    "per_type_recall": {
+      "mediating": 1.0,
+      "similarity": 1.0,
+      "equilibrium": 1.0,
+      "structural": 1.0,
+      "probabilistic": 1.0,
+      "moderating": 1.0,
+      "competitive": 1.0,
+      "compositional": 1.0,
+      "causal": 1.0,
+      "correlational": 1.0,
+      "functional": 1.0,
+      "graph": 1.0,
+      "synergistic": 1.0,
+      "temporal": 1.0,
+      "logical": 1.0
+    },
+    "null_fpr": 0.0
+  },
+  "performance": {
+    "generation_time_sec": 1.939,
+    "engine_time_sec": 561.911,
+    "calibration_time_sec": 112.858,
+    "hypotheses_per_sec": 192.2
+  },
+  "calibration_detail": {
+    "temporal_X1": {
+      "conf_obs": 0.8132873015856886,
+      "fit_obs": 0.906139670336939,
+      "p_value": 0.0,
+      "p_conf": 0.0,
+      "p_fit": 0.0,
+      "stab": 0.0,
+      "evid": 3000,
+      "rel_type": "temporal",
+      "perm_strategy": "phase",
+      "null_conf_mean": 0.08241443565217889,
+      "null_fit_mean": 0.31318745701897516
+    },
+    "correlational_X3_X4": {
+      "conf_obs": 0.3012667338797182,
+      "fit_obs": 0.6526648990176045,
+      "p_value": 0.0,
+      "p_conf": 0.0,
+      "p_fit": 0.0,
+      "stab": 0.0,
+      "evid": 3000,
+      "rel_type": "correlational",
+      "perm_strategy": "shuffle",
+      "null_conf_mean": 8.046069742103074e-17,
+      "null_fit_mean": 0.0
+    },
+    "mediating_a_X1_M1": {
+      "conf_obs": 0.7748526476587058,
+      "fit_obs": 0.8869739092396864,
+      "p_value": 0.0,
+      "p_conf": 0.0,
+      "p_fit": 0.0,
+      "stab": 0.0,
+      "evid": 3000,
+      "rel_type": "mediating",
+      "perm_strategy": "block",
+      "null_conf_mean": 1.158919451284495e-16,
+      "null_fit_mean": 0.09568123286948638
+    },
+    "mediating_b_M1_Y1": {
+      "conf_obs": 0.6566601215277635,
+      "fit_obs": 0.826939216426228,
+      "p_value": 0.0,
+      "p_conf": 0.0,
+      "p_fit": 0.0,
+      "stab": 0.0,
+      "evid": 3000,
+      "rel_type": "mediating",
+      "perm_strategy": "block",
+      "null_conf_mean": 3.9739472786505403e-16,
+      "null_fit_mean": 0.18921848964490487
+    },
+    "equilibrium_Y4": {
+      "conf_obs": 0.7579183352975948,
+      "fit_obs": 0.8796483791705403,
+      "p_value": 0.0,
+      "p_conf": 0.0,
+      "p_fit": 0.0,
+      "stab": 0.0,
+      "evid": 3000,
+      "rel_type": "equilibrium",
+      "perm_strategy": "phase",
+      "null_conf_mean": 0.05985348523343838,
+      "null_fit_mean": 0.26759770409226363
+    },
+    "compositional_TotalA": {
+      "conf_obs": 8.046069742103074e-17,
+      "fit_obs": 0.23512524678390423,
+      "p_value": 0.0,
+      "p_conf": 1.0,
+      "p_fit": 0.0,
+      "stab": 0.0,
+      "evid": 3000,
+      "rel_type": "compositional",
+      "perm_strategy": "shuffle",
+      "null_conf_mean": 8.3061845532447e-17,
+      "null_fit_mean": 0.0
+    },
+    "competitive_C1_C2": {
+      "conf_obs": 0.3120168296039996,
+      "fit_obs": 0.6665764494270188,
+      "p_value": 0.0,
+      "p_conf": 0.0,
+      "p_fit": 0.0,
+      "stab": 0.0,
+      "evid": 3000,
+      "rel_type": "competitive",
+      "perm_strategy": "shuffle",
+      "null_conf_mean": 8.046069742103074e-17,
+      "null_fit_mean": 0.0
+    },
+    "probabilistic_P1_Y6": {
+      "conf_obs": 8.046069742103074e-17,
+      "fit_obs": 0.31033990010972856,
+      "p_value": 0.0,
+      "p_conf": 1.0,
+      "p_fit": 0.0,
+      "stab": 0.0,
+      "evid": 3000,
+      "rel_type": "probabilistic",
+      "perm_strategy": "block",
+      "null_conf_mean": 8.046069742103074e-17,
+      "null_fit_mean": 8.254124515728711e-05
+    },
+    "structural_Y7": {
+      "conf_obs": 0.984122458635079,
+      "fit_obs": 0.9930929502439688,
+      "p_value": 0.0,
+      "p_conf": 0.0,
+      "p_fit": 0.0,
+      "stab": 0.0,
+      "evid": 3000,
+      "rel_type": "structural",
+      "perm_strategy": "phase",
+      "null_conf_mean": 0.09374985744639462,
+      "null_fit_mean": 0.3198355377749164
+    },
+    "graph_G1_G2": {
+      "conf_obs": 8.046069742103074e-17,
+      "fit_obs": 0.2649736427351045,
+      "p_value": 0.0,
+      "p_conf": 1.0,
+      "p_fit": 0.0,
+      "stab": 0.0,
+      "evid": 3000,
+      "rel_type": "graph",
+      "perm_strategy": "block",
+      "null_conf_mean": 8.046069742103074e-17,
+      "null_fit_mean": 0.0
+    },
+    "graph_G2_G3": {
+      "conf_obs": 8.046069742103074e-17,
+      "fit_obs": 0.2757958621164093,
+      "p_value": 0.0,
+      "p_conf": 1.0,
+      "p_fit": 0.0,
+      "stab": 0.0,
+      "evid": 3000,
+      "rel_type": "graph",
+      "perm_strategy": "block",
+      "null_conf_mean": 8.046069742103074e-17,
+      "null_fit_mean": 0.0
+    },
+    "similarity_Clust1_A_Clust1_B": {
+      "conf_obs": 0.7708341784285286,
+      "fit_obs": 0.8859676173170276,
+      "p_value": 0.0,
+      "p_conf": 0.0,
+      "p_fit": 0.0,
+      "stab": 0.0,
+      "evid": 3000,
+      "rel_type": "similarity",
+      "perm_strategy": "shuffle",
+      "null_conf_mean": 9.436455122983027e-17,
+      "null_fit_mean": 0.0
+    },
+    "null_Null1_Null2": {
+      "conf_obs": 8.046069742103074e-17,
+      "fit_obs": 0.0,
+      "p_value": 1.0,
+      "p_conf": 1.0,
+      "p_fit": 1.0,
+      "stab": 0.0,
+      "evid": 3000,
+      "rel_type": "null",
+      "perm_strategy": "shuffle",
+      "null_conf_mean": 8.064016647769542e-17,
+      "null_fit_mean": 0.0
+    },
+    "null_X1_X3": {
+      "conf_obs": 8.046069742103074e-17,
+      "fit_obs": 0.0,
+      "p_value": 1.0,
+      "p_conf": 1.0,
+      "p_fit": 1.0,
+      "stab": 0.0,
+      "evid": 3000,
+      "rel_type": "null",
+      "perm_strategy": "shuffle",
+      "null_conf_mean": 8.399915230626285e-17,
+      "null_fit_mean": 0.0
+    },
+    "null_TotalA_L_out": {
+      "conf_obs": 8.046069742103074e-17,
+      "fit_obs": 0.0,
+      "p_value": 1.0,
+      "p_conf": 1.0,
+      "p_fit": 1.0,
+      "stab": 0.0,
+      "evid": 3000,
+      "rel_type": "null",
+      "perm_strategy": "shuffle",
+      "null_conf_mean": 8.046069742103074e-17,
+      "null_fit_mean": 0.0
+    },
+    "causal_X1_X2": {
+      "conf_obs": 0.8104364620166421,
+      "fit_obs": 0.9041412019324392,
+      "p_value": 0.0,
+      "p_conf": 0.0,
+      "p_fit": 0.0,
+      "stab": 0.0,
+      "evid": 3000,
+      "rel_type": "causal",
+      "perm_strategy": "block",
+      "null_conf_mean": NaN,
+      "null_fit_mean": NaN
+    },
+    "functional_X6_Y3": {
+      "conf_obs": 8.046069742103074e-17,
+      "fit_obs": 0.30487517033065215,
+      "p_value": 0.0,
+      "p_conf": 1.0,
+      "p_fit": 0.0,
+      "stab": 0.0,
+      "evid": 3000,
+      "rel_type": "functional",
+      "perm_strategy": "block",
+      "null_conf_mean": 1.1622551680226775e-16,
+      "null_fit_mean": 0.0
+    },
+    "logical_L1_L2_L_out": {
+      "conf_obs": 8.046069742103074e-17,
+      "fit_obs": 0.432571905938402,
+      "p_value": 0.0,
+      "p_conf": 1.0,
+      "p_fit": 0.0,
+      "stab": 0.0,
+      "evid": 3000,
+      "rel_type": "logical",
+      "perm_strategy": "block",
+      "null_conf_mean": 8.410622380355571e-17,
+      "null_fit_mean": 0.20837656459770604
+    },
+    "moderating_X5_Z1_Y2": {
+      "conf_obs": 8.046069742103074e-17,
+      "fit_obs": 0.39262936864970943,
+      "p_value": 0.0,
+      "p_conf": 1.0,
+      "p_fit": 0.0,
+      "stab": 0.0,
+      "evid": 3000,
+      "rel_type": "moderating",
+      "perm_strategy": "block",
+      "null_conf_mean": 8.046069742103074e-17,
+      "null_fit_mean": 0.0
+    },
+    "synergistic_S1_S2_Y5": {
+      "conf_obs": 4.8877467071997e-07,
+      "fit_obs": 0.48270953158136964,
+      "p_value": 0.0,
+      "p_conf": 0.0,
+      "p_fit": 0.0,
+      "stab": 0.0,
+      "evid": 3000,
+      "rel_type": "synergistic",
+      "perm_strategy": "block",
+      "null_conf_mean": 8.046069742103074e-17,
+      "null_fit_mean": 0.017510780362334093
+    }
+  },
+  "seed": 42,
+  "anomaly_detection": {
+    "anomaly_rate": 0.02,
+    "n_injected_per_col": 10,
+    "zscore": {
+      "precision": 0.9720496894409938,
+      "recall": 0.9205882352941176,
+      "f1": 0.945619335347432,
+      "auc": NaN
+    },
+    "isolation_forest": {
+      "precision": 0.05529411764705883,
+      "recall": 0.13823529411764707,
+      "f1": 0.07899159663865547,
+      "auc": NaN
+    }
+  },
+  "real_world_backtest": [
+    {
+      "country": "KEN",
+      "target": "gdp_growth",
+      "method": "PERSISTENCE",
+      "mae": 2.2127,
+      "dir_acc": 0.0
+    },
+    {
+      "country": "KEN",
+      "target": "gdp_growth",
+      "method": "ARIMA",
+      "mae": 1.9891,
+      "dir_acc": 0.5263
+    },
+    {
+      "country": "KEN",
+      "target": "gdp_growth",
+      "method": "VAR",
+      "mae": 6.1583,
+      "dir_acc": 0.5556
+    },
+    {
+      "country": "KEN",
+      "target": "gdp_growth",
+      "method": "PROPHET",
+      "mae": 1.7947,
+      "dir_acc": 0.5263
+    },
+    {
+      "country": "KEN",
+      "target": "gdp_growth",
+      "method": "SCARCITY",
+      "mae": 1.9891,
+      "dir_acc": 0.5263
+    },
+    {
+      "country": "KEN",
+      "target": "inflation_cpi",
+      "method": "PERSISTENCE",
+      "mae": 4.0537,
+      "dir_acc": 0.0
+    },
+    {
+      "country": "KEN",
+      "target": "inflation_cpi",
+      "method": "ARIMA",
+      "mae": 4.1082,
+      "dir_acc": 0.4211
+    },
+    {
+      "country": "KEN",
+      "target": "inflation_cpi",
+      "method": "VAR",
+      "mae": 9.8721,
+      "dir_acc": 0.2222
+    },
+    {
+      "country": "KEN",
+      "target": "inflation_cpi",
+      "method": "PROPHET",
+      "mae": 4.6133,
+      "dir_acc": 0.5789
+    },
+    {
+      "country": "KEN",
+      "target": "inflation_cpi",
+      "method": "SCARCITY",
+      "mae": 4.1082,
+      "dir_acc": 0.4211
+    }
+  ],
+  "federation": {
+    "in_memory": {
+      "mode": "in_memory",
+      "nodes": 3,
+      "mse": 423.50129706127217,
+      "communication_bytes": 864
+    },
+    "physical": {
+      "mode": "physical",
+      "nodes": 3,
+      "global_loss": 0.6353883520086685,
+      "sync_time_seconds": 3.4971847534179688,
+      "participants": 3
+    }
+  },
+  "engine_driven": {
+    "engine_backtest": [
+      {
+        "target": "gdp_growth",
+        "method": "PERSISTENCE",
+        "mae": 2.2127,
+        "dir_acc": 0.0
+      },
+      {
+        "target": "gdp_growth",
+        "method": "ARIMA",
+        "mae": 1.9891,
+        "dir_acc": 0.5263
+      },
+      {
+        "target": "gdp_growth",
+        "method": "VAR",
+        "mae": 6.1583,
+        "dir_acc": 0.5556
+      },
+      {
+        "target": "gdp_growth",
+        "method": "PROPHET",
+        "mae": 1.7947,
+        "dir_acc": 0.5263
+      },
+      {
+        "target": "gdp_growth",
+        "method": "SCARCITY",
+        "mae": 1.9891,
+        "dir_acc": 0.5263
+      },
+      {
+        "target": "inflation_cpi",
+        "method": "PERSISTENCE",
+        "mae": 4.0537,
+        "dir_acc": 0.0
+      },
+      {
+        "target": "inflation_cpi",
+        "method": "ARIMA",
+        "mae": 4.1082,
+        "dir_acc": 0.4211
+      },
+      {
+        "target": "inflation_cpi",
+        "method": "VAR",
+        "mae": 9.8721,
+        "dir_acc": 0.2222
+      },
+      {
+        "target": "inflation_cpi",
+        "method": "PROPHET",
+        "mae": 4.6133,
+        "dir_acc": 0.5789
+      },
+      {
+        "target": "inflation_cpi",
+        "method": "SCARCITY",
+        "mae": 4.1082,
+        "dir_acc": 0.4211
+      }
+    ],
+    "engine_anomaly": {
+      "zscore": {
+        "precision": 1.0,
+        "recall": 0.48484848484848486,
+        "f1": 0.653061224489796,
+        "auc": NaN
+      },
+      "isolation_forest": {
+        "precision": 0.18181818181818182,
+        "recall": 0.12121212121212122,
+        "f1": 0.14545454545454545,
+        "auc": NaN
+      },
+      "scarcity_residuals": {
+        "precision": 1.0,
+        "recall": 0.6666666666666666,
+        "f1": 0.8,
+        "auc": NaN
+      },
+      "n_graph_vars": 11,
+      "anomaly_rate": 0.1
+    },
+    "engine_edges": [
+      {
+        "source": "urban_population",
+        "target": "mobile_subscriptions",
+        "type": "correlational",
+        "confidence": 0.7589,
+        "fit_score": 0.8487,
+        "evidence": 34,
+        "stability": 0.8174,
+        "state": "active",
+        "symmetric": true,
+        "plausibility": "NOVEL"
+      },
+      {
+        "source": "mobile_subscriptions",
+        "target": "urban_population",
+        "type": "correlational",
+        "confidence": 0.7589,
+        "fit_score": 0.8487,
+        "evidence": 34,
+        "stability": 0.8174,
+        "state": "active",
+        "symmetric": true,
+        "plausibility": "NOVEL"
+      },
+      {
+        "source": "mobile_subscriptions",
+        "target": "urban_population",
+        "type": "functional",
+        "confidence": 0.7338,
+        "fit_score": 0.7004,
+        "evidence": 34,
+        "stability": 0.65,
+        "state": "active",
+        "symmetric": false,
+        "plausibility": "NOVEL"
+      },
+      {
+        "source": "urban_population",
+        "target": "mobile_subscriptions",
+        "type": "functional",
+        "confidence": 0.6991,
+        "fit_score": 0.701,
+        "evidence": 34,
+        "stability": 0.65,
+        "state": "active",
+        "symmetric": false,
+        "plausibility": "NOVEL"
+      },
+      {
+        "source": "electricity_access",
+        "target": "urban_population",
+        "type": "correlational",
+        "confidence": 0.6654,
+        "fit_score": 0.7497,
+        "evidence": 34,
+        "stability": 0.8075,
+        "state": "active",
+        "symmetric": true,
+        "plausibility": "NOVEL"
+      },
+      {
+        "source": "urban_population",
+        "target": "electricity_access",
+        "type": "correlational",
+        "confidence": 0.6654,
+        "fit_score": 0.7497,
+        "evidence": 34,
+        "stability": 0.8075,
+        "state": "active",
+        "symmetric": true,
+        "plausibility": "NOVEL"
+      },
+      {
+        "source": "electricity_access",
+        "target": "mobile_subscriptions",
+        "type": "correlational",
+        "confidence": 0.6556,
+        "fit_score": 0.9499,
+        "evidence": 34,
+        "stability": 0.8075,
+        "state": "active",
+        "symmetric": true,
+        "plausibility": "NOVEL"
+      },
+      {
+        "source": "mobile_subscriptions",
+        "target": "electricity_access",
+        "type": "correlational",
+        "confidence": 0.6556,
+        "fit_score": 0.9499,
+        "evidence": 34,
+        "stability": 0.8075,
+        "state": "active",
+        "symmetric": true,
+        "plausibility": "NOVEL"
+      },
+      {
+        "source": "electricity_access",
+        "target": "urban_population",
+        "type": "functional",
+        "confidence": 0.6494,
+        "fit_score": 0.5276,
+        "evidence": 34,
+        "stability": 0.65,
+        "state": "active",
+        "symmetric": false,
+        "plausibility": "NOVEL"
+      },
+      {
+        "source": "urban_population",
+        "target": "electricity_access",
+        "type": "functional",
+        "confidence": 0.6486,
+        "fit_score": 0.5287,
+        "evidence": 34,
+        "stability": 0.65,
+        "state": "active",
+        "symmetric": false,
+        "plausibility": "NOVEL"
+      },
+      {
+        "source": "internet_users",
+        "target": "urban_population",
+        "type": "correlational",
+        "confidence": 0.6458,
+        "fit_score": 0.784,
+        "evidence": 34,
+        "stability": 0.7915,
+        "state": "active",
+        "symmetric": true,
+        "plausibility": "NOVEL"
+      },
+      {
+        "source": "urban_population",
+        "target": "internet_users",
+        "type": "correlational",
+        "confidence": 0.6458,
+        "fit_score": 0.784,
+        "evidence": 34,
+        "stability": 0.7915,
+        "state": "active",
+        "symmetric": true,
+        "plausibility": "NOVEL"
+      },
+      {
+        "source": "internet_users",
+        "target": "mobile_subscriptions",
+        "type": "correlational",
+        "confidence": 0.6458,
+        "fit_score": 0.9682,
+        "evidence": 34,
+        "stability": 0.7915,
+        "state": "active",
+        "symmetric": true,
+        "plausibility": "NOVEL"
+      },
+      {
+        "source": "mobile_subscriptions",
+        "target": "internet_users",
+        "type": "correlational",
+        "confidence": 0.6458,
+        "fit_score": 0.9682,
+        "evidence": 34,
+        "stability": 0.7915,
+        "state": "active",
+        "symmetric": true,
+        "plausibility": "NOVEL"
+      },
+      {
+        "source": "exports_gdp",
+        "target": "imports_gdp",
+        "type": "correlational",
+        "confidence": 0.6416,
+        "fit_score": 0.7842,
+        "evidence": 34,
+        "stability": 0.8174,
+        "state": "active",
+        "symmetric": true,
+        "plausibility": "PLAUSIBLE"
+      },
+      {
+        "source": "imports_gdp",
+        "target": "exports_gdp",
+        "type": "correlational",
+        "confidence": 0.6416,
+        "fit_score": 0.7842,
+        "evidence": 34,
+        "stability": 0.8174,
+        "state": "active",
+        "symmetric": true,
+        "plausibility": "PLAUSIBLE"
+      },
+      {
+        "source": "electricity_access",
+        "target": "mobile_subscriptions",
+        "type": "functional",
+        "confidence": 0.64,
+        "fit_score": 0.895,
+        "evidence": 34,
+        "stability": 0.65,
+        "state": "active",
+        "symmetric": false,
+        "plausibility": "NOVEL"
+      },
+      {
+        "source": "mobile_subscriptions",
+        "target": "electricity_access",
+        "type": "functional",
+        "confidence": 0.64,
+        "fit_score": 0.895,
+        "evidence": 34,
+        "stability": 0.65,
+        "state": "active",
+        "symmetric": false,
+        "plausibility": "NOVEL"
+      },
+      {
+        "source": "internet_users",
+        "target": "urban_population",
+        "type": "functional",
+        "confidence": 0.6304,
+        "fit_score": 0.5799,
+        "evidence": 34,
+        "stability": 0.65,
+        "state": "active",
+        "symmetric": false,
+        "plausibility": "NOVEL"
+      },
+      {
+        "source": "urban_population",
+        "target": "internet_users",
+        "type": "functional",
+        "confidence": 0.6304,
+        "fit_score": 0.5805,
+        "evidence": 34,
+        "stability": 0.65,
+        "state": "active",
+        "symmetric": false,
+        "plausibility": "NOVEL"
+      },
+      {
+        "source": "internet_users",
+        "target": "mobile_subscriptions",
+        "type": "functional",
+        "confidence": 0.6304,
+        "fit_score": 0.9319,
+        "evidence": 34,
+        "stability": 0.65,
+        "state": "active",
+        "symmetric": false,
+        "plausibility": "NOVEL"
+      },
+      {
+        "source": "mobile_subscriptions",
+        "target": "internet_users",
+        "type": "functional",
+        "confidence": 0.6304,
+        "fit_score": 0.9319,
+        "evidence": 34,
+        "stability": 0.65,
+        "state": "active",
+        "symmetric": false,
+        "plausibility": "NOVEL"
+      },
+      {
+        "source": "life_expectancy",
+        "target": "urban_population",
+        "type": "correlational",
+        "confidence": 0.6274,
+        "fit_score": 0.9173,
+        "evidence": 34,
+        "stability": 0.8174,
+        "state": "active",
+        "symmetric": true,
+        "plausibility": "NOVEL"
+      },
+      {
+        "source": "urban_population",
+        "target": "life_expectancy",
+        "type": "correlational",
+        "confidence": 0.6274,
+        "fit_score": 0.9173,
+        "evidence": 34,
+        "stability": 0.8174,
+        "state": "active",
+        "symmetric": true,
+        "plausibility": "NOVEL"
+      },
+      {
+        "source": "exports_gdp",
+        "target": "imports_gdp",
+        "type": "functional",
+        "confidence": 0.6253,
+        "fit_score": 0.5874,
+        "evidence": 34,
+        "stability": 0.65,
+        "state": "active",
+        "symmetric": false,
+        "plausibility": "PLAUSIBLE"
+      },
+      {
+        "source": "imports_gdp",
+        "target": "exports_gdp",
+        "type": "functional",
+        "confidence": 0.6249,
+        "fit_score": 0.5879,
+        "evidence": 34,
+        "stability": 0.65,
+        "state": "active",
+        "symmetric": false,
+        "plausibility": "PLAUSIBLE"
+      },
+      {
+        "source": "exports_gdp",
+        "target": "imports_gdp",
+        "type": "causal",
+        "confidence": 0.6196,
+        "fit_score": 0.9912,
+        "evidence": 34,
+        "stability": 0.85,
+        "state": "tentative",
+        "symmetric": false,
+        "plausibility": "PLAUSIBLE"
+      },
+      {
+        "source": "electricity_access",
+        "target": "life_expectancy",
+        "type": "correlational",
+        "confidence": 0.6114,
+        "fit_score": 0.8589,
+        "evidence": 34,
+        "stability": 0.8075,
+        "state": "tentative",
+        "symmetric": true,
+        "plausibility": "NOVEL"
+      },
+      {
+        "source": "life_expectancy",
+        "target": "electricity_access",
+        "type": "correlational",
+        "confidence": 0.6114,
+        "fit_score": 0.8589,
+        "evidence": 34,
+        "stability": 0.8075,
+        "state": "tentative",
+        "symmetric": true,
+        "plausibility": "NOVEL"
+      },
+      {
+        "source": "electricity_access",
+        "target": "internet_users",
+        "type": "correlational",
+        "confidence": 0.6081,
+        "fit_score": 0.9478,
+        "evidence": 34,
+        "stability": 0.7868,
+        "state": "tentative",
+        "symmetric": true,
+        "plausibility": "NOVEL"
+      },
+      {
+        "source": "internet_users",
+        "target": "electricity_access",
+        "type": "correlational",
+        "confidence": 0.6081,
+        "fit_score": 0.9478,
+        "evidence": 34,
+        "stability": 0.7868,
+        "state": "tentative",
+        "symmetric": true,
+        "plausibility": "NOVEL"
+      },
+      {
+        "source": "mobile_subscriptions",
+        "target": "govt_debt",
+        "type": "functional",
+        "confidence": 0.607,
+        "fit_score": 0.9429,
+        "evidence": 24,
+        "stability": 0.65,
+        "state": "tentative",
+        "symmetric": false,
+        "plausibility": "PLAUSIBLE"
+      },
+      {
+        "source": "internet_users",
+        "target": "life_expectancy",
+        "type": "correlational",
+        "confidence": 0.5997,
+        "fit_score": 0.9217,
+        "evidence": 34,
+        "stability": 0.7915,
+        "state": "tentative",
+        "symmetric": true,
+        "plausibility": "NOVEL"
+      },
+      {
+        "source": "life_expectancy",
+        "target": "internet_users",
+        "type": "correlational",
+        "confidence": 0.5997,
+        "fit_score": 0.9217,
+        "evidence": 34,
+        "stability": 0.7915,
+        "state": "tentative",
+        "symmetric": true,
+        "plausibility": "NOVEL"
+      },
+      {
+        "source": "electricity_access",
+        "target": "life_expectancy",
+        "type": "functional",
+        "confidence": 0.5953,
+        "fit_score": 0.7179,
+        "evidence": 34,
+        "stability": 0.65,
+        "state": "tentative",
+        "symmetric": false,
+        "plausibility": "NOVEL"
+      },
+      {
+        "source": "gcf",
+        "target": "life_expectancy",
+        "type": "correlational",
+        "confidence": 0.5948,
+        "fit_score": 0.5882,
+        "evidence": 34,
+        "stability": 0.8174,
+        "state": "tentative",
+        "symmetric": true,
+        "plausibility": "NOVEL"
+      },
+      {
+        "source": "life_expectancy",
+        "target": "gcf",
+        "type": "correlational",
+        "confidence": 0.5948,
+        "fit_score": 0.5882,
+        "evidence": 34,
+        "stability": 0.8174,
+        "state": "tentative",
+        "symmetric": true,
+        "plausibility": "NOVEL"
+      },
+      {
+        "source": "electricity_access",
+        "target": "internet_users",
+        "type": "functional",
+        "confidence": 0.5936,
+        "fit_score": 0.889,
+        "evidence": 34,
+        "stability": 0.65,
+        "state": "tentative",
+        "symmetric": false,
+        "plausibility": "NOVEL"
+      },
+      {
+        "source": "internet_users",
+        "target": "electricity_access",
+        "type": "functional",
+        "confidence": 0.5936,
+        "fit_score": 0.889,
+        "evidence": 34,
+        "stability": 0.65,
+        "state": "tentative",
+        "symmetric": false,
+        "plausibility": "NOVEL"
+      },
+      {
+        "source": "life_expectancy",
+        "target": "mobile_subscriptions",
+        "type": "correlational",
+        "confidence": 0.588,
+        "fit_score": 0.9265,
+        "evidence": 34,
+        "stability": 0.8174,
+        "state": "tentative",
+        "symmetric": true,
+        "plausibility": "NOVEL"
+      },
+      {
+        "source": "mobile_subscriptions",
+        "target": "life_expectancy",
+        "type": "correlational",
+        "confidence": 0.588,
+        "fit_score": 0.9265,
+        "evidence": 34,
+        "stability": 0.8174,
+        "state": "tentative",
+        "symmetric": true,
+        "plausibility": "NOVEL"
+      },
+      {
+        "source": "internet_users",
+        "target": "life_expectancy",
+        "type": "functional",
+        "confidence": 0.5848,
+        "fit_score": 0.8364,
+        "evidence": 34,
+        "stability": 0.65,
+        "state": "tentative",
+        "symmetric": false,
+        "plausibility": "NOVEL"
+      },
+      {
+        "source": "mobile_subscriptions",
+        "target": "life_expectancy",
+        "type": "functional",
+        "confidence": 0.5727,
+        "fit_score": 0.8489,
+        "evidence": 34,
+        "stability": 0.65,
+        "state": "tentative",
+        "symmetric": false,
+        "plausibility": "NOVEL"
+      },
+      {
+        "source": "school_enrollment",
+        "target": "life_expectancy",
+        "type": "correlational",
+        "confidence": 0.5625,
+        "fit_score": 0.1833,
+        "evidence": 34,
+        "stability": 0.8,
+        "state": "active",
+        "symmetric": true,
+        "plausibility": "NOVEL"
+      },
+      {
+        "source": "life_expectancy",
+        "target": "school_enrollment",
+        "type": "correlational",
+        "confidence": 0.5625,
+        "fit_score": 0.1833,
+        "evidence": 34,
+        "stability": 0.8,
+        "state": "active",
+        "symmetric": true,
+        "plausibility": "NOVEL"
+      },
+      {
+        "source": "urban_population",
+        "target": "life_expectancy",
+        "type": "functional",
+        "confidence": 0.5599,
+        "fit_score": 0.8292,
+        "evidence": 34,
+        "stability": 0.65,
+        "state": "tentative",
+        "symmetric": false,
+        "plausibility": "NOVEL"
+      },
+      {
+        "source": "life_expectancy",
+        "target": "gcf",
+        "type": "causal",
+        "confidence": 0.5568,
+        "fit_score": 0.9913,
+        "evidence": 34,
+        "stability": 0.85,
+        "state": "tentative",
+        "symmetric": false,
+        "plausibility": "NOVEL"
+      },
+      {
+        "source": "life_expectancy",
+        "target": "electricity_access",
+        "type": "functional",
+        "confidence": 0.556,
+        "fit_score": 0.7107,
+        "evidence": 34,
+        "stability": 0.65,
+        "state": "tentative",
+        "symmetric": false,
+        "plausibility": "NOVEL"
+      },
+      {
+        "source": "life_expectancy",
+        "target": "urban_population",
+        "type": "functional",
+        "confidence": 0.5551,
+        "fit_score": 0.8208,
+        "evidence": 34,
+        "stability": 0.65,
+        "state": "tentative",
+        "symmetric": false,
+        "plausibility": "NOVEL"
+      },
+      {
+        "source": "life_expectancy",
+        "target": "mobile_subscriptions",
+        "type": "functional",
+        "confidence": 0.5524,
+        "fit_score": 0.8401,
+        "evidence": 34,
+        "stability": 0.65,
+        "state": "tentative",
+        "symmetric": false,
+        "plausibility": "NOVEL"
+      },
+      {
+        "source": "life_expectancy",
+        "target": "internet_users",
+        "type": "functional",
+        "confidence": 0.5453,
+        "fit_score": 0.8225,
+        "evidence": 34,
+        "stability": 0.65,
+        "state": "tentative",
+        "symmetric": false,
+        "plausibility": "NOVEL"
+      },
+      {
+        "source": "life_expectancy",
+        "target": "school_enrollment",
+        "type": "functional",
+        "confidence": 0.5369,
+        "fit_score": 0.0,
+        "evidence": 34,
+        "stability": 0.65,
+        "state": "active",
+        "symmetric": false,
+        "plausibility": "NOVEL"
+      },
+      {
+        "source": "urban_population",
+        "target": "mobile_subscriptions",
+        "type": "causal",
+        "confidence": 0.526,
+        "fit_score": 0.9928,
+        "evidence": 34,
+        "stability": 0.85,
+        "state": "tentative",
+        "symmetric": false,
+        "plausibility": "NOVEL"
+      },
+      {
+        "source": "gcf",
+        "target": "life_expectancy",
+        "type": "functional",
+        "confidence": 0.522,
+        "fit_score": 0.2958,
+        "evidence": 34,
+        "stability": 0.65,
+        "state": "tentative",
+        "symmetric": false,
+        "plausibility": "NOVEL"
+      },
+      {
+        "source": "gcf",
+        "target": "life_expectancy",
+        "type": "causal",
+        "confidence": 0.5151,
+        "fit_score": 0.2878,
+        "evidence": 34,
+        "stability": 0.5,
+        "state": "tentative",
+        "symmetric": false,
+        "plausibility": "NOVEL"
+      },
+      {
+        "source": "govt_consumption",
+        "target": "urban_population",
+        "type": "causal",
+        "confidence": 0.4917,
+        "fit_score": 0.9531,
+        "evidence": 34,
+        "stability": 0.85,
+        "state": "tentative",
+        "symmetric": false,
+        "plausibility": "PLAUSIBLE"
+      },
+      {
+        "source": "govt_consumption",
+        "target": "mobile_subscriptions",
+        "type": "correlational",
+        "confidence": 0.4902,
+        "fit_score": 0.8374,
+        "evidence": 34,
+        "stability": 0.8174,
+        "state": "tentative",
+        "symmetric": true,
+        "plausibility": "PLAUSIBLE"
+      },
+      {
+        "source": "mobile_subscriptions",
+        "target": "govt_consumption",
+        "type": "correlational",
+        "confidence": 0.4902,
+        "fit_score": 0.8374,
+        "evidence": 34,
+        "stability": 0.8174,
+        "state": "tentative",
+        "symmetric": true,
+        "plausibility": "PLAUSIBLE"
+      },
+      {
+        "source": "school_enrollment",
+        "target": "life_expectancy",
+        "type": "functional",
+        "confidence": 0.4883,
+        "fit_score": 0.0,
+        "evidence": 34,
+        "stability": 0.65,
+        "state": "active",
+        "symmetric": false,
+        "plausibility": "NOVEL"
+      },
+      {
+        "source": "mobile_subscriptions",
+        "target": "govt_consumption",
+        "type": "functional",
+        "confidence": 0.4784,
+        "fit_score": 0.6812,
+        "evidence": 34,
+        "stability": 0.65,
+        "state": "tentative",
+        "symmetric": false,
+        "plausibility": "PLAUSIBLE"
+      },
+      {
+        "source": "govt_consumption",
+        "target": "mobile_subscriptions",
+        "type": "functional",
+        "confidence": 0.4781,
+        "fit_score": 0.6804,
+        "evidence": 34,
+        "stability": 0.65,
+        "state": "tentative",
+        "symmetric": false,
+        "plausibility": "PLAUSIBLE"
+      },
+      {
+        "source": "exports_gdp",
+        "target": "electricity_access",
+        "type": "correlational",
+        "confidence": 0.4705,
+        "fit_score": 0.7932,
+        "evidence": 34,
+        "stability": 0.8075,
+        "state": "tentative",
+        "symmetric": true,
+        "plausibility": "PLAUSIBLE"
+      },
+      {
+        "source": "electricity_access",
+        "target": "exports_gdp",
+        "type": "correlational",
+        "confidence": 0.4705,
+        "fit_score": 0.7932,
+        "evidence": 34,
+        "stability": 0.8075,
+        "state": "tentative",
+        "symmetric": true,
+        "plausibility": "PLAUSIBLE"
+      },
+      {
+        "source": "school_enrollment",
+        "target": "life_expectancy",
+        "type": "causal",
+        "confidence": 0.4619,
+        "fit_score": 0.9996,
+        "evidence": 34,
+        "stability": 0.85,
+        "state": "tentative",
+        "symmetric": false,
+        "plausibility": "NOVEL"
+      },
+      {
+        "source": "life_expectancy",
+        "target": "gcf",
+        "type": "functional",
+        "confidence": 0.4602,
+        "fit_score": 0.3008,
+        "evidence": 34,
+        "stability": 0.65,
+        "state": "tentative",
+        "symmetric": false,
+        "plausibility": "NOVEL"
+      },
+      {
+        "source": "exports_gdp",
+        "target": "electricity_access",
+        "type": "functional",
+        "confidence": 0.4583,
+        "fit_score": 0.6001,
+        "evidence": 34,
+        "stability": 0.65,
+        "state": "tentative",
+        "symmetric": false,
+        "plausibility": "PLAUSIBLE"
+      },
+      {
+        "source": "electricity_access",
+        "target": "exports_gdp",
+        "type": "functional",
+        "confidence": 0.4583,
+        "fit_score": 0.6011,
+        "evidence": 34,
+        "stability": 0.65,
+        "state": "tentative",
+        "symmetric": false,
+        "plausibility": "PLAUSIBLE"
+      }
+    ],
+    "n_total_edges": 67
+  },
+  "federation_scarcity": {
+    "single_results": [
+      {
+        "year": 2005,
+        "target": "gdp_growth",
+        "label": "Single",
+        "n_parents": 0,
+        "parents": [],
+        "parents_prophet": [],
+        "parents_arimax": [],
+        "parents_ridge": [],
+        "persistence_mae": 0.8023663035031898,
+        "arima_mae": 1.3738568897980885,
+        "prophet_mae": 2.841984316447496,
+        "arimax_scarcity_mae": 1.3738568897980885,
+        "prophet_scarcity_mae": 2.841984316447496,
+        "persistence_dir": 0.0,
+        "arima_dir": 0.0,
+        "prophet_dir": 0.0,
+        "arimax_scarcity_dir": 0.0,
+        "prophet_scarcity_dir": 0.0
+      },
+      {
+        "year": 2005,
+        "target": "inflation_cpi",
+        "label": "Single",
+        "n_parents": 0,
+        "parents": [],
+        "parents_prophet": [],
+        "parents_arimax": [],
+        "parents_ridge": [],
+        "persistence_mae": 1.3112571867743004,
+        "arima_mae": 1.4043829367439997,
+        "prophet_mae": 8.756397643863748,
+        "arimax_scarcity_mae": 1.4043829367439997,
+        "prophet_scarcity_mae": 8.756397643863748,
+        "persistence_dir": 0.0,
+        "arima_dir": 0.0,
+        "prophet_dir": 1.0,
+        "arimax_scarcity_dir": 0.0,
+        "prophet_scarcity_dir": 1.0
+      },
+      {
+        "year": 2006,
+        "target": "gdp_growth",
+        "label": "Single",
+        "n_parents": 0,
+        "parents": [],
+        "parents_prophet": [],
+        "parents_arimax": [],
+        "parents_ridge": [],
+        "persistence_mae": 0.5658282203542697,
+        "arima_mae": 0.7465330343363901,
+        "prophet_mae": 2.644268955740849,
+        "arimax_scarcity_mae": 0.7465330343363901,
+        "prophet_scarcity_mae": 2.644268955740849,
+        "persistence_dir": 0.0,
+        "arima_dir": 0.0,
+        "prophet_dir": 0.0,
+        "arimax_scarcity_dir": 0.0,
+        "prophet_scarcity_dir": 0.0
+      },
+      {
+        "year": 2006,
+        "target": "inflation_cpi",
+        "label": "Single",
+        "n_parents": 0,
+        "parents": [],
+        "parents_prophet": [],
+        "parents_arimax": [],
+        "parents_ridge": [],
+        "persistence_mae": 4.1409558507025,
+        "arima_mae": 4.206870733178025,
+        "prophet_mae": 12.277166791195793,
+        "arimax_scarcity_mae": 4.206870733178025,
+        "prophet_scarcity_mae": 12.277166791195793,
+        "persistence_dir": 0.0,
+        "arima_dir": 0.0,
+        "prophet_dir": 0.0,
+        "arimax_scarcity_dir": 0.0,
+        "prophet_scarcity_dir": 0.0
+      },
+      {
+        "year": 2007,
+        "target": "gdp_growth",
+        "label": "Single",
+        "n_parents": 0,
+        "parents": [],
+        "parents_prophet": [],
+        "parents_arimax": [],
+        "parents_ridge": [],
+        "persistence_mae": 0.37823546983300016,
+        "arima_mae": 0.5017574813557362,
+        "prophet_mae": 2.2032815082621173,
+        "arimax_scarcity_mae": 0.5017574813557362,
+        "prophet_scarcity_mae": 2.2032815082621173,
+        "persistence_dir": 0.0,
+        "arima_dir": 0.0,
+        "prophet_dir": 0.0,
+        "arimax_scarcity_dir": 0.0,
+        "prophet_scarcity_dir": 0.0
+      },
+      {
+        "year": 2007,
+        "target": "inflation_cpi",
+        "label": "Single",
+        "n_parents": 0,
+        "parents": [],
+        "parents_prophet": [],
+        "parents_arimax": [],
+        "parents_ridge": [],
+        "persistence_mae": 4.6948539778955105,
+        "arima_mae": 4.890580831267952,
+        "prophet_mae": 6.062444873518764,
+        "arimax_scarcity_mae": 4.890580831267952,
+        "prophet_scarcity_mae": 6.062444873518764,
+        "persistence_dir": 0.0,
+        "arima_dir": 0.0,
+        "prophet_dir": 1.0,
+        "arimax_scarcity_dir": 0.0,
+        "prophet_scarcity_dir": 1.0
+      },
+      {
+        "year": 2008,
+        "target": "gdp_growth",
+        "label": "Single",
+        "n_parents": 0,
+        "parents": [],
+        "parents_prophet": [],
+        "parents_arimax": [],
+        "parents_ridge": [],
+        "persistence_mae": 6.618447025174863,
+        "arima_mae": 6.536973808841679,
+        "prophet_mae": 5.0934450380263545,
+        "arimax_scarcity_mae": 6.536973808841679,
+        "prophet_scarcity_mae": 5.0934450380263545,
+        "persistence_dir": 0.0,
+        "arima_dir": 1.0,
+        "prophet_dir": 1.0,
+        "arimax_scarcity_dir": 1.0,
+        "prophet_scarcity_dir": 1.0
+      },
+      {
+        "year": 2008,
+        "target": "inflation_cpi",
+        "label": "Single",
+        "n_parents": 1,
+        "parents": [
+          "private_credit"
+        ],
+        "parents_prophet": [
+          "private_credit"
+        ],
+        "parents_arimax": [
+          "private_credit"
+        ],
+        "parents_ridge": [
+          "private_credit"
+        ],
+        "persistence_mae": 16.48093641423101,
+        "arima_mae": 16.6492107579557,
+        "prophet_mae": 22.31411381724605,
+        "arimax_scarcity_mae": 16.34520024337674,
+        "prophet_scarcity_mae": 11.014023060055045,
+        "persistence_dir": 0.0,
+        "arima_dir": 0.0,
+        "prophet_dir": 0.0,
+        "arimax_scarcity_dir": 1.0,
+        "prophet_scarcity_dir": 1.0
+      },
+      {
+        "year": 2009,
+        "target": "gdp_growth",
+        "label": "Single",
+        "n_parents": 0,
+        "parents": [],
+        "parents_prophet": [],
+        "parents_arimax": [],
+        "parents_ridge": [],
+        "persistence_mae": 3.0746570714979127,
+        "arima_mae": 1.4836965587014845,
+        "prophet_mae": 1.1833009851813792,
+        "arimax_scarcity_mae": 1.4836965587014845,
+        "prophet_scarcity_mae": 1.1833009851813792,
+        "persistence_dir": 0.0,
+        "arima_dir": 1.0,
+        "prophet_dir": 1.0,
+        "arimax_scarcity_dir": 1.0,
+        "prophet_scarcity_dir": 1.0
+      },
+      {
+        "year": 2009,
+        "target": "inflation_cpi",
+        "label": "Single",
+        "n_parents": 2,
+        "parents": [
+          "exports_gdp",
+          "private_credit"
+        ],
+        "parents_prophet": [
+          "private_credit",
+          "exports_gdp"
+        ],
+        "parents_arimax": [
+          "private_credit",
+          "exports_gdp"
+        ],
+        "parents_ridge": [
+          "private_credit",
+          "exports_gdp"
+        ],
+        "persistence_mae": 17.005690720559777,
+        "arima_mae": 16.871597604859737,
+        "prophet_mae": 1.6402701688783798,
+        "arimax_scarcity_mae": 20.644995567237324,
+        "prophet_scarcity_mae": 3.2169662863781223,
+        "persistence_dir": 0.0,
+        "arima_dir": 1.0,
+        "prophet_dir": 1.0,
+        "arimax_scarcity_dir": 0.0,
+        "prophet_scarcity_dir": 1.0
+      },
+      {
+        "year": 2010,
+        "target": "gdp_growth",
+        "label": "Single",
+        "n_parents": 0,
+        "parents": [],
+        "parents_prophet": [],
+        "parents_arimax": [],
+        "parents_ridge": [],
+        "persistence_mae": 4.751533786598171,
+        "arima_mae": 5.736057256490791,
+        "prophet_mae": 3.644899374570036,
+        "arimax_scarcity_mae": 5.736057256490791,
+        "prophet_scarcity_mae": 3.644899374570036,
+        "persistence_dir": 0.0,
+        "arima_dir": 0.0,
+        "prophet_dir": 1.0,
+        "arimax_scarcity_dir": 0.0,
+        "prophet_scarcity_dir": 1.0
+      },
+      {
+        "year": 2010,
+        "target": "inflation_cpi",
+        "label": "Single",
+        "n_parents": 2,
+        "parents": [
+          "exports_gdp",
+          "private_credit"
+        ],
+        "parents_prophet": [
+          "private_credit",
+          "exports_gdp"
+        ],
+        "parents_arimax": [
+          "private_credit",
+          "exports_gdp"
+        ],
+        "parents_ridge": [
+          "private_credit",
+          "exports_gdp"
+        ],
+        "persistence_mae": 5.272737032792669,
+        "arima_mae": 7.699533731367003,
+        "prophet_mae": 3.2436594867569775,
+        "arimax_scarcity_mae": 8.425936328490657,
+        "prophet_scarcity_mae": 11.23007996420622,
+        "persistence_dir": 0.0,
+        "arima_dir": 0.0,
+        "prophet_dir": 1.0,
+        "arimax_scarcity_dir": 0.0,
+        "prophet_scarcity_dir": 0.0
+      },
+      {
+        "year": 2011,
+        "target": "gdp_growth",
+        "label": "Single",
+        "n_parents": 0,
+        "parents": [],
+        "parents_prophet": [],
+        "parents_arimax": [],
+        "parents_ridge": [],
+        "persistence_mae": 2.9373674832034604,
+        "arima_mae": 2.054137364491025,
+        "prophet_mae": 0.12587480946556617,
+        "arimax_scarcity_mae": 2.054137364491025,
+        "prophet_scarcity_mae": 0.12587480946556617,
+        "persistence_dir": 0.0,
+        "arima_dir": 1.0,
+        "prophet_dir": 1.0,
+        "arimax_scarcity_dir": 1.0,
+        "prophet_scarcity_dir": 1.0
+      },
+      {
+        "year": 2011,
+        "target": "inflation_cpi",
+        "label": "Single",
+        "n_parents": 2,
+        "parents": [
+          "exports_gdp",
+          "private_credit"
+        ],
+        "parents_prophet": [
+          "private_credit",
+          "exports_gdp"
+        ],
+        "parents_arimax": [
+          "private_credit",
+          "exports_gdp"
+        ],
+        "parents_ridge": [
+          "private_credit",
+          "exports_gdp"
+        ],
+        "persistence_mae": 10.061102410316549,
+        "arima_mae": 9.600905716192212,
+        "prophet_mae": 8.075090524840295,
+        "arimax_scarcity_mae": 8.81436547526124,
+        "prophet_scarcity_mae": 3.7386168878233548,
+        "persistence_dir": 0.0,
+        "arima_dir": 1.0,
+        "prophet_dir": 1.0,
+        "arimax_scarcity_dir": 1.0,
+        "prophet_scarcity_dir": 1.0
+      },
+      {
+        "year": 2012,
+        "target": "gdp_growth",
+        "label": "Single",
+        "n_parents": 0,
+        "parents": [],
+        "parents_prophet": [],
+        "parents_arimax": [],
+        "parents_ridge": [],
+        "persistence_mae": 0.55242650525578,
+        "arima_mae": 1.2824278754726537,
+        "prophet_mae": 0.838915041359293,
+        "arimax_scarcity_mae": 1.2824278754726537,
+        "prophet_scarcity_mae": 0.838915041359293,
+        "persistence_dir": 0.0,
+        "arima_dir": 0.0,
+        "prophet_dir": 0.0,
+        "arimax_scarcity_dir": 0.0,
+        "prophet_scarcity_dir": 0.0
+      },
+      {
+        "year": 2012,
+        "target": "inflation_cpi",
+        "label": "Single",
+        "n_parents": 2,
+        "parents": [
+          "exports_gdp",
+          "private_credit"
+        ],
+        "parents_prophet": [
+          "private_credit",
+          "exports_gdp"
+        ],
+        "parents_arimax": [
+          "private_credit",
+          "exports_gdp"
+        ],
+        "parents_ridge": [
+          "private_credit",
+          "exports_gdp"
+        ],
+        "persistence_mae": 4.64472126599442,
+        "arima_mae": 3.552263654932098,
+        "prophet_mae": 2.9318290727945113,
+        "arimax_scarcity_mae": 6.396220419209968,
+        "prophet_scarcity_mae": 2.7455117786347962,
+        "persistence_dir": 0.0,
+        "arima_dir": 1.0,
+        "prophet_dir": 1.0,
+        "arimax_scarcity_dir": 0.0,
+        "prophet_scarcity_dir": 1.0
+      },
+      {
+        "year": 2013,
+        "target": "gdp_growth",
+        "label": "Single",
+        "n_parents": 0,
+        "parents": [],
+        "parents_prophet": [],
+        "parents_arimax": [],
+        "parents_ridge": [],
+        "persistence_mae": 0.7708312218744204,
+        "arima_mae": 0.8957428840617849,
+        "prophet_mae": 1.6529825431024783,
+        "arimax_scarcity_mae": 0.8957428840617849,
+        "prophet_scarcity_mae": 1.6529825431024783,
+        "persistence_dir": 0.0,
+        "arima_dir": 0.0,
+        "prophet_dir": 0.0,
+        "arimax_scarcity_dir": 0.0,
+        "prophet_scarcity_dir": 0.0
+      },
+      {
+        "year": 2013,
+        "target": "inflation_cpi",
+        "label": "Single",
+        "n_parents": 2,
+        "parents": [
+          "exports_gdp",
+          "private_credit"
+        ],
+        "parents_prophet": [
+          "private_credit",
+          "exports_gdp"
+        ],
+        "parents_arimax": [
+          "private_credit",
+          "exports_gdp"
+        ],
+        "parents_ridge": [
+          "private_credit",
+          "exports_gdp"
+        ],
+        "persistence_mae": 3.660276465098649,
+        "arima_mae": 4.232594300111019,
+        "prophet_mae": 0.8561516955847228,
+        "arimax_scarcity_mae": 4.5166455606028215,
+        "prophet_scarcity_mae": 1.9154328418922706,
+        "persistence_dir": 0.0,
+        "arima_dir": 0.0,
+        "prophet_dir": 1.0,
+        "arimax_scarcity_dir": 0.0,
+        "prophet_scarcity_dir": 1.0
+      },
+      {
+        "year": 2014,
+        "target": "gdp_growth",
+        "label": "Single",
+        "n_parents": 0,
+        "parents": [],
+        "parents_prophet": [],
+        "parents_arimax": [],
+        "parents_ridge": [],
+        "persistence_mae": 1.22226260974944,
+        "arima_mae": 1.0499778944194817,
+        "prophet_mae": 0.3392952478794822,
+        "arimax_scarcity_mae": 1.0499778944194817,
+        "prophet_scarcity_mae": 0.3392952478794822,
+        "persistence_dir": 0.0,
+        "arima_dir": 1.0,
+        "prophet_dir": 1.0,
+        "arimax_scarcity_dir": 1.0,
+        "prophet_scarcity_dir": 1.0
+      },
+      {
+        "year": 2014,
+        "target": "inflation_cpi",
+        "label": "Single",
+        "n_parents": 2,
+        "parents": [
+          "exports_gdp",
+          "private_credit"
+        ],
+        "parents_prophet": [
+          "private_credit",
+          "exports_gdp"
+        ],
+        "parents_arimax": [
+          "private_credit",
+          "exports_gdp"
+        ],
+        "parents_ridge": [
+          "private_credit",
+          "exports_gdp"
+        ],
+        "persistence_mae": 1.1606614223821596,
+        "arima_mae": 0.7377505109303151,
+        "prophet_mae": 1.0462297429400262,
+        "arimax_scarcity_mae": 1.7010863184101348,
+        "prophet_scarcity_mae": 4.156833925687622,
+        "persistence_dir": 0.0,
+        "arima_dir": 1.0,
+        "prophet_dir": 1.0,
+        "arimax_scarcity_dir": 1.0,
+        "prophet_scarcity_dir": 0.0
+      },
+      {
+        "year": 2015,
+        "target": "gdp_growth",
+        "label": "Single",
+        "n_parents": 0,
+        "parents": [],
+        "parents_prophet": [],
+        "parents_arimax": [],
+        "parents_ridge": [],
+        "persistence_mae": 0.052389874727169605,
+        "arima_mae": 0.22718232782247583,
+        "prophet_mae": 0.504003952108464,
+        "arimax_scarcity_mae": 0.22718232782247583,
+        "prophet_scarcity_mae": 0.504003952108464,
+        "persistence_dir": 0.0,
+        "arima_dir": 1.0,
+        "prophet_dir": 0.0,
+        "arimax_scarcity_dir": 1.0,
+        "prophet_scarcity_dir": 0.0
+      },
+      {
+        "year": 2015,
+        "target": "inflation_cpi",
+        "label": "Single",
+        "n_parents": 2,
+        "parents": [
+          "exports_gdp",
+          "private_credit"
+        ],
+        "parents_prophet": [
+          "private_credit",
+          "exports_gdp"
+        ],
+        "parents_arimax": [
+          "private_credit",
+          "exports_gdp"
+        ],
+        "parents_ridge": [
+          "private_credit",
+          "exports_gdp"
+        ],
+        "persistence_mae": 0.2960006999117004,
+        "arima_mae": 0.16042295372560123,
+        "prophet_mae": 1.1698531172638953,
+        "arimax_scarcity_mae": 5.6495445281440695,
+        "prophet_scarcity_mae": 9.880413772813025,
+        "persistence_dir": 0.0,
+        "arima_dir": 1.0,
+        "prophet_dir": 1.0,
+        "arimax_scarcity_dir": 0.0,
+        "prophet_scarcity_dir": 1.0
+      },
+      {
+        "year": 2016,
+        "target": "gdp_growth",
+        "label": "Single",
+        "n_parents": 0,
+        "parents": [],
+        "parents_prophet": [],
+        "parents_arimax": [],
+        "parents_ridge": [],
+        "persistence_mae": 0.7542040594502302,
+        "arima_mae": 0.766119891000062,
+        "prophet_mae": 1.3415761842523475,
+        "arimax_scarcity_mae": 0.766119891000062,
+        "prophet_scarcity_mae": 1.3415761842523475,
+        "persistence_dir": 0.0,
+        "arima_dir": 0.0,
+        "prophet_dir": 0.0,
+        "arimax_scarcity_dir": 0.0,
+        "prophet_scarcity_dir": 0.0
+      },
+      {
+        "year": 2016,
+        "target": "inflation_cpi",
+        "label": "Single",
+        "n_parents": 2,
+        "parents": [
+          "exports_gdp",
+          "private_credit"
+        ],
+        "parents_prophet": [
+          "private_credit",
+          "exports_gdp"
+        ],
+        "parents_arimax": [
+          "private_credit",
+          "exports_gdp"
+        ],
+        "parents_ridge": [
+          "private_credit",
+          "exports_gdp"
+        ],
+        "persistence_mae": 0.28490475470153953,
+        "arima_mae": 0.3195584647706884,
+        "prophet_mae": 1.2829254417496472,
+        "arimax_scarcity_mae": 2.5104157284485495,
+        "prophet_scarcity_mae": 8.112984340519816,
+        "persistence_dir": 0.0,
+        "arima_dir": 0.0,
+        "prophet_dir": 1.0,
+        "arimax_scarcity_dir": 0.0,
+        "prophet_scarcity_dir": 1.0
+      },
+      {
+        "year": 2017,
+        "target": "gdp_growth",
+        "label": "Single",
+        "n_parents": 1,
+        "parents": [
+          "unemployment"
+        ],
+        "parents_prophet": [
+          "unemployment"
+        ],
+        "parents_arimax": [
+          "unemployment"
+        ],
+        "parents_ridge": [
+          "unemployment"
+        ],
+        "persistence_mae": 0.37555889450023017,
+        "arima_mae": 0.5471568772782067,
+        "prophet_mae": 1.677899244847171,
+        "arimax_scarcity_mae": 0.48342790260578195,
+        "prophet_scarcity_mae": 1.1815893243329842,
+        "persistence_dir": 0.0,
+        "arima_dir": 0.0,
+        "prophet_dir": 0.0,
+        "arimax_scarcity_dir": 0.0,
+        "prophet_scarcity_dir": 0.0
+      },
+      {
+        "year": 2017,
+        "target": "inflation_cpi",
+        "label": "Single",
+        "n_parents": 2,
+        "parents": [
+          "exports_gdp",
+          "private_credit"
+        ],
+        "parents_prophet": [
+          "private_credit",
+          "exports_gdp"
+        ],
+        "parents_arimax": [
+          "private_credit",
+          "exports_gdp"
+        ],
+        "parents_ridge": [
+          "private_credit",
+          "exports_gdp"
+        ],
+        "persistence_mae": 1.7084001389532002,
+        "arima_mae": 1.675006774209863,
+        "prophet_mae": 3.3708454200508076,
+        "arimax_scarcity_mae": 1.195794656845008,
+        "prophet_scarcity_mae": 8.446841918358537,
+        "persistence_dir": 0.0,
+        "arima_dir": 1.0,
+        "prophet_dir": 0.0,
+        "arimax_scarcity_dir": 1.0,
+        "prophet_scarcity_dir": 0.0
+      },
+      {
+        "year": 2018,
+        "target": "gdp_growth",
+        "label": "Single",
+        "n_parents": 1,
+        "parents": [
+          "unemployment"
+        ],
+        "parents_prophet": [
+          "unemployment"
+        ],
+        "parents_arimax": [
+          "unemployment"
+        ],
+        "parents_ridge": [
+          "unemployment"
+        ],
+        "persistence_mae": 1.8099882334449804,
+        "arima_mae": 1.725355475965514,
+        "prophet_mae": 0.22459668564620117,
+        "arimax_scarcity_mae": 10.41092484976185,
+        "prophet_scarcity_mae": 2.918897799905282,
+        "persistence_dir": 0.0,
+        "arima_dir": 1.0,
+        "prophet_dir": 1.0,
+        "arimax_scarcity_dir": 1.0,
+        "prophet_scarcity_dir": 0.0
+      },
+      {
+        "year": 2018,
+        "target": "inflation_cpi",
+        "label": "Single",
+        "n_parents": 2,
+        "parents": [
+          "exports_gdp",
+          "private_credit"
+        ],
+        "parents_prophet": [
+          "private_credit",
+          "exports_gdp"
+        ],
+        "parents_arimax": [
+          "private_credit",
+          "exports_gdp"
+        ],
+        "parents_ridge": [
+          "private_credit",
+          "exports_gdp"
+        ],
+        "persistence_mae": 3.3158432093361503,
+        "arima_mae": 3.1150098193519415,
+        "prophet_mae": 0.13259176572413978,
+        "arimax_scarcity_mae": 2.2356307896974075,
+        "prophet_scarcity_mae": 2.813345625131718,
+        "persistence_dir": 0.0,
+        "arima_dir": 1.0,
+        "prophet_dir": 1.0,
+        "arimax_scarcity_dir": 1.0,
+        "prophet_scarcity_dir": 1.0
+      },
+      {
+        "year": 2019,
+        "target": "gdp_growth",
+        "label": "Single",
+        "n_parents": 1,
+        "parents": [
+          "unemployment"
+        ],
+        "parents_prophet": [
+          "unemployment"
+        ],
+        "parents_arimax": [
+          "unemployment"
+        ],
+        "parents_ridge": [
+          "unemployment"
+        ],
+        "persistence_mae": 0.5337875494141802,
+        "arima_mae": 0.11858858991039867,
+        "prophet_mae": 0.4710301237327341,
+        "arimax_scarcity_mae": 4.2565233690610516,
+        "prophet_scarcity_mae": 0.6485452730691437,
+        "persistence_dir": 0.0,
+        "arima_dir": 1.0,
+        "prophet_dir": 1.0,
+        "arimax_scarcity_dir": 0.0,
+        "prophet_scarcity_dir": 1.0
+      },
+      {
+        "year": 2019,
+        "target": "inflation_cpi",
+        "label": "Single",
+        "n_parents": 2,
+        "parents": [
+          "exports_gdp",
+          "private_credit"
+        ],
+        "parents_prophet": [
+          "private_credit",
+          "exports_gdp"
+        ],
+        "parents_arimax": [
+          "private_credit",
+          "exports_gdp"
+        ],
+        "parents_ridge": [
+          "private_credit",
+          "exports_gdp"
+        ],
+        "persistence_mae": 0.5498314898846202,
+        "arima_mae": 0.15251506276368598,
+        "prophet_mae": 1.149806912926695,
+        "arimax_scarcity_mae": 1.2465058836140068,
+        "prophet_scarcity_mae": 1.882639780899538,
+        "persistence_dir": 0.0,
+        "arima_dir": 1.0,
+        "prophet_dir": 0.0,
+        "arimax_scarcity_dir": 0.0,
+        "prophet_scarcity_dir": 0.0
+      },
+      {
+        "year": 2020,
+        "target": "gdp_growth",
+        "label": "Single",
+        "n_parents": 0,
+        "parents": [],
+        "parents_prophet": [],
+        "parents_arimax": [],
+        "parents_ridge": [],
+        "persistence_mae": 5.3869251851168265,
+        "arima_mae": 5.5102000337532795,
+        "prophet_mae": 5.927753720637098,
+        "arimax_scarcity_mae": 5.5102000337532795,
+        "prophet_scarcity_mae": 5.927753720637098,
+        "persistence_dir": 0.0,
+        "arima_dir": 0.0,
+        "prophet_dir": 0.0,
+        "arimax_scarcity_dir": 0.0,
+        "prophet_scarcity_dir": 0.0
+      },
+      {
+        "year": 2020,
+        "target": "inflation_cpi",
+        "label": "Single",
+        "n_parents": 2,
+        "parents": [
+          "exports_gdp",
+          "private_credit"
+        ],
+        "parents_prophet": [
+          "private_credit",
+          "exports_gdp"
+        ],
+        "parents_arimax": [
+          "private_credit",
+          "exports_gdp"
+        ],
+        "parents_ridge": [
+          "private_credit",
+          "exports_gdp"
+        ],
+        "persistence_mae": 0.1655241216859995,
+        "arima_mae": 0.23159646812274026,
+        "prophet_mae": 1.7327226424206286,
+        "arimax_scarcity_mae": 0.025455001335052962,
+        "prophet_scarcity_mae": 2.140483230458935,
+        "persistence_dir": 0.0,
+        "arima_dir": 0.0,
+        "prophet_dir": 0.0,
+        "arimax_scarcity_dir": 1.0,
+        "prophet_scarcity_dir": 0.0
+      },
+      {
+        "year": 2021,
+        "target": "gdp_growth",
+        "label": "Single",
+        "n_parents": 1,
+        "parents": [
+          "urban_population"
+        ],
+        "parents_prophet": [
+          "urban_population"
+        ],
+        "parents_arimax": [
+          "urban_population"
+        ],
+        "parents_ridge": [
+          "urban_population"
+        ],
+        "persistence_mae": 7.863255800773486,
+        "arima_mae": 6.71838984181716,
+        "prophet_mae": 2.5698816399138815,
+        "arimax_scarcity_mae": 6.451663071235107,
+        "prophet_scarcity_mae": 4.047640116833894,
+        "persistence_dir": 0.0,
+        "arima_dir": 1.0,
+        "prophet_dir": 1.0,
+        "arimax_scarcity_dir": 1.0,
+        "prophet_scarcity_dir": 1.0
+      },
+      {
+        "year": 2021,
+        "target": "inflation_cpi",
+        "label": "Single",
+        "n_parents": 2,
+        "parents": [
+          "exports_gdp",
+          "private_credit"
+        ],
+        "parents_prophet": [
+          "private_credit",
+          "exports_gdp"
+        ],
+        "parents_arimax": [
+          "private_credit",
+          "exports_gdp"
+        ],
+        "parents_ridge": [
+          "private_credit",
+          "exports_gdp"
+        ],
+        "persistence_mae": 0.7027739572578406,
+        "arima_mae": 0.7226783868513511,
+        "prophet_mae": 2.7367984583750897,
+        "arimax_scarcity_mae": 0.02598305302968207,
+        "prophet_scarcity_mae": 2.960937310079312,
+        "persistence_dir": 0.0,
+        "arima_dir": 0.0,
+        "prophet_dir": 0.0,
+        "arimax_scarcity_dir": 1.0,
+        "prophet_scarcity_dir": 0.0
+      },
+      {
+        "year": 2022,
+        "target": "gdp_growth",
+        "label": "Single",
+        "n_parents": 1,
+        "parents": [
+          "urban_population"
+        ],
+        "parents_prophet": [
+          "urban_population"
+        ],
+        "parents_arimax": [
+          "urban_population"
+        ],
+        "parents_ridge": [
+          "urban_population"
+        ],
+        "persistence_mae": 2.7305084304546803,
+        "arima_mae": 0.3394348627020145,
+        "prophet_mae": 0.5760105893266676,
+        "arimax_scarcity_mae": 0.6908529054331067,
+        "prophet_scarcity_mae": 0.5487948140592289,
+        "persistence_dir": 0.0,
+        "arima_dir": 1.0,
+        "prophet_dir": 1.0,
+        "arimax_scarcity_dir": 1.0,
+        "prophet_scarcity_dir": 1.0
+      },
+      {
+        "year": 2022,
+        "target": "inflation_cpi",
+        "label": "Single",
+        "n_parents": 2,
+        "parents": [
+          "exports_gdp",
+          "private_credit"
+        ],
+        "parents_prophet": [
+          "private_credit",
+          "exports_gdp"
+        ],
+        "parents_arimax": [
+          "private_credit",
+          "exports_gdp"
+        ],
+        "parents_ridge": [
+          "private_credit",
+          "exports_gdp"
+        ],
+        "persistence_mae": 1.5519266461304797,
+        "arima_mae": 1.6364895856483983,
+        "prophet_mae": 4.4626304429940795,
+        "arimax_scarcity_mae": 2.858633454402482,
+        "prophet_scarcity_mae": 2.0048785856584423,
+        "persistence_dir": 0.0,
+        "arima_dir": 0.0,
+        "prophet_dir": 0.0,
+        "arimax_scarcity_dir": 0.0,
+        "prophet_scarcity_dir": 0.0
+      },
+      {
+        "year": 2023,
+        "target": "gdp_growth",
+        "label": "Single",
+        "n_parents": 1,
+        "parents": [
+          "urban_population"
+        ],
+        "parents_prophet": [
+          "urban_population"
+        ],
+        "parents_arimax": [
+          "urban_population"
+        ],
+        "parents_ridge": [
+          "urban_population"
+        ],
+        "persistence_mae": 0.8600113692620903,
+        "arima_mae": 0.1796436842289113,
+        "prophet_mae": 0.23785881530498632,
+        "arimax_scarcity_mae": 0.3201458635619838,
+        "prophet_scarcity_mae": 1.3015323772495275,
+        "persistence_dir": 0.0,
+        "arima_dir": 1.0,
+        "prophet_dir": 1.0,
+        "arimax_scarcity_dir": 1.0,
+        "prophet_scarcity_dir": 0.0
+      },
+      {
+        "year": 2023,
+        "target": "inflation_cpi",
+        "label": "Single",
+        "n_parents": 2,
+        "parents": [
+          "exports_gdp",
+          "private_credit"
+        ],
+        "parents_prophet": [
+          "private_credit",
+          "exports_gdp"
+        ],
+        "parents_arimax": [
+          "private_credit",
+          "exports_gdp"
+        ],
+        "parents_ridge": [
+          "private_credit",
+          "exports_gdp"
+        ],
+        "persistence_mae": 0.011533657571780154,
+        "arima_mae": 0.19773357568260863,
+        "prophet_mae": 4.411758877621333,
+        "arimax_scarcity_mae": 1.5365459641858488,
+        "prophet_scarcity_mae": 0.7404614269259593,
+        "persistence_dir": 0.0,
+        "arima_dir": 0.0,
+        "prophet_dir": 0.0,
+        "arimax_scarcity_dir": 0.0,
+        "prophet_scarcity_dir": 1.0
+      }
+    ],
+    "fed_results": [
+      {
+        "year": 2005,
+        "target": "gdp_growth",
+        "label": "Federated",
+        "n_parents": 8,
+        "parents": [
+          "broad_money",
+          "exports_gdp",
+          "govt_consumption",
+          "imports_gdp",
+          "life_expectancy",
+          "school_enrollment",
+          "unemployment",
+          "urban_population"
+        ],
+        "parents_prophet": [
+          "urban_population",
+          "life_expectancy",
+          "broad_money",
+          "imports_gdp",
+          "exports_gdp"
+        ],
+        "parents_arimax": [
+          "urban_population",
+          "life_expectancy",
+          "broad_money"
+        ],
+        "parents_ridge": [
+          "urban_population",
+          "life_expectancy",
+          "broad_money",
+          "imports_gdp",
+          "exports_gdp",
+          "school_enrollment"
+        ],
+        "persistence_mae": 0.8023663035031898,
+        "arima_mae": 1.3738568897980885,
+        "prophet_mae": 2.841984316447496,
+        "arimax_scarcity_mae": 0.3693034459555493,
+        "prophet_scarcity_mae": 1.5739217744045186,
+        "persistence_dir": 0.0,
+        "arima_dir": 0.0,
+        "prophet_dir": 0.0,
+        "arimax_scarcity_dir": 1.0,
+        "prophet_scarcity_dir": 0.0
+      },
+      {
+        "year": 2005,
+        "target": "inflation_cpi",
+        "label": "Federated",
+        "n_parents": 1,
+        "parents": [
+          "unemployment"
+        ],
+        "parents_prophet": [
+          "unemployment"
+        ],
+        "parents_arimax": [
+          "unemployment"
+        ],
+        "parents_ridge": [
+          "unemployment"
+        ],
+        "persistence_mae": 1.3112571867743004,
+        "arima_mae": 1.4043829367439997,
+        "prophet_mae": 8.756397643863748,
+        "arimax_scarcity_mae": 1.398803270094266,
+        "prophet_scarcity_mae": 11.504320294305279,
+        "persistence_dir": 0.0,
+        "arima_dir": 0.0,
+        "prophet_dir": 1.0,
+        "arimax_scarcity_dir": 0.0,
+        "prophet_scarcity_dir": 1.0
+      },
+      {
+        "year": 2006,
+        "target": "gdp_growth",
+        "label": "Federated",
+        "n_parents": 8,
+        "parents": [
+          "broad_money",
+          "exports_gdp",
+          "govt_consumption",
+          "imports_gdp",
+          "life_expectancy",
+          "school_enrollment",
+          "unemployment",
+          "urban_population"
+        ],
+        "parents_prophet": [
+          "urban_population",
+          "life_expectancy",
+          "broad_money",
+          "imports_gdp",
+          "exports_gdp"
+        ],
+        "parents_arimax": [
+          "urban_population",
+          "life_expectancy",
+          "broad_money"
+        ],
+        "parents_ridge": [
+          "urban_population",
+          "life_expectancy",
+          "broad_money",
+          "imports_gdp",
+          "exports_gdp",
+          "school_enrollment"
+        ],
+        "persistence_mae": 0.5658282203542697,
+        "arima_mae": 0.7465330343363901,
+        "prophet_mae": 2.644268955740849,
+        "arimax_scarcity_mae": 0.21396716612655364,
+        "prophet_scarcity_mae": 0.27435264550296257,
+        "persistence_dir": 0.0,
+        "arima_dir": 0.0,
+        "prophet_dir": 0.0,
+        "arimax_scarcity_dir": 1.0,
+        "prophet_scarcity_dir": 1.0
+      },
+      {
+        "year": 2006,
+        "target": "inflation_cpi",
+        "label": "Federated",
+        "n_parents": 1,
+        "parents": [
+          "unemployment"
+        ],
+        "parents_prophet": [
+          "unemployment"
+        ],
+        "parents_arimax": [
+          "unemployment"
+        ],
+        "parents_ridge": [
+          "unemployment"
+        ],
+        "persistence_mae": 4.1409558507025,
+        "arima_mae": 4.206870733178025,
+        "prophet_mae": 12.277166791195793,
+        "arimax_scarcity_mae": 4.226467620397909,
+        "prophet_scarcity_mae": 19.245523728072705,
+        "persistence_dir": 0.0,
+        "arima_dir": 0.0,
+        "prophet_dir": 0.0,
+        "arimax_scarcity_dir": 0.0,
+        "prophet_scarcity_dir": 0.0
+      },
+      {
+        "year": 2007,
+        "target": "gdp_growth",
+        "label": "Federated",
+        "n_parents": 8,
+        "parents": [
+          "broad_money",
+          "exports_gdp",
+          "govt_consumption",
+          "imports_gdp",
+          "life_expectancy",
+          "school_enrollment",
+          "unemployment",
+          "urban_population"
+        ],
+        "parents_prophet": [
+          "urban_population",
+          "broad_money",
+          "life_expectancy",
+          "imports_gdp",
+          "exports_gdp"
+        ],
+        "parents_arimax": [
+          "urban_population",
+          "broad_money",
+          "life_expectancy"
+        ],
+        "parents_ridge": [
+          "urban_population",
+          "broad_money",
+          "life_expectancy",
+          "imports_gdp",
+          "exports_gdp",
+          "school_enrollment"
+        ],
+        "persistence_mae": 0.37823546983300016,
+        "arima_mae": 0.5017574813557362,
+        "prophet_mae": 2.2032815082621173,
+        "arimax_scarcity_mae": 1.185334822323039,
+        "prophet_scarcity_mae": 0.10849717386630697,
+        "persistence_dir": 0.0,
+        "arima_dir": 0.0,
+        "prophet_dir": 0.0,
+        "arimax_scarcity_dir": 0.0,
+        "prophet_scarcity_dir": 1.0
+      },
+      {
+        "year": 2007,
+        "target": "inflation_cpi",
+        "label": "Federated",
+        "n_parents": 1,
+        "parents": [
+          "unemployment"
+        ],
+        "parents_prophet": [
+          "unemployment"
+        ],
+        "parents_arimax": [
+          "unemployment"
+        ],
+        "parents_ridge": [
+          "unemployment"
+        ],
+        "persistence_mae": 4.6948539778955105,
+        "arima_mae": 4.890580831267952,
+        "prophet_mae": 6.062444873518764,
+        "arimax_scarcity_mae": 5.182580312765737,
+        "prophet_scarcity_mae": 10.083071940388336,
+        "persistence_dir": 0.0,
+        "arima_dir": 0.0,
+        "prophet_dir": 1.0,
+        "arimax_scarcity_dir": 0.0,
+        "prophet_scarcity_dir": 1.0
+      },
+      {
+        "year": 2008,
+        "target": "gdp_growth",
+        "label": "Federated",
+        "n_parents": 8,
+        "parents": [
+          "broad_money",
+          "exports_gdp",
+          "govt_consumption",
+          "imports_gdp",
+          "life_expectancy",
+          "school_enrollment",
+          "unemployment",
+          "urban_population"
+        ],
+        "parents_prophet": [
+          "urban_population",
+          "broad_money",
+          "imports_gdp",
+          "exports_gdp",
+          "life_expectancy"
+        ],
+        "parents_arimax": [
+          "urban_population",
+          "broad_money",
+          "imports_gdp"
+        ],
+        "parents_ridge": [
+          "urban_population",
+          "broad_money",
+          "imports_gdp",
+          "exports_gdp",
+          "life_expectancy",
+          "school_enrollment"
+        ],
+        "persistence_mae": 6.618447025174863,
+        "arima_mae": 6.536973808841679,
+        "prophet_mae": 5.0934450380263545,
+        "arimax_scarcity_mae": 7.01017219510851,
+        "prophet_scarcity_mae": 6.623722727121885,
+        "persistence_dir": 0.0,
+        "arima_dir": 1.0,
+        "prophet_dir": 1.0,
+        "arimax_scarcity_dir": 0.0,
+        "prophet_scarcity_dir": 0.0
+      },
+      {
+        "year": 2008,
+        "target": "inflation_cpi",
+        "label": "Federated",
+        "n_parents": 1,
+        "parents": [
+          "unemployment"
+        ],
+        "parents_prophet": [
+          "unemployment"
+        ],
+        "parents_arimax": [
+          "unemployment"
+        ],
+        "parents_ridge": [
+          "unemployment"
+        ],
+        "persistence_mae": 16.48093641423101,
+        "arima_mae": 16.6492107579557,
+        "prophet_mae": 22.31411381724605,
+        "arimax_scarcity_mae": 16.63923563326246,
+        "prophet_scarcity_mae": 24.519793373383752,
+        "persistence_dir": 0.0,
+        "arima_dir": 0.0,
+        "prophet_dir": 0.0,
+        "arimax_scarcity_dir": 0.0,
+        "prophet_scarcity_dir": 0.0
+      },
+      {
+        "year": 2009,
+        "target": "gdp_growth",
+        "label": "Federated",
+        "n_parents": 8,
+        "parents": [
+          "broad_money",
+          "exports_gdp",
+          "govt_consumption",
+          "imports_gdp",
+          "life_expectancy",
+          "school_enrollment",
+          "unemployment",
+          "urban_population"
+        ],
+        "parents_prophet": [
+          "urban_population",
+          "broad_money",
+          "imports_gdp",
+          "exports_gdp",
+          "school_enrollment"
+        ],
+        "parents_arimax": [
+          "urban_population",
+          "broad_money",
+          "imports_gdp"
+        ],
+        "parents_ridge": [
+          "urban_population",
+          "broad_money",
+          "imports_gdp",
+          "exports_gdp",
+          "school_enrollment",
+          "life_expectancy"
+        ],
+        "persistence_mae": 3.0746570714979127,
+        "arima_mae": 1.4836965587014845,
+        "prophet_mae": 1.1833009851813792,
+        "arimax_scarcity_mae": 2.2194653899520818,
+        "prophet_scarcity_mae": 2.2856091421494478,
+        "persistence_dir": 0.0,
+        "arima_dir": 1.0,
+        "prophet_dir": 1.0,
+        "arimax_scarcity_dir": 1.0,
+        "prophet_scarcity_dir": 1.0
+      },
+      {
+        "year": 2009,
+        "target": "inflation_cpi",
+        "label": "Federated",
+        "n_parents": 1,
+        "parents": [
+          "unemployment"
+        ],
+        "parents_prophet": [
+          "unemployment"
+        ],
+        "parents_arimax": [
+          "unemployment"
+        ],
+        "parents_ridge": [
+          "unemployment"
+        ],
+        "persistence_mae": 17.005690720559777,
+        "arima_mae": 16.871597604859737,
+        "prophet_mae": 1.6402701688783798,
+        "arimax_scarcity_mae": 15.97611918580388,
+        "prophet_scarcity_mae": 1.6153577922942697,
+        "persistence_dir": 0.0,
+        "arima_dir": 1.0,
+        "prophet_dir": 1.0,
+        "arimax_scarcity_dir": 1.0,
+        "prophet_scarcity_dir": 1.0
+      },
+      {
+        "year": 2010,
+        "target": "gdp_growth",
+        "label": "Federated",
+        "n_parents": 8,
+        "parents": [
+          "broad_money",
+          "exports_gdp",
+          "govt_consumption",
+          "imports_gdp",
+          "life_expectancy",
+          "school_enrollment",
+          "unemployment",
+          "urban_population"
+        ],
+        "parents_prophet": [
+          "urban_population",
+          "broad_money",
+          "imports_gdp",
+          "exports_gdp",
+          "school_enrollment"
+        ],
+        "parents_arimax": [
+          "urban_population",
+          "broad_money",
+          "imports_gdp"
+        ],
+        "parents_ridge": [
+          "urban_population",
+          "broad_money",
+          "imports_gdp",
+          "exports_gdp",
+          "school_enrollment",
+          "govt_consumption"
+        ],
+        "persistence_mae": 4.751533786598171,
+        "arima_mae": 5.736057256490791,
+        "prophet_mae": 3.644899374570036,
+        "arimax_scarcity_mae": 8.777122969269124,
+        "prophet_scarcity_mae": 4.344908575511365,
+        "persistence_dir": 0.0,
+        "arima_dir": 0.0,
+        "prophet_dir": 1.0,
+        "arimax_scarcity_dir": 0.0,
+        "prophet_scarcity_dir": 1.0
+      },
+      {
+        "year": 2010,
+        "target": "inflation_cpi",
+        "label": "Federated",
+        "n_parents": 2,
+        "parents": [
+          "life_expectancy",
+          "unemployment"
+        ],
+        "parents_prophet": [
+          "unemployment",
+          "life_expectancy"
+        ],
+        "parents_arimax": [
+          "unemployment",
+          "life_expectancy"
+        ],
+        "parents_ridge": [
+          "unemployment",
+          "life_expectancy"
+        ],
+        "persistence_mae": 5.272737032792669,
+        "arima_mae": 7.699533731367003,
+        "prophet_mae": 3.2436594867569775,
+        "arimax_scarcity_mae": 5.830253825031415,
+        "prophet_scarcity_mae": 14.275079023545528,
+        "persistence_dir": 0.0,
+        "arima_dir": 0.0,
+        "prophet_dir": 1.0,
+        "arimax_scarcity_dir": 0.0,
+        "prophet_scarcity_dir": 0.0
+      },
+      {
+        "year": 2011,
+        "target": "gdp_growth",
+        "label": "Federated",
+        "n_parents": 8,
+        "parents": [
+          "broad_money",
+          "exports_gdp",
+          "govt_consumption",
+          "imports_gdp",
+          "life_expectancy",
+          "school_enrollment",
+          "unemployment",
+          "urban_population"
+        ],
+        "parents_prophet": [
+          "urban_population",
+          "broad_money",
+          "imports_gdp",
+          "exports_gdp",
+          "school_enrollment"
+        ],
+        "parents_arimax": [
+          "urban_population",
+          "broad_money",
+          "imports_gdp"
+        ],
+        "parents_ridge": [
+          "urban_population",
+          "broad_money",
+          "imports_gdp",
+          "exports_gdp",
+          "school_enrollment",
+          "life_expectancy"
+        ],
+        "persistence_mae": 2.9373674832034604,
+        "arima_mae": 2.054137364491025,
+        "prophet_mae": 0.12587480946556617,
+        "arimax_scarcity_mae": 1.9335896391579794,
+        "prophet_scarcity_mae": 0.17125879091239948,
+        "persistence_dir": 0.0,
+        "arima_dir": 1.0,
+        "prophet_dir": 1.0,
+        "arimax_scarcity_dir": 1.0,
+        "prophet_scarcity_dir": 1.0
+      },
+      {
+        "year": 2011,
+        "target": "inflation_cpi",
+        "label": "Federated",
+        "n_parents": 2,
+        "parents": [
+          "life_expectancy",
+          "unemployment"
+        ],
+        "parents_prophet": [
+          "unemployment",
+          "life_expectancy"
+        ],
+        "parents_arimax": [
+          "unemployment",
+          "life_expectancy"
+        ],
+        "parents_ridge": [
+          "unemployment",
+          "life_expectancy"
+        ],
+        "persistence_mae": 10.061102410316549,
+        "arima_mae": 9.600905716192212,
+        "prophet_mae": 8.075090524840295,
+        "arimax_scarcity_mae": 9.429498958777675,
+        "prophet_scarcity_mae": 0.49838544917296623,
+        "persistence_dir": 0.0,
+        "arima_dir": 1.0,
+        "prophet_dir": 1.0,
+        "arimax_scarcity_dir": 1.0,
+        "prophet_scarcity_dir": 1.0
+      },
+      {
+        "year": 2012,
+        "target": "gdp_growth",
+        "label": "Federated",
+        "n_parents": 8,
+        "parents": [
+          "broad_money",
+          "exports_gdp",
+          "govt_consumption",
+          "imports_gdp",
+          "life_expectancy",
+          "school_enrollment",
+          "unemployment",
+          "urban_population"
+        ],
+        "parents_prophet": [
+          "urban_population",
+          "broad_money",
+          "exports_gdp",
+          "imports_gdp",
+          "school_enrollment"
+        ],
+        "parents_arimax": [
+          "urban_population",
+          "broad_money",
+          "exports_gdp"
+        ],
+        "parents_ridge": [
+          "urban_population",
+          "broad_money",
+          "exports_gdp",
+          "imports_gdp",
+          "school_enrollment",
+          "life_expectancy"
+        ],
+        "persistence_mae": 0.55242650525578,
+        "arima_mae": 1.2824278754726537,
+        "prophet_mae": 0.838915041359293,
+        "arimax_scarcity_mae": 2.0129344500264867,
+        "prophet_scarcity_mae": 1.7450140388271116,
+        "persistence_dir": 0.0,
+        "arima_dir": 0.0,
+        "prophet_dir": 0.0,
+        "arimax_scarcity_dir": 0.0,
+        "prophet_scarcity_dir": 0.0
+      },
+      {
+        "year": 2012,
+        "target": "inflation_cpi",
+        "label": "Federated",
+        "n_parents": 2,
+        "parents": [
+          "life_expectancy",
+          "unemployment"
+        ],
+        "parents_prophet": [
+          "unemployment",
+          "life_expectancy"
+        ],
+        "parents_arimax": [
+          "unemployment",
+          "life_expectancy"
+        ],
+        "parents_ridge": [
+          "unemployment",
+          "life_expectancy"
+        ],
+        "persistence_mae": 4.64472126599442,
+        "arima_mae": 3.552263654932098,
+        "prophet_mae": 2.9318290727945113,
+        "arimax_scarcity_mae": 6.651775779572244,
+        "prophet_scarcity_mae": 1.2143557606591848,
+        "persistence_dir": 0.0,
+        "arima_dir": 1.0,
+        "prophet_dir": 1.0,
+        "arimax_scarcity_dir": 0.0,
+        "prophet_scarcity_dir": 1.0
+      },
+      {
+        "year": 2013,
+        "target": "gdp_growth",
+        "label": "Federated",
+        "n_parents": 9,
+        "parents": [
+          "broad_money",
+          "exports_gdp",
+          "govt_consumption",
+          "imports_gdp",
+          "life_expectancy",
+          "private_credit",
+          "school_enrollment",
+          "unemployment",
+          "urban_population"
+        ],
+        "parents_prophet": [
+          "urban_population",
+          "broad_money",
+          "exports_gdp",
+          "imports_gdp",
+          "school_enrollment"
+        ],
+        "parents_arimax": [
+          "urban_population",
+          "broad_money",
+          "exports_gdp"
+        ],
+        "parents_ridge": [
+          "urban_population",
+          "broad_money",
+          "exports_gdp",
+          "imports_gdp",
+          "school_enrollment",
+          "life_expectancy"
+        ],
+        "persistence_mae": 0.7708312218744204,
+        "arima_mae": 0.8957428840617849,
+        "prophet_mae": 1.6529825431024783,
+        "arimax_scarcity_mae": 0.7235860187474259,
+        "prophet_scarcity_mae": 0.7349438231798526,
+        "persistence_dir": 0.0,
+        "arima_dir": 0.0,
+        "prophet_dir": 0.0,
+        "arimax_scarcity_dir": 1.0,
+        "prophet_scarcity_dir": 1.0
+      },
+      {
+        "year": 2013,
+        "target": "inflation_cpi",
+        "label": "Federated",
+        "n_parents": 3,
+        "parents": [
+          "life_expectancy",
+          "unemployment",
+          "urban_population"
+        ],
+        "parents_prophet": [
+          "unemployment",
+          "life_expectancy",
+          "urban_population"
+        ],
+        "parents_arimax": [
+          "unemployment",
+          "life_expectancy",
+          "urban_population"
+        ],
+        "parents_ridge": [
+          "unemployment",
+          "life_expectancy",
+          "urban_population"
+        ],
+        "persistence_mae": 3.660276465098649,
+        "arima_mae": 4.232594300111019,
+        "prophet_mae": 0.8561516955847228,
+        "arimax_scarcity_mae": 4.8872706725212804,
+        "prophet_scarcity_mae": 6.131569527529747,
+        "persistence_dir": 0.0,
+        "arima_dir": 0.0,
+        "prophet_dir": 1.0,
+        "arimax_scarcity_dir": 0.0,
+        "prophet_scarcity_dir": 1.0
+      },
+      {
+        "year": 2014,
+        "target": "gdp_growth",
+        "label": "Federated",
+        "n_parents": 10,
+        "parents": [
+          "broad_money",
+          "exports_gdp",
+          "govt_consumption",
+          "imports_gdp",
+          "inflation_cpi",
+          "life_expectancy",
+          "private_credit",
+          "school_enrollment",
+          "unemployment",
+          "urban_population"
+        ],
+        "parents_prophet": [
+          "urban_population",
+          "broad_money",
+          "exports_gdp",
+          "school_enrollment",
+          "imports_gdp"
+        ],
+        "parents_arimax": [
+          "urban_population",
+          "broad_money",
+          "exports_gdp"
+        ],
+        "parents_ridge": [
+          "urban_population",
+          "broad_money",
+          "exports_gdp",
+          "school_enrollment",
+          "imports_gdp",
+          "life_expectancy"
+        ],
+        "persistence_mae": 1.22226260974944,
+        "arima_mae": 1.0499778944194817,
+        "prophet_mae": 0.3392952478794822,
+        "arimax_scarcity_mae": 1.5664823587210668,
+        "prophet_scarcity_mae": 0.6368514009853827,
+        "persistence_dir": 0.0,
+        "arima_dir": 1.0,
+        "prophet_dir": 1.0,
+        "arimax_scarcity_dir": 0.0,
+        "prophet_scarcity_dir": 1.0
+      },
+      {
+        "year": 2014,
+        "target": "inflation_cpi",
+        "label": "Federated",
+        "n_parents": 5,
+        "parents": [
+          "gdp_growth",
+          "life_expectancy",
+          "real_interest_rate",
+          "unemployment",
+          "urban_population"
+        ],
+        "parents_prophet": [
+          "unemployment",
+          "life_expectancy",
+          "urban_population",
+          "gdp_growth",
+          "real_interest_rate"
+        ],
+        "parents_arimax": [
+          "unemployment",
+          "life_expectancy",
+          "urban_population"
+        ],
+        "parents_ridge": [
+          "unemployment",
+          "life_expectancy",
+          "urban_population",
+          "gdp_growth",
+          "real_interest_rate"
+        ],
+        "persistence_mae": 1.1606614223821596,
+        "arima_mae": 0.7377505109303151,
+        "prophet_mae": 1.0462297429400262,
+        "arimax_scarcity_mae": 2.8342650866154733,
+        "prophet_scarcity_mae": 3.2290244838069233,
+        "persistence_dir": 0.0,
+        "arima_dir": 1.0,
+        "prophet_dir": 1.0,
+        "arimax_scarcity_dir": 0.0,
+        "prophet_scarcity_dir": 0.0
+      },
+      {
+        "year": 2015,
+        "target": "gdp_growth",
+        "label": "Federated",
+        "n_parents": 10,
+        "parents": [
+          "broad_money",
+          "exports_gdp",
+          "govt_consumption",
+          "imports_gdp",
+          "inflation_cpi",
+          "life_expectancy",
+          "private_credit",
+          "school_enrollment",
+          "unemployment",
+          "urban_population"
+        ],
+        "parents_prophet": [
+          "urban_population",
+          "broad_money",
+          "exports_gdp",
+          "school_enrollment",
+          "inflation_cpi"
+        ],
+        "parents_arimax": [
+          "urban_population",
+          "broad_money",
+          "inflation_cpi"
+        ],
+        "parents_ridge": [
+          "urban_population",
+          "broad_money",
+          "exports_gdp",
+          "school_enrollment",
+          "imports_gdp",
+          "inflation_cpi"
+        ],
+        "persistence_mae": 0.052389874727169605,
+        "arima_mae": 0.22718232782247583,
+        "prophet_mae": 0.504003952108464,
+        "arimax_scarcity_mae": 0.03362026770177895,
+        "prophet_scarcity_mae": 1.4743796908186106,
+        "persistence_dir": 0.0,
+        "arima_dir": 1.0,
+        "prophet_dir": 0.0,
+        "arimax_scarcity_dir": 1.0,
+        "prophet_scarcity_dir": 1.0
+      },
+      {
+        "year": 2015,
+        "target": "inflation_cpi",
+        "label": "Federated",
+        "n_parents": 5,
+        "parents": [
+          "gdp_growth",
+          "life_expectancy",
+          "real_interest_rate",
+          "unemployment",
+          "urban_population"
+        ],
+        "parents_prophet": [
+          "unemployment",
+          "life_expectancy",
+          "urban_population",
+          "gdp_growth",
+          "real_interest_rate"
+        ],
+        "parents_arimax": [
+          "unemployment",
+          "life_expectancy",
+          "urban_population"
+        ],
+        "parents_ridge": [
+          "unemployment",
+          "life_expectancy",
+          "urban_population",
+          "gdp_growth",
+          "real_interest_rate"
+        ],
+        "persistence_mae": 0.2960006999117004,
+        "arima_mae": 0.16042295372560123,
+        "prophet_mae": 1.1698531172638953,
+        "arimax_scarcity_mae": 0.4223413395766471,
+        "prophet_scarcity_mae": 5.037051426794033,
+        "persistence_dir": 0.0,
+        "arima_dir": 1.0,
+        "prophet_dir": 1.0,
+        "arimax_scarcity_dir": 1.0,
+        "prophet_scarcity_dir": 1.0
+      },
+      {
+        "year": 2016,
+        "target": "gdp_growth",
+        "label": "Federated",
+        "n_parents": 10,
+        "parents": [
+          "broad_money",
+          "exports_gdp",
+          "govt_consumption",
+          "imports_gdp",
+          "inflation_cpi",
+          "life_expectancy",
+          "private_credit",
+          "school_enrollment",
+          "unemployment",
+          "urban_population"
+        ],
+        "parents_prophet": [
+          "urban_population",
+          "broad_money",
+          "exports_gdp",
+          "school_enrollment",
+          "inflation_cpi"
+        ],
+        "parents_arimax": [
+          "urban_population",
+          "broad_money",
+          "inflation_cpi"
+        ],
+        "parents_ridge": [
+          "urban_population",
+          "broad_money",
+          "exports_gdp",
+          "school_enrollment",
+          "imports_gdp",
+          "inflation_cpi"
+        ],
+        "persistence_mae": 0.7542040594502302,
+        "arima_mae": 0.766119891000062,
+        "prophet_mae": 1.3415761842523475,
+        "arimax_scarcity_mae": 0.8542617712498473,
+        "prophet_scarcity_mae": 0.7189470218525655,
+        "persistence_dir": 0.0,
+        "arima_dir": 0.0,
+        "prophet_dir": 0.0,
+        "arimax_scarcity_dir": 0.0,
+        "prophet_scarcity_dir": 1.0
+      },
+      {
+        "year": 2016,
+        "target": "inflation_cpi",
+        "label": "Federated",
+        "n_parents": 5,
+        "parents": [
+          "gdp_growth",
+          "life_expectancy",
+          "real_interest_rate",
+          "unemployment",
+          "urban_population"
+        ],
+        "parents_prophet": [
+          "unemployment",
+          "urban_population",
+          "gdp_growth",
+          "life_expectancy",
+          "real_interest_rate"
+        ],
+        "parents_arimax": [
+          "unemployment",
+          "urban_population",
+          "gdp_growth"
+        ],
+        "parents_ridge": [
+          "unemployment",
+          "urban_population",
+          "gdp_growth",
+          "life_expectancy",
+          "real_interest_rate"
+        ],
+        "persistence_mae": 0.28490475470153953,
+        "arima_mae": 0.3195584647706884,
+        "prophet_mae": 1.2829254417496472,
+        "arimax_scarcity_mae": 0.3944686619788875,
+        "prophet_scarcity_mae": 4.780995749477798,
+        "persistence_dir": 0.0,
+        "arima_dir": 0.0,
+        "prophet_dir": 1.0,
+        "arimax_scarcity_dir": 0.0,
+        "prophet_scarcity_dir": 1.0
+      },
+      {
+        "year": 2017,
+        "target": "gdp_growth",
+        "label": "Federated",
+        "n_parents": 10,
+        "parents": [
+          "broad_money",
+          "exports_gdp",
+          "govt_consumption",
+          "imports_gdp",
+          "inflation_cpi",
+          "life_expectancy",
+          "private_credit",
+          "school_enrollment",
+          "unemployment",
+          "urban_population"
+        ],
+        "parents_prophet": [
+          "urban_population",
+          "broad_money",
+          "exports_gdp",
+          "school_enrollment",
+          "inflation_cpi"
+        ],
+        "parents_arimax": [
+          "urban_population",
+          "broad_money",
+          "inflation_cpi"
+        ],
+        "parents_ridge": [
+          "urban_population",
+          "broad_money",
+          "exports_gdp",
+          "school_enrollment",
+          "imports_gdp",
+          "inflation_cpi"
+        ],
+        "persistence_mae": 0.37555889450023017,
+        "arima_mae": 0.5471568772782067,
+        "prophet_mae": 1.677899244847171,
+        "arimax_scarcity_mae": 0.45072153912376756,
+        "prophet_scarcity_mae": 0.38749937507680343,
+        "persistence_dir": 0.0,
+        "arima_dir": 0.0,
+        "prophet_dir": 0.0,
+        "arimax_scarcity_dir": 0.0,
+        "prophet_scarcity_dir": 1.0
+      },
+      {
+        "year": 2017,
+        "target": "inflation_cpi",
+        "label": "Federated",
+        "n_parents": 5,
+        "parents": [
+          "gdp_growth",
+          "life_expectancy",
+          "real_interest_rate",
+          "unemployment",
+          "urban_population"
+        ],
+        "parents_prophet": [
+          "unemployment",
+          "urban_population",
+          "gdp_growth",
+          "real_interest_rate",
+          "life_expectancy"
+        ],
+        "parents_arimax": [
+          "unemployment",
+          "urban_population",
+          "gdp_growth"
+        ],
+        "parents_ridge": [
+          "unemployment",
+          "urban_population",
+          "gdp_growth",
+          "real_interest_rate",
+          "life_expectancy"
+        ],
+        "persistence_mae": 1.7084001389532002,
+        "arima_mae": 1.675006774209863,
+        "prophet_mae": 3.3708454200508076,
+        "arimax_scarcity_mae": 1.318530862949432,
+        "prophet_scarcity_mae": 6.700741536094842,
+        "persistence_dir": 0.0,
+        "arima_dir": 1.0,
+        "prophet_dir": 0.0,
+        "arimax_scarcity_dir": 1.0,
+        "prophet_scarcity_dir": 0.0
+      },
+      {
+        "year": 2018,
+        "target": "gdp_growth",
+        "label": "Federated",
+        "n_parents": 9,
+        "parents": [
+          "broad_money",
+          "exports_gdp",
+          "govt_consumption",
+          "imports_gdp",
+          "inflation_cpi",
+          "life_expectancy",
+          "private_credit",
+          "school_enrollment",
+          "urban_population"
+        ],
+        "parents_prophet": [
+          "urban_population",
+          "broad_money",
+          "exports_gdp",
+          "school_enrollment",
+          "inflation_cpi"
+        ],
+        "parents_arimax": [
+          "urban_population",
+          "broad_money",
+          "inflation_cpi"
+        ],
+        "parents_ridge": [
+          "urban_population",
+          "broad_money",
+          "exports_gdp",
+          "school_enrollment",
+          "imports_gdp",
+          "inflation_cpi"
+        ],
+        "persistence_mae": 1.8099882334449804,
+        "arima_mae": 1.725355475965514,
+        "prophet_mae": 0.22459668564620117,
+        "arimax_scarcity_mae": 1.7943842689168568,
+        "prophet_scarcity_mae": 2.5282665385678453,
+        "persistence_dir": 0.0,
+        "arima_dir": 1.0,
+        "prophet_dir": 1.0,
+        "arimax_scarcity_dir": 1.0,
+        "prophet_scarcity_dir": 0.0
+      },
+      {
+        "year": 2018,
+        "target": "inflation_cpi",
+        "label": "Federated",
+        "n_parents": 5,
+        "parents": [
+          "gdp_growth",
+          "life_expectancy",
+          "real_interest_rate",
+          "unemployment",
+          "urban_population"
+        ],
+        "parents_prophet": [
+          "unemployment",
+          "urban_population",
+          "gdp_growth",
+          "real_interest_rate",
+          "life_expectancy"
+        ],
+        "parents_arimax": [
+          "unemployment",
+          "urban_population",
+          "gdp_growth"
+        ],
+        "parents_ridge": [
+          "unemployment",
+          "urban_population",
+          "gdp_growth",
+          "real_interest_rate",
+          "life_expectancy"
+        ],
+        "persistence_mae": 3.3158432093361503,
+        "arima_mae": 3.1150098193519415,
+        "prophet_mae": 0.13259176572413978,
+        "arimax_scarcity_mae": 16.724423940737918,
+        "prophet_scarcity_mae": 4.043813485210156,
+        "persistence_dir": 0.0,
+        "arima_dir": 1.0,
+        "prophet_dir": 1.0,
+        "arimax_scarcity_dir": 1.0,
+        "prophet_scarcity_dir": 0.0
+      },
+      {
+        "year": 2019,
+        "target": "gdp_growth",
+        "label": "Federated",
+        "n_parents": 10,
+        "parents": [
+          "broad_money",
+          "exports_gdp",
+          "govt_consumption",
+          "imports_gdp",
+          "inflation_cpi",
+          "life_expectancy",
+          "private_credit",
+          "school_enrollment",
+          "urban_population",
+          "current_account"
+        ],
+        "parents_prophet": [
+          "urban_population",
+          "broad_money",
+          "exports_gdp",
+          "school_enrollment",
+          "inflation_cpi"
+        ],
+        "parents_arimax": [
+          "urban_population",
+          "broad_money",
+          "inflation_cpi"
+        ],
+        "parents_ridge": [
+          "urban_population",
+          "broad_money",
+          "exports_gdp",
+          "school_enrollment",
+          "imports_gdp",
+          "inflation_cpi"
+        ],
+        "persistence_mae": 0.5337875494141802,
+        "arima_mae": 0.11858858991039867,
+        "prophet_mae": 0.4710301237327341,
+        "arimax_scarcity_mae": 0.062292361559794784,
+        "prophet_scarcity_mae": 1.0233285450708456,
+        "persistence_dir": 0.0,
+        "arima_dir": 1.0,
+        "prophet_dir": 1.0,
+        "arimax_scarcity_dir": 1.0,
+        "prophet_scarcity_dir": 1.0
+      },
+      {
+        "year": 2019,
+        "target": "inflation_cpi",
+        "label": "Federated",
+        "n_parents": 5,
+        "parents": [
+          "gdp_growth",
+          "life_expectancy",
+          "real_interest_rate",
+          "unemployment",
+          "urban_population"
+        ],
+        "parents_prophet": [
+          "unemployment",
+          "urban_population",
+          "gdp_growth",
+          "real_interest_rate",
+          "life_expectancy"
+        ],
+        "parents_arimax": [
+          "unemployment",
+          "urban_population",
+          "gdp_growth"
+        ],
+        "parents_ridge": [
+          "unemployment",
+          "urban_population",
+          "gdp_growth",
+          "real_interest_rate",
+          "life_expectancy"
+        ],
+        "persistence_mae": 0.5498314898846202,
+        "arima_mae": 0.15251506276368598,
+        "prophet_mae": 1.149806912926695,
+        "arimax_scarcity_mae": 6.724123943028813,
+        "prophet_scarcity_mae": 0.8705489425607649,
+        "persistence_dir": 0.0,
+        "arima_dir": 1.0,
+        "prophet_dir": 0.0,
+        "arimax_scarcity_dir": 0.0,
+        "prophet_scarcity_dir": 0.0
+      },
+      {
+        "year": 2020,
+        "target": "gdp_growth",
+        "label": "Federated",
+        "n_parents": 10,
+        "parents": [
+          "broad_money",
+          "exports_gdp",
+          "govt_consumption",
+          "imports_gdp",
+          "inflation_cpi",
+          "life_expectancy",
+          "private_credit",
+          "school_enrollment",
+          "urban_population",
+          "current_account"
+        ],
+        "parents_prophet": [
+          "urban_population",
+          "broad_money",
+          "exports_gdp",
+          "school_enrollment",
+          "inflation_cpi"
+        ],
+        "parents_arimax": [
+          "urban_population",
+          "broad_money",
+          "inflation_cpi"
+        ],
+        "parents_ridge": [
+          "urban_population",
+          "broad_money",
+          "exports_gdp",
+          "school_enrollment",
+          "imports_gdp",
+          "inflation_cpi"
+        ],
+        "persistence_mae": 5.3869251851168265,
+        "arima_mae": 5.5102000337532795,
+        "prophet_mae": 5.927753720637098,
+        "arimax_scarcity_mae": 5.435768234121899,
+        "prophet_scarcity_mae": 4.357007513433668,
+        "persistence_dir": 0.0,
+        "arima_dir": 0.0,
+        "prophet_dir": 0.0,
+        "arimax_scarcity_dir": 0.0,
+        "prophet_scarcity_dir": 1.0
+      },
+      {
+        "year": 2020,
+        "target": "inflation_cpi",
+        "label": "Federated",
+        "n_parents": 5,
+        "parents": [
+          "gdp_growth",
+          "life_expectancy",
+          "real_interest_rate",
+          "unemployment",
+          "urban_population"
+        ],
+        "parents_prophet": [
+          "unemployment",
+          "urban_population",
+          "gdp_growth",
+          "real_interest_rate",
+          "life_expectancy"
+        ],
+        "parents_arimax": [
+          "unemployment",
+          "urban_population",
+          "gdp_growth"
+        ],
+        "parents_ridge": [
+          "unemployment",
+          "urban_population",
+          "gdp_growth",
+          "real_interest_rate",
+          "life_expectancy"
+        ],
+        "persistence_mae": 0.1655241216859995,
+        "arima_mae": 0.23159646812274026,
+        "prophet_mae": 1.7327226424206286,
+        "arimax_scarcity_mae": 3.486732196949765,
+        "prophet_scarcity_mae": 0.48150822414812566,
+        "persistence_dir": 0.0,
+        "arima_dir": 0.0,
+        "prophet_dir": 0.0,
+        "arimax_scarcity_dir": 0.0,
+        "prophet_scarcity_dir": 0.0
+      },
+      {
+        "year": 2021,
+        "target": "gdp_growth",
+        "label": "Federated",
+        "n_parents": 10,
+        "parents": [
+          "broad_money",
+          "exports_gdp",
+          "govt_consumption",
+          "imports_gdp",
+          "inflation_cpi",
+          "life_expectancy",
+          "private_credit",
+          "school_enrollment",
+          "urban_population",
+          "current_account"
+        ],
+        "parents_prophet": [
+          "broad_money",
+          "urban_population",
+          "exports_gdp",
+          "school_enrollment",
+          "inflation_cpi"
+        ],
+        "parents_arimax": [
+          "broad_money",
+          "urban_population",
+          "inflation_cpi"
+        ],
+        "parents_ridge": [
+          "broad_money",
+          "urban_population",
+          "exports_gdp",
+          "school_enrollment",
+          "life_expectancy",
+          "inflation_cpi"
+        ],
+        "persistence_mae": 7.863255800773486,
+        "arima_mae": 6.71838984181716,
+        "prophet_mae": 2.5698816399138815,
+        "arimax_scarcity_mae": 6.239761446347177,
+        "prophet_scarcity_mae": 4.813621952641495,
+        "persistence_dir": 0.0,
+        "arima_dir": 1.0,
+        "prophet_dir": 1.0,
+        "arimax_scarcity_dir": 1.0,
+        "prophet_scarcity_dir": 1.0
+      },
+      {
+        "year": 2021,
+        "target": "inflation_cpi",
+        "label": "Federated",
+        "n_parents": 7,
+        "parents": [
+          "current_account",
+          "gdp_growth",
+          "govt_consumption",
+          "life_expectancy",
+          "real_interest_rate",
+          "unemployment",
+          "urban_population"
+        ],
+        "parents_prophet": [
+          "unemployment",
+          "urban_population",
+          "gdp_growth",
+          "real_interest_rate",
+          "life_expectancy"
+        ],
+        "parents_arimax": [
+          "unemployment",
+          "urban_population",
+          "gdp_growth"
+        ],
+        "parents_ridge": [
+          "unemployment",
+          "urban_population",
+          "gdp_growth",
+          "real_interest_rate",
+          "life_expectancy",
+          "govt_consumption"
+        ],
+        "persistence_mae": 0.7027739572578406,
+        "arima_mae": 0.7226783868513511,
+        "prophet_mae": 2.7367984583750897,
+        "arimax_scarcity_mae": 2.163667984792471,
+        "prophet_scarcity_mae": 1.8159785841903036,
+        "persistence_dir": 0.0,
+        "arima_dir": 0.0,
+        "prophet_dir": 0.0,
+        "arimax_scarcity_dir": 0.0,
+        "prophet_scarcity_dir": 1.0
+      },
+      {
+        "year": 2022,
+        "target": "gdp_growth",
+        "label": "Federated",
+        "n_parents": 10,
+        "parents": [
+          "broad_money",
+          "exports_gdp",
+          "govt_consumption",
+          "imports_gdp",
+          "inflation_cpi",
+          "life_expectancy",
+          "private_credit",
+          "school_enrollment",
+          "urban_population",
+          "current_account"
+        ],
+        "parents_prophet": [
+          "broad_money",
+          "urban_population",
+          "exports_gdp",
+          "school_enrollment",
+          "inflation_cpi"
+        ],
+        "parents_arimax": [
+          "broad_money",
+          "urban_population",
+          "inflation_cpi"
+        ],
+        "parents_ridge": [
+          "broad_money",
+          "urban_population",
+          "exports_gdp",
+          "school_enrollment",
+          "life_expectancy",
+          "inflation_cpi"
+        ],
+        "persistence_mae": 2.7305084304546803,
+        "arima_mae": 0.3394348627020145,
+        "prophet_mae": 0.5760105893266676,
+        "arimax_scarcity_mae": 0.7243476123051424,
+        "prophet_scarcity_mae": 0.04233236467179413,
+        "persistence_dir": 0.0,
+        "arima_dir": 1.0,
+        "prophet_dir": 1.0,
+        "arimax_scarcity_dir": 1.0,
+        "prophet_scarcity_dir": 1.0
+      },
+      {
+        "year": 2022,
+        "target": "inflation_cpi",
+        "label": "Federated",
+        "n_parents": 7,
+        "parents": [
+          "current_account",
+          "gdp_growth",
+          "govt_consumption",
+          "life_expectancy",
+          "real_interest_rate",
+          "unemployment",
+          "urban_population"
+        ],
+        "parents_prophet": [
+          "urban_population",
+          "unemployment",
+          "gdp_growth",
+          "real_interest_rate",
+          "life_expectancy"
+        ],
+        "parents_arimax": [
+          "urban_population",
+          "unemployment",
+          "gdp_growth"
+        ],
+        "parents_ridge": [
+          "urban_population",
+          "unemployment",
+          "gdp_growth",
+          "real_interest_rate",
+          "life_expectancy",
+          "govt_consumption"
+        ],
+        "persistence_mae": 1.5519266461304797,
+        "arima_mae": 1.6364895856483983,
+        "prophet_mae": 4.4626304429940795,
+        "arimax_scarcity_mae": 3.158879354900346,
+        "prophet_scarcity_mae": 9.760684052140492,
+        "persistence_dir": 0.0,
+        "arima_dir": 0.0,
+        "prophet_dir": 0.0,
+        "arimax_scarcity_dir": 0.0,
+        "prophet_scarcity_dir": 0.0
+      },
+      {
+        "year": 2023,
+        "target": "gdp_growth",
+        "label": "Federated",
+        "n_parents": 10,
+        "parents": [
+          "broad_money",
+          "exports_gdp",
+          "govt_consumption",
+          "imports_gdp",
+          "inflation_cpi",
+          "life_expectancy",
+          "private_credit",
+          "school_enrollment",
+          "urban_population",
+          "current_account"
+        ],
+        "parents_prophet": [
+          "broad_money",
+          "urban_population",
+          "exports_gdp",
+          "school_enrollment",
+          "inflation_cpi"
+        ],
+        "parents_arimax": [
+          "broad_money",
+          "urban_population",
+          "inflation_cpi"
+        ],
+        "parents_ridge": [
+          "broad_money",
+          "urban_population",
+          "exports_gdp",
+          "school_enrollment",
+          "life_expectancy",
+          "inflation_cpi"
+        ],
+        "persistence_mae": 0.8600113692620903,
+        "arima_mae": 0.1796436842289113,
+        "prophet_mae": 0.23785881530498632,
+        "arimax_scarcity_mae": 0.04522801764407802,
+        "prophet_scarcity_mae": 0.11422905137305239,
+        "persistence_dir": 0.0,
+        "arima_dir": 1.0,
+        "prophet_dir": 1.0,
+        "arimax_scarcity_dir": 1.0,
+        "prophet_scarcity_dir": 1.0
+      },
+      {
+        "year": 2023,
+        "target": "inflation_cpi",
+        "label": "Federated",
+        "n_parents": 7,
+        "parents": [
+          "current_account",
+          "gdp_growth",
+          "govt_consumption",
+          "life_expectancy",
+          "real_interest_rate",
+          "unemployment",
+          "urban_population"
+        ],
+        "parents_prophet": [
+          "urban_population",
+          "gdp_growth",
+          "unemployment",
+          "real_interest_rate",
+          "life_expectancy"
+        ],
+        "parents_arimax": [
+          "urban_population",
+          "gdp_growth",
+          "unemployment"
+        ],
+        "parents_ridge": [
+          "urban_population",
+          "gdp_growth",
+          "unemployment",
+          "real_interest_rate",
+          "life_expectancy",
+          "govt_consumption"
+        ],
+        "persistence_mae": 0.011533657571780154,
+        "arima_mae": 0.19773357568260863,
+        "prophet_mae": 4.411758877621333,
+        "arimax_scarcity_mae": 0.12260396699562737,
+        "prophet_scarcity_mae": 3.2668884297572696,
+        "persistence_dir": 0.0,
+        "arima_dir": 0.0,
+        "prophet_dir": 0.0,
+        "arimax_scarcity_dir": 0.0,
+        "prophet_scarcity_dir": 0.0
+      }
+    ],
+    "single_n_edges": 114,
+    "fed_n_edges": 198,
+    "single_edges": [
+      {
+        "source": "mobile_subscriptions",
+        "target": "urban_population",
+        "type": "correlational",
+        "confidence": 0.7589,
+        "fit_score": 0.8487,
+        "evidence": 34,
+        "stability": 0.8174,
+        "state": "active",
+        "symmetric": true,
+        "plausibility": "NOVEL"
+      },
+      {
+        "source": "urban_population",
+        "target": "mobile_subscriptions",
+        "type": "correlational",
+        "confidence": 0.7589,
+        "fit_score": 0.8487,
+        "evidence": 34,
+        "stability": 0.8174,
+        "state": "active",
+        "symmetric": true,
+        "plausibility": "NOVEL"
+      },
+      {
+        "source": "inflation_cpi",
+        "target": "private_credit",
+        "type": "correlational",
+        "confidence": 0.7436,
+        "fit_score": 0.5704,
+        "evidence": 34,
+        "stability": 0.8174,
+        "state": "active",
+        "symmetric": true,
+        "plausibility": "PLAUSIBLE"
+      },
+      {
+        "source": "private_credit",
+        "target": "inflation_cpi",
+        "type": "correlational",
+        "confidence": 0.7436,
+        "fit_score": 0.5704,
+        "evidence": 34,
+        "stability": 0.8174,
+        "state": "active",
+        "symmetric": true,
+        "plausibility": "PLAUSIBLE"
+      },
+      {
+        "source": "mobile_subscriptions",
+        "target": "urban_population",
+        "type": "functional",
+        "confidence": 0.7338,
+        "fit_score": 0.7004,
+        "evidence": 34,
+        "stability": 0.65,
+        "state": "active",
+        "symmetric": false,
+        "plausibility": "NOVEL"
+      },
+      {
+        "source": "exports_gdp",
+        "target": "inflation_cpi",
+        "type": "correlational",
+        "confidence": 0.7311,
+        "fit_score": 0.6471,
+        "evidence": 34,
+        "stability": 0.8174,
+        "state": "active",
+        "symmetric": true,
+        "plausibility": "PLAUSIBLE"
+      },
+      {
+        "source": "inflation_cpi",
+        "target": "exports_gdp",
+        "type": "correlational",
+        "confidence": 0.7311,
+        "fit_score": 0.6471,
+        "evidence": 34,
+        "stability": 0.8174,
+        "state": "active",
+        "symmetric": true,
+        "plausibility": "PLAUSIBLE"
+      },
+      {
+        "source": "inflation_cpi",
+        "target": "private_credit",
+        "type": "functional",
+        "confidence": 0.7256,
+        "fit_score": 0.2775,
+        "evidence": 34,
+        "stability": 0.65,
+        "state": "active",
+        "symmetric": false,
+        "plausibility": "PLAUSIBLE"
+      },
+      {
+        "source": "private_credit",
+        "target": "inflation_cpi",
+        "type": "functional",
+        "confidence": 0.7253,
+        "fit_score": 0.2786,
+        "evidence": 34,
+        "stability": 0.65,
+        "state": "active",
+        "symmetric": false,
+        "plausibility": "PLAUSIBLE"
+      },
+      {
+        "source": "exports_gdp",
+        "target": "inflation_cpi",
+        "type": "functional",
+        "confidence": 0.7137,
+        "fit_score": 0.3792,
+        "evidence": 34,
+        "stability": 0.65,
+        "state": "active",
+        "symmetric": false,
+        "plausibility": "PLAUSIBLE"
+      },
+      {
+        "source": "inflation_cpi",
+        "target": "exports_gdp",
+        "type": "functional",
+        "confidence": 0.7136,
+        "fit_score": 0.377,
+        "evidence": 34,
+        "stability": 0.65,
+        "state": "active",
+        "symmetric": false,
+        "plausibility": "PLAUSIBLE"
+      },
+      {
+        "source": "urban_population",
+        "target": "mobile_subscriptions",
+        "type": "functional",
+        "confidence": 0.6991,
+        "fit_score": 0.701,
+        "evidence": 34,
+        "stability": 0.65,
+        "state": "active",
+        "symmetric": false,
+        "plausibility": "NOVEL"
+      },
+      {
+        "source": "real_interest_rate",
+        "target": "school_enrollment",
+        "type": "correlational",
+        "confidence": 0.6876,
+        "fit_score": 0.4879,
+        "evidence": 34,
+        "stability": 0.8,
+        "state": "active",
+        "symmetric": true,
+        "plausibility": "PLAUSIBLE"
+      },
+      {
+        "source": "school_enrollment",
+        "target": "real_interest_rate",
+        "type": "correlational",
+        "confidence": 0.6876,
+        "fit_score": 0.4879,
+        "evidence": 34,
+        "stability": 0.8,
+        "state": "active",
+        "symmetric": true,
+        "plausibility": "PLAUSIBLE"
+      },
+      {
+        "source": "real_interest_rate",
+        "target": "school_enrollment",
+        "type": "functional",
+        "confidence": 0.6711,
+        "fit_score": 0.1766,
+        "evidence": 34,
+        "stability": 0.65,
+        "state": "active",
+        "symmetric": false,
+        "plausibility": "PLAUSIBLE"
+      },
+      {
+        "source": "school_enrollment",
+        "target": "real_interest_rate",
+        "type": "functional",
+        "confidence": 0.6681,
+        "fit_score": 0.172,
+        "evidence": 34,
+        "stability": 0.65,
+        "state": "active",
+        "symmetric": false,
+        "plausibility": "PLAUSIBLE"
+      },
+      {
+        "source": "electricity_access",
+        "target": "urban_population",
+        "type": "correlational",
+        "confidence": 0.6654,
+        "fit_score": 0.7497,
+        "evidence": 34,
+        "stability": 0.8075,
+        "state": "active",
+        "symmetric": true,
+        "plausibility": "NOVEL"
+      },
+      {
+        "source": "urban_population",
+        "target": "electricity_access",
+        "type": "correlational",
+        "confidence": 0.6654,
+        "fit_score": 0.7497,
+        "evidence": 34,
+        "stability": 0.8075,
+        "state": "active",
+        "symmetric": true,
+        "plausibility": "NOVEL"
+      },
+      {
+        "source": "electricity_access",
+        "target": "mobile_subscriptions",
+        "type": "correlational",
+        "confidence": 0.6556,
+        "fit_score": 0.9499,
+        "evidence": 34,
+        "stability": 0.8075,
+        "state": "active",
+        "symmetric": true,
+        "plausibility": "NOVEL"
+      },
+      {
+        "source": "mobile_subscriptions",
+        "target": "electricity_access",
+        "type": "correlational",
+        "confidence": 0.6556,
+        "fit_score": 0.9499,
+        "evidence": 34,
+        "stability": 0.8075,
+        "state": "active",
+        "symmetric": true,
+        "plausibility": "NOVEL"
+      },
+      {
+        "source": "electricity_access",
+        "target": "urban_population",
+        "type": "functional",
+        "confidence": 0.6494,
+        "fit_score": 0.5276,
+        "evidence": 34,
+        "stability": 0.65,
+        "state": "active",
+        "symmetric": false,
+        "plausibility": "NOVEL"
+      },
+      {
+        "source": "urban_population",
+        "target": "electricity_access",
+        "type": "functional",
+        "confidence": 0.6486,
+        "fit_score": 0.5287,
+        "evidence": 34,
+        "stability": 0.65,
+        "state": "active",
+        "symmetric": false,
+        "plausibility": "NOVEL"
+      },
+      {
+        "source": "internet_users",
+        "target": "mobile_subscriptions",
+        "type": "correlational",
+        "confidence": 0.6458,
+        "fit_score": 0.9682,
+        "evidence": 34,
+        "stability": 0.7915,
+        "state": "active",
+        "symmetric": true,
+        "plausibility": "NOVEL"
+      },
+      {
+        "source": "mobile_subscriptions",
+        "target": "internet_users",
+        "type": "correlational",
+        "confidence": 0.6458,
+        "fit_score": 0.9682,
+        "evidence": 34,
+        "stability": 0.7915,
+        "state": "active",
+        "symmetric": true,
+        "plausibility": "NOVEL"
+      },
+      {
+        "source": "internet_users",
+        "target": "urban_population",
+        "type": "correlational",
+        "confidence": 0.6458,
+        "fit_score": 0.784,
+        "evidence": 34,
+        "stability": 0.7915,
+        "state": "active",
+        "symmetric": true,
+        "plausibility": "NOVEL"
+      },
+      {
+        "source": "urban_population",
+        "target": "internet_users",
+        "type": "correlational",
+        "confidence": 0.6458,
+        "fit_score": 0.784,
+        "evidence": 34,
+        "stability": 0.7915,
+        "state": "active",
+        "symmetric": true,
+        "plausibility": "NOVEL"
+      },
+      {
+        "source": "exports_gdp",
+        "target": "imports_gdp",
+        "type": "correlational",
+        "confidence": 0.6416,
+        "fit_score": 0.7842,
+        "evidence": 34,
+        "stability": 0.8174,
+        "state": "active",
+        "symmetric": true,
+        "plausibility": "PLAUSIBLE"
+      },
+      {
+        "source": "imports_gdp",
+        "target": "exports_gdp",
+        "type": "correlational",
+        "confidence": 0.6416,
+        "fit_score": 0.7842,
+        "evidence": 34,
+        "stability": 0.8174,
+        "state": "active",
+        "symmetric": true,
+        "plausibility": "PLAUSIBLE"
+      },
+      {
+        "source": "electricity_access",
+        "target": "mobile_subscriptions",
+        "type": "functional",
+        "confidence": 0.64,
+        "fit_score": 0.895,
+        "evidence": 34,
+        "stability": 0.65,
+        "state": "active",
+        "symmetric": false,
+        "plausibility": "NOVEL"
+      },
+      {
+        "source": "mobile_subscriptions",
+        "target": "electricity_access",
+        "type": "functional",
+        "confidence": 0.64,
+        "fit_score": 0.895,
+        "evidence": 34,
+        "stability": 0.65,
+        "state": "active",
+        "symmetric": false,
+        "plausibility": "NOVEL"
+      },
+      {
+        "source": "internet_users",
+        "target": "mobile_subscriptions",
+        "type": "functional",
+        "confidence": 0.6304,
+        "fit_score": 0.9319,
+        "evidence": 34,
+        "stability": 0.65,
+        "state": "active",
+        "symmetric": false,
+        "plausibility": "NOVEL"
+      },
+      {
+        "source": "mobile_subscriptions",
+        "target": "internet_users",
+        "type": "functional",
+        "confidence": 0.6304,
+        "fit_score": 0.9319,
+        "evidence": 34,
+        "stability": 0.65,
+        "state": "active",
+        "symmetric": false,
+        "plausibility": "NOVEL"
+      },
+      {
+        "source": "internet_users",
+        "target": "urban_population",
+        "type": "functional",
+        "confidence": 0.6304,
+        "fit_score": 0.5799,
+        "evidence": 34,
+        "stability": 0.65,
+        "state": "active",
+        "symmetric": false,
+        "plausibility": "NOVEL"
+      },
+      {
+        "source": "urban_population",
+        "target": "internet_users",
+        "type": "functional",
+        "confidence": 0.6304,
+        "fit_score": 0.5805,
+        "evidence": 34,
+        "stability": 0.65,
+        "state": "active",
+        "symmetric": false,
+        "plausibility": "NOVEL"
+      },
+      {
+        "source": "life_expectancy",
+        "target": "urban_population",
+        "type": "correlational",
+        "confidence": 0.6274,
+        "fit_score": 0.9173,
+        "evidence": 34,
+        "stability": 0.8174,
+        "state": "active",
+        "symmetric": true,
+        "plausibility": "NOVEL"
+      },
+      {
+        "source": "urban_population",
+        "target": "life_expectancy",
+        "type": "correlational",
+        "confidence": 0.6274,
+        "fit_score": 0.9173,
+        "evidence": 34,
+        "stability": 0.8174,
+        "state": "active",
+        "symmetric": true,
+        "plausibility": "NOVEL"
+      },
+      {
+        "source": "exports_gdp",
+        "target": "imports_gdp",
+        "type": "functional",
+        "confidence": 0.6253,
+        "fit_score": 0.5874,
+        "evidence": 34,
+        "stability": 0.65,
+        "state": "active",
+        "symmetric": false,
+        "plausibility": "PLAUSIBLE"
+      },
+      {
+        "source": "imports_gdp",
+        "target": "exports_gdp",
+        "type": "functional",
+        "confidence": 0.6249,
+        "fit_score": 0.5879,
+        "evidence": 34,
+        "stability": 0.65,
+        "state": "active",
+        "symmetric": false,
+        "plausibility": "PLAUSIBLE"
+      },
+      {
+        "source": "exports_gdp",
+        "target": "imports_gdp",
+        "type": "causal",
+        "confidence": 0.6203,
+        "fit_score": 0.9912,
+        "evidence": 34,
+        "stability": 0.85,
+        "state": "tentative",
+        "symmetric": false,
+        "plausibility": "PLAUSIBLE"
+      },
+      {
+        "source": "electricity_access",
+        "target": "life_expectancy",
+        "type": "correlational",
+        "confidence": 0.6114,
+        "fit_score": 0.8589,
+        "evidence": 34,
+        "stability": 0.8075,
+        "state": "tentative",
+        "symmetric": true,
+        "plausibility": "NOVEL"
+      }
+    ],
+    "fed_edges": [
+      {
+        "source": "broad_money",
+        "target": "exports_gdp",
+        "type": "correlational",
+        "confidence": 0.9824,
+        "fit_score": 0.6401,
+        "evidence": 102,
+        "stability": 0.899,
+        "state": "active",
+        "symmetric": true,
+        "plausibility": "PLAUSIBLE"
+      },
+      {
+        "source": "exports_gdp",
+        "target": "broad_money",
+        "type": "correlational",
+        "confidence": 0.9824,
+        "fit_score": 0.6401,
+        "evidence": 102,
+        "stability": 0.899,
+        "state": "active",
+        "symmetric": true,
+        "plausibility": "PLAUSIBLE"
+      },
+      {
+        "source": "broad_money",
+        "target": "life_expectancy",
+        "type": "correlational",
+        "confidence": 0.9824,
+        "fit_score": 0.4143,
+        "evidence": 102,
+        "stability": 0.899,
+        "state": "active",
+        "symmetric": true,
+        "plausibility": "PLAUSIBLE"
+      },
+      {
+        "source": "life_expectancy",
+        "target": "broad_money",
+        "type": "correlational",
+        "confidence": 0.9824,
+        "fit_score": 0.4143,
+        "evidence": 102,
+        "stability": 0.899,
+        "state": "active",
+        "symmetric": true,
+        "plausibility": "PLAUSIBLE"
+      },
+      {
+        "source": "broad_money",
+        "target": "govt_consumption",
+        "type": "correlational",
+        "confidence": 0.9819,
+        "fit_score": 0.5491,
+        "evidence": 102,
+        "stability": 0.899,
+        "state": "active",
+        "symmetric": true,
+        "plausibility": "PLAUSIBLE"
+      },
+      {
+        "source": "govt_consumption",
+        "target": "broad_money",
+        "type": "correlational",
+        "confidence": 0.9819,
+        "fit_score": 0.5491,
+        "evidence": 102,
+        "stability": 0.899,
+        "state": "active",
+        "symmetric": true,
+        "plausibility": "PLAUSIBLE"
+      },
+      {
+        "source": "exports_gdp",
+        "target": "imports_gdp",
+        "type": "correlational",
+        "confidence": 0.9807,
+        "fit_score": 0.6923,
+        "evidence": 102,
+        "stability": 0.899,
+        "state": "active",
+        "symmetric": true,
+        "plausibility": "PLAUSIBLE"
+      },
+      {
+        "source": "imports_gdp",
+        "target": "exports_gdp",
+        "type": "correlational",
+        "confidence": 0.9807,
+        "fit_score": 0.6923,
+        "evidence": 102,
+        "stability": 0.899,
+        "state": "active",
+        "symmetric": true,
+        "plausibility": "PLAUSIBLE"
+      },
+      {
+        "source": "broad_money",
+        "target": "imports_gdp",
+        "type": "correlational",
+        "confidence": 0.9802,
+        "fit_score": 0.528,
+        "evidence": 102,
+        "stability": 0.899,
+        "state": "active",
+        "symmetric": true,
+        "plausibility": "PLAUSIBLE"
+      },
+      {
+        "source": "imports_gdp",
+        "target": "broad_money",
+        "type": "correlational",
+        "confidence": 0.9802,
+        "fit_score": 0.528,
+        "evidence": 102,
+        "stability": 0.899,
+        "state": "active",
+        "symmetric": true,
+        "plausibility": "PLAUSIBLE"
+      },
+      {
+        "source": "life_expectancy",
+        "target": "urban_population",
+        "type": "correlational",
+        "confidence": 0.9785,
+        "fit_score": 0.8621,
+        "evidence": 102,
+        "stability": 0.899,
+        "state": "active",
+        "symmetric": true,
+        "plausibility": "NOVEL"
+      },
+      {
+        "source": "urban_population",
+        "target": "life_expectancy",
+        "type": "correlational",
+        "confidence": 0.9785,
+        "fit_score": 0.8621,
+        "evidence": 102,
+        "stability": 0.899,
+        "state": "active",
+        "symmetric": true,
+        "plausibility": "NOVEL"
+      },
+      {
+        "source": "exports_gdp",
+        "target": "govt_consumption",
+        "type": "correlational",
+        "confidence": 0.9769,
+        "fit_score": 0.4608,
+        "evidence": 102,
+        "stability": 0.899,
+        "state": "active",
+        "symmetric": true,
+        "plausibility": "PLAUSIBLE"
+      },
+      {
+        "source": "govt_consumption",
+        "target": "exports_gdp",
+        "type": "correlational",
+        "confidence": 0.9769,
+        "fit_score": 0.4608,
+        "evidence": 102,
+        "stability": 0.899,
+        "state": "active",
+        "symmetric": true,
+        "plausibility": "PLAUSIBLE"
+      },
+      {
+        "source": "govt_consumption",
+        "target": "imports_gdp",
+        "type": "correlational",
+        "confidence": 0.9769,
+        "fit_score": 0.5957,
+        "evidence": 102,
+        "stability": 0.899,
+        "state": "active",
+        "symmetric": true,
+        "plausibility": "PLAUSIBLE"
+      },
+      {
+        "source": "imports_gdp",
+        "target": "govt_consumption",
+        "type": "correlational",
+        "confidence": 0.9769,
+        "fit_score": 0.5957,
+        "evidence": 102,
+        "stability": 0.899,
+        "state": "active",
+        "symmetric": true,
+        "plausibility": "PLAUSIBLE"
+      },
+      {
+        "source": "govt_consumption",
+        "target": "school_enrollment",
+        "type": "correlational",
+        "confidence": 0.9766,
+        "fit_score": 0.3499,
+        "evidence": 102,
+        "stability": 0.8928,
+        "state": "active",
+        "symmetric": true,
+        "plausibility": "PLAUSIBLE"
+      },
+      {
+        "source": "school_enrollment",
+        "target": "govt_consumption",
+        "type": "correlational",
+        "confidence": 0.9766,
+        "fit_score": 0.3499,
+        "evidence": 102,
+        "stability": 0.8928,
+        "state": "active",
+        "symmetric": true,
+        "plausibility": "PLAUSIBLE"
+      },
+      {
+        "source": "exports_gdp",
+        "target": "life_expectancy",
+        "type": "correlational",
+        "confidence": 0.9736,
+        "fit_score": 0.2581,
+        "evidence": 102,
+        "stability": 0.899,
+        "state": "active",
+        "symmetric": true,
+        "plausibility": "PLAUSIBLE"
+      },
+      {
+        "source": "life_expectancy",
+        "target": "exports_gdp",
+        "type": "correlational",
+        "confidence": 0.9736,
+        "fit_score": 0.2581,
+        "evidence": 102,
+        "stability": 0.899,
+        "state": "active",
+        "symmetric": true,
+        "plausibility": "PLAUSIBLE"
+      },
+      {
+        "source": "school_enrollment",
+        "target": "life_expectancy",
+        "type": "causal",
+        "confidence": 0.9567,
+        "fit_score": 1.0,
+        "evidence": 102,
+        "stability": 0.85,
+        "state": "active",
+        "symmetric": false,
+        "plausibility": "NOVEL"
+      },
+      {
+        "source": "broad_money",
+        "target": "private_credit",
+        "type": "correlational",
+        "confidence": 0.9559,
+        "fit_score": 0.9561,
+        "evidence": 102,
+        "stability": 0.876,
+        "state": "active",
+        "symmetric": true,
+        "plausibility": "PLAUSIBLE"
+      },
+      {
+        "source": "private_credit",
+        "target": "broad_money",
+        "type": "correlational",
+        "confidence": 0.9559,
+        "fit_score": 0.9561,
+        "evidence": 102,
+        "stability": 0.876,
+        "state": "active",
+        "symmetric": true,
+        "plausibility": "PLAUSIBLE"
+      },
+      {
+        "source": "private_credit",
+        "target": "school_enrollment",
+        "type": "correlational",
+        "confidence": 0.9559,
+        "fit_score": 0.56,
+        "evidence": 102,
+        "stability": 0.8709,
+        "state": "active",
+        "symmetric": true,
+        "plausibility": "PLAUSIBLE"
+      },
+      {
+        "source": "school_enrollment",
+        "target": "private_credit",
+        "type": "correlational",
+        "confidence": 0.9559,
+        "fit_score": 0.56,
+        "evidence": 102,
+        "stability": 0.8709,
+        "state": "active",
+        "symmetric": true,
+        "plausibility": "PLAUSIBLE"
+      },
+      {
+        "source": "life_expectancy",
+        "target": "private_credit",
+        "type": "correlational",
+        "confidence": 0.9553,
+        "fit_score": 0.4273,
+        "evidence": 102,
+        "stability": 0.876,
+        "state": "active",
+        "symmetric": true,
+        "plausibility": "PLAUSIBLE"
+      },
+      {
+        "source": "private_credit",
+        "target": "life_expectancy",
+        "type": "correlational",
+        "confidence": 0.9553,
+        "fit_score": 0.4273,
+        "evidence": 102,
+        "stability": 0.876,
+        "state": "active",
+        "symmetric": true,
+        "plausibility": "PLAUSIBLE"
+      },
+      {
+        "source": "govt_consumption",
+        "target": "private_credit",
+        "type": "correlational",
+        "confidence": 0.953,
+        "fit_score": 0.5777,
+        "evidence": 102,
+        "stability": 0.876,
+        "state": "active",
+        "symmetric": true,
+        "plausibility": "PLAUSIBLE"
+      },
+      {
+        "source": "private_credit",
+        "target": "govt_consumption",
+        "type": "correlational",
+        "confidence": 0.953,
+        "fit_score": 0.5777,
+        "evidence": 102,
+        "stability": 0.876,
+        "state": "active",
+        "symmetric": true,
+        "plausibility": "PLAUSIBLE"
+      },
+      {
+        "source": "exports_gdp",
+        "target": "unemployment",
+        "type": "correlational",
+        "confidence": 0.9482,
+        "fit_score": 0.2482,
+        "evidence": 102,
+        "stability": 0.8974,
+        "state": "active",
+        "symmetric": true,
+        "plausibility": "PLAUSIBLE"
+      },
+      {
+        "source": "unemployment",
+        "target": "exports_gdp",
+        "type": "correlational",
+        "confidence": 0.9482,
+        "fit_score": 0.2482,
+        "evidence": 102,
+        "stability": 0.8974,
+        "state": "active",
+        "symmetric": true,
+        "plausibility": "PLAUSIBLE"
+      },
+      {
+        "source": "broad_money",
+        "target": "gdp_growth",
+        "type": "correlational",
+        "confidence": 0.9463,
+        "fit_score": 0.3389,
+        "evidence": 102,
+        "stability": 0.899,
+        "state": "active",
+        "symmetric": true,
+        "plausibility": "PLAUSIBLE"
+      },
+      {
+        "source": "gdp_growth",
+        "target": "broad_money",
+        "type": "correlational",
+        "confidence": 0.9463,
+        "fit_score": 0.3389,
+        "evidence": 102,
+        "stability": 0.899,
+        "state": "active",
+        "symmetric": true,
+        "plausibility": "PLAUSIBLE"
+      },
+      {
+        "source": "life_expectancy",
+        "target": "school_enrollment",
+        "type": "causal",
+        "confidence": 0.9462,
+        "fit_score": 0.9983,
+        "evidence": 102,
+        "stability": 0.85,
+        "state": "active",
+        "symmetric": false,
+        "plausibility": "NOVEL"
+      },
+      {
+        "source": "exports_gdp",
+        "target": "private_credit",
+        "type": "correlational",
+        "confidence": 0.9415,
+        "fit_score": 0.3134,
+        "evidence": 102,
+        "stability": 0.876,
+        "state": "active",
+        "symmetric": true,
+        "plausibility": "PLAUSIBLE"
+      },
+      {
+        "source": "private_credit",
+        "target": "exports_gdp",
+        "type": "correlational",
+        "confidence": 0.9415,
+        "fit_score": 0.3134,
+        "evidence": 102,
+        "stability": 0.876,
+        "state": "active",
+        "symmetric": true,
+        "plausibility": "PLAUSIBLE"
+      },
+      {
+        "source": "urban_population",
+        "target": "gdp_growth",
+        "type": "causal",
+        "confidence": 0.9382,
+        "fit_score": 0.3989,
+        "evidence": 102,
+        "stability": 0.5,
+        "state": "active",
+        "symmetric": false,
+        "plausibility": "PLAUSIBLE"
+      },
+      {
+        "source": "urban_population",
+        "target": "broad_money",
+        "type": "correlational",
+        "confidence": 0.9335,
+        "fit_score": 0.4818,
+        "evidence": 102,
+        "stability": 0.899,
+        "state": "active",
+        "symmetric": true,
+        "plausibility": "PLAUSIBLE"
+      },
+      {
+        "source": "gcf",
+        "target": "life_expectancy",
+        "type": "correlational",
+        "confidence": 0.9317,
+        "fit_score": 0.6743,
+        "evidence": 102,
+        "stability": 0.899,
+        "state": "active",
+        "symmetric": true,
+        "plausibility": "PLAUSIBLE"
+      },
+      {
+        "source": "life_expectancy",
+        "target": "gcf",
+        "type": "correlational",
+        "confidence": 0.9317,
+        "fit_score": 0.6743,
+        "evidence": 102,
+        "stability": 0.899,
+        "state": "active",
+        "symmetric": true,
+        "plausibility": "PLAUSIBLE"
+      }
+    ],
+    "aux_countries": [
+      "TZA",
+      "UGA"
+    ],
+    "n_obs_per_year": 3,
+    "single_pool_coverage": [
+      {
+        "type": "causal",
+        "count": 343,
+        "max_conf": 0.6203,
+        "med_conf": 0.088,
+        "extractable": 7
+      },
+      {
+        "type": "competitive",
+        "count": 1,
+        "max_conf": 0.2866,
+        "med_conf": 0.2866,
+        "extractable": 0
+      },
+      {
+        "type": "compositional",
+        "count": 100,
+        "max_conf": 0.0027,
+        "med_conf": 0.0027,
+        "extractable": 0
+      },
+      {
+        "type": "correlational",
+        "count": 342,
+        "max_conf": 0.7589,
+        "med_conf": 0.1577,
+        "extractable": 52
+      },
+      {
+        "type": "equilibrium",
+        "count": 19,
+        "max_conf": 0.1234,
+        "med_conf": 0.0063,
+        "extractable": 0
+      },
+      {
+        "type": "functional",
+        "count": 345,
+        "max_conf": 0.7338,
+        "med_conf": 0.1441,
+        "extractable": 50
+      },
+      {
+        "type": "graph",
+        "count": 2,
+        "max_conf": 0.0068,
+        "med_conf": 0.0068,
+        "extractable": 0
+      },
+      {
+        "type": "logical",
+        "count": 100,
+        "max_conf": 0.1789,
+        "med_conf": 0.077,
+        "extractable": 0
+      },
+      {
+        "type": "mediating",
+        "count": 103,
+        "max_conf": 0.4049,
+        "med_conf": 0.0027,
+        "extractable": 0
+      },
+      {
+        "type": "moderating",
+        "count": 100,
+        "max_conf": 0.0027,
+        "med_conf": 0.0027,
+        "extractable": 0
+      },
+      {
+        "type": "probabilistic",
+        "count": 1,
+        "max_conf": 0.004,
+        "med_conf": 0.004,
+        "extractable": 0
+      },
+      {
+        "type": "similarity",
+        "count": 1,
+        "max_conf": 0.0027,
+        "med_conf": 0.0027,
+        "extractable": 0
+      },
+      {
+        "type": "structural",
+        "count": 1,
+        "max_conf": 0.0068,
+        "med_conf": 0.0068,
+        "extractable": 0
+      },
+      {
+        "type": "synergistic",
+        "count": 103,
+        "max_conf": 0.4552,
+        "med_conf": 0.0027,
+        "extractable": 5
+      },
+      {
+        "type": "temporal",
+        "count": 19,
+        "max_conf": 0.755,
+        "med_conf": 0.5819,
+        "extractable": 14
+      }
+    ],
+    "fed_pool_coverage": [
+      {
+        "type": "causal",
+        "count": 304,
+        "max_conf": 0.9567,
+        "med_conf": 0.2144,
+        "extractable": 72
+      },
+      {
+        "type": "competitive",
+        "count": 5,
+        "max_conf": 0.4367,
+        "med_conf": 0.1936,
+        "extractable": 0
+      },
+      {
+        "type": "compositional",
+        "count": 100,
+        "max_conf": 0.0006,
+        "med_conf": 0.0006,
+        "extractable": 0
+      },
+      {
+        "type": "correlational",
+        "count": 322,
+        "max_conf": 0.9824,
+        "med_conf": 0.3422,
+        "extractable": 113
+      },
+      {
+        "type": "equilibrium",
+        "count": 19,
+        "max_conf": 0.5792,
+        "med_conf": 0.0006,
+        "extractable": 1
+      },
+      {
+        "type": "functional",
+        "count": 225,
+        "max_conf": 0.8491,
+        "med_conf": 0.1406,
+        "extractable": 6
+      },
+      {
+        "type": "graph",
+        "count": 6,
+        "max_conf": 0.0319,
+        "med_conf": 0.0021,
+        "extractable": 0
+      },
+      {
+        "type": "logical",
+        "count": 95,
+        "max_conf": 0.5336,
+        "med_conf": 0.1536,
+        "extractable": 2
+      },
+      {
+        "type": "mediating",
+        "count": 110,
+        "max_conf": 0.4993,
+        "med_conf": 0.0006,
+        "extractable": 1
+      },
+      {
+        "type": "moderating",
+        "count": 99,
+        "max_conf": 0.4391,
+        "med_conf": 0.0006,
+        "extractable": 0
+      },
+      {
+        "type": "probabilistic",
+        "count": 3,
+        "max_conf": 0.0079,
+        "med_conf": 0.0016,
+        "extractable": 0
+      },
+      {
+        "type": "similarity",
+        "count": 1,
+        "max_conf": 0.0006,
+        "med_conf": 0.0006,
+        "extractable": 0
+      },
+      {
+        "type": "structural",
+        "count": 3,
+        "max_conf": 0.0319,
+        "med_conf": 0.0021,
+        "extractable": 0
+      },
+      {
+        "type": "synergistic",
+        "count": 105,
+        "max_conf": 0.5531,
+        "med_conf": 0.0006,
+        "extractable": 4
+      },
+      {
+        "type": "temporal",
+        "count": 19,
+        "max_conf": 0.949,
+        "med_conf": 0.5083,
+        "extractable": 10
+      }
+    ]
+  }
+}

@@ -1,0 +1,11 @@
+digraph LearnedGraph {
+  rankdir=LR;
+  "gdp_growth" -> "urban_population";
+  "gdp_growth" -> "current_account";
+  "inflation_cpi" -> "urban_population";
+  "inflation_cpi" -> "current_account";
+  "unemployment" -> "urban_population";
+  "unemployment" -> "current_account";
+  "urban_population" -> "current_account";
+  "electricity_access" -> "urban_population";
+}

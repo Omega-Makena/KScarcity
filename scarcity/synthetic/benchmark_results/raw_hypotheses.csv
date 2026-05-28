@@ -1,0 +1,34 @@
+hypothesis_id,type,variables,source,target,fit_score,confidence,stability,evidence,state,is_active
+faeeb694-2ab5-445d-a769-9a81bdfdc063,causal,"['P1', 'Y6']",P1,Y6,1.0,1.0,0.85,2000,active,True
+18414128-d731-463b-9627-95dce9d3292f,causal,"['Y6', 'P1']",Y6,P1,1.0,1.0,0.85,2000,active,True
+c77c195a-ff77-4686-a091-ade978dc6d72,causal,"['G1', 'G2']",G1,G2,1.0,1.0,0.85,2000,active,True
+9eee2f28-5b99-4636-b7af-33fda7293b7c,causal,"['G2', 'G1']",G2,G1,1.0,1.0,0.85,2000,active,True
+71ddd1ae-3323-49a1-a3fb-d0da9a4369e6,causal,"['G2', 'G3']",G2,G3,1.0,1.0,0.85,2000,active,True
+f280d5c9-f41a-41a9-81e4-89c2a2bb6fa5,causal,"['G3', 'G2']",G3,G2,1.0,1.0,0.85,2000,active,True
+a09e9daf-7236-4f41-a530-912e88b604b3,correlational,"['Clust1_A', 'Clust1_B']",Clust1_A,Clust1_B,0.944412,1.0,0.977617,2000,active,True
+4d543a2e-4b7c-4c28-a8d9-8e55b2f972d3,correlational,"['Clust1_B', 'Clust1_A']",Clust1_B,Clust1_A,0.944412,1.0,0.977617,2000,active,True
+ec7693ce-e910-4520-bcdc-42d59b9bbf7b,correlational,"['L2', 'L_out']",L2,L_out,0.115527,1.0,0.977617,2000,active,True
+d318ddaf-b74b-4f0e-8efb-ddcaf818ded5,correlational,"['L_out', 'L2']",L_out,L2,0.115527,1.0,0.977617,2000,active,True
+4d65c5fd-4a3c-4cff-aaa0-4b56d3865e53,causal,"['Z1', 'Y2']",Z1,Y2,0.325985,0.165429,0.5,1490,decaying,False
+b07bdd28-3637-4e73-b6d6-afa8258e8242,causal,"['X5', 'Y2']",X5,Y2,0.993305,0.960375,0.85,1190,active,True
+68b15101-09f4-4d77-96d7-13bc3bb519b5,functional,"['A3', 'TotalA']",A3,TotalA,0.309262,1.0,0.65,1080,active,True
+edff34d8-05eb-4dbe-98ab-d7ced7d14b70,causal,"['X2', 'Y1']",X2,Y1,0.999991,1.0,0.85,930,active,True
+843f6980-0985-4cdb-a8ff-0fb5841f5117,functional,"['X1', 'Y1']",X1,Y1,0.077297,1.0,0.65,730,active,True
+ebbcf2e2-77b3-4e28-b9ed-b2e14f49336e,causal,"['M1', 'X2']",M1,X2,1.0,1.0,0.85,720,active,True
+c77b4887-80eb-494f-920e-38f59adb0835,causal,"['S1', 'Y5']",S1,Y5,0.398121,1.0,0.5,650,active,True
+8bfd1f62-71dc-480d-8fb7-07de383de069,functional,"['X1', 'M1']",X1,M1,0.374221,1.0,0.65,450,active,True
+e5f0d34c-e1d6-4032-ac1b-dda051a6b62a,causal,"['Y5', 'X5']",Y5,X5,0.106761,0.216806,0.5,300,tentative,False
+c0dd1c88-b20c-42af-9869-9158f91556ce,causal,"['X1', 'X2']",X1,X2,1.0,1.0,0.85,230,active,True
+1cfb1398-2510-432c-bf85-34027f9129e0,functional,"['Y4', 'Y6']",Y4,Y6,0.0,0.107072,0.65,100,tentative,False
+24c00b5b-41f7-46cb-803b-7f080c01e38c,causal,"['X3', 'G3']",X3,G3,0.347147,0.317634,0.5,90,tentative,False
+fef038e3-4aa8-47a7-975d-83c879c5e43f,functional,"['L2', 'M1']",L2,M1,0.0,0.004849,0.65,20,tentative,False
+346276fc-21ad-47bc-984c-34913cb6977f,causal,"['A3', 'S1']",A3,S1,0.282653,0.036149,0.5,20,tentative,False
+19fc30ac-7bac-4a97-a32b-d9064832c7e3,causal,"['L_out', 'X5']",L_out,X5,0.224768,0.004942,0.5,20,tentative,False
+a8a6b95c-9c75-4bea-98ef-ddd0f5fd573f,competitive,"['X3', 'A3']",X3,A3,0.0,0.009464,0.0,10,tentative,False
+6552ef85-6730-4d32-8455-cbd1ea47c72b,probabilistic,"['X1', 'A1']",X1,A1,0.0,0.009464,0.0,10,tentative,False
+eb1e3ad8-5774-464d-87d8-10ffcf5accc8,synergistic,"['Y4', 'G2', 'G3']",Y4,G3,0.0,0.009464,0.0,10,tentative,False
+815915fb-c778-4cc8-babb-effb3b5d14ed,functional,"['X4', 'L2']",X4,L2,0.5,0.5,0.5,0,tentative,False
+7fdfb93c-9c5c-4d45-b541-580deb28356b,functional,"['Y7', 'M1']",Y7,M1,0.5,0.5,0.5,0,tentative,False
+50da7476-76d6-4866-9546-31e55ec9e246,causal,"['A2', 'A3']",A2,A3,0.5,0.5,0.5,0,tentative,False
+47cd7836-8043-4b2a-a410-c0a480a63cae,synergistic,"['X1', 'X2', 'M1']",X1,M1,0.5,0.5,0.5,0,tentative,False
+ed1cd8ac-526c-417c-b847-140f6ada6e94,mediating,"['X1', 'X2', 'M1']",X1,M1,0.5,0.5,0.5,0,tentative,False

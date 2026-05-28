@@ -1,0 +1,4 @@
+digraph LearnedGraph {
+  rankdir=LR;
+  "Access to clean fuels and technologies for cooking (% of population)" -> "Adjusted net national income (constant 2015 US$)";
+}

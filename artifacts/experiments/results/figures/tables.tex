@@ -1,0 +1,55 @@
+\begin{table}[htbp]
+\centering
+\caption{F1 Score at Each Data Size (typed mode)}
+\label{tab:f1_sweep}
+\begin{tabular}{lrrrr}
+\toprule
+Method & N=10 & N=25 & N=50 & N=100 \\
+\midrule
+K-Scarcity & 0.000$\pm$0.000 & 0.055$\pm$0.039 & 0.097$\pm$0.035 & 0.065$\pm$0.020 \\
+\midrule
+PC & 0.118$\pm$0.006 & 0.145$\pm$0.041 & 0.109$\pm$0.003 & 0.105$\pm$0.000 \\
+FCI & 0.118$\pm$0.006 & 0.106$\pm$0.007 & 0.109$\pm$0.003 & 0.105$\pm$0.000 \\
+GES & 0.090$\pm$0.051 & 0.115$\pm$0.030 & 0.083$\pm$0.042 & 0.124$\pm$0.038 \\
+NOTEARS & 0.060$\pm$0.050 & 0.064$\pm$0.082 & 0.042$\pm$0.084 & 0.067$\pm$0.054 \\
+DirectLiNGAM & 0.000$\pm$0.000 & 0.098$\pm$0.058 & 0.146$\pm$0.085 & 0.147$\pm$0.084 \\
+CorrThreshold & 0.057$\pm$0.011 & 0.080$\pm$0.003 & 0.091$\pm$0.000 & 0.089$\pm$0.003 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\begin{table}[htbp]
+\centering
+\caption{Scarcity Gap: K-Scarcity vs Baselines (positive = K-Scarcity better)}
+\label{tab:scarcity_gap}
+\begin{tabular}{lrrrr}
+\toprule
+Baseline & Integrated Gap & $\Delta$F1@N=10 & $\Delta$F1@N=25 & Crossover N \\
+\midrule
+PC & -4.151 & -0.118 & -0.090 & 10 \\
+FCI & -3.370 & -0.118 & -0.051 & 10 \\
+GES & -2.854 & -0.090 & -0.060 & 10 \\
+NOTEARS & 1.372 & -0.060 & -0.008 & 10 \\
+DirectLiNGAM & -4.800 & 0.000 & -0.043 & 10 \\
+CorrThreshold & -1.336 & -0.057 & -0.025 & 10 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\begin{table}[htbp]
+\centering
+\caption{Ablation Study at N=25 (typed mode F1)}
+\label{tab:ablation}
+\begin{tabular}{lr}
+\toprule
+Variant & F1@N=25 \\
+\midrule
+full system & 0.061 \\
+no meta learning & 0.048 \\
+no bandit routing & 0.046 \\
+no vectorized rls & 0.042 \\
+causal only & 0.022 \\
+no federation & 0.041 \\
+\bottomrule
+\end{tabular}
+\end{table}

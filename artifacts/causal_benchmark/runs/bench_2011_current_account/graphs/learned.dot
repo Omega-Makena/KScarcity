@@ -1,0 +1,14 @@
+digraph LearnedGraph {
+  rankdir=LR;
+  "gdp_growth" -> "life_expectancy";
+  "gdp_growth" -> "current_account";
+  "inflation_cpi" -> "life_expectancy";
+  "inflation_cpi" -> "current_account";
+  "unemployment" -> "life_expectancy";
+  "unemployment" -> "current_account";
+  "life_expectancy" -> "current_account";
+  "gdp_growth" -> "school_enrollment";
+  "inflation_cpi" -> "school_enrollment";
+  "unemployment" -> "school_enrollment";
+  "school_enrollment" -> "current_account";
+}

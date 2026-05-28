@@ -1,0 +1,11 @@
+target,delta_coh,s_coh,f_coh,rec,mae_single,mae_fed,actual_h1_delta,n_test
+gdp_growth,0.0427,0.4287,0.4714,USE_FED,2.4995,2.2242,0.2753,24
+inflation_cpi,-0.1422,0.6954,0.5531,NO_FED,4.6518,5.7336,-1.0818,24
+unemployment,-0.0381,0.3251,0.2869,NO_FED,0.2517,0.3716,-0.1199,24
+exports_gdp,-0.1057,0.4878,0.3821,NO_FED,3.2099,3.2597,-0.0498,24
+imports_gdp,-0.2271,0.5365,0.3093,NO_FED,2.8003,3.0667,-0.2664,24
+current_account,-0.0721,0.3355,0.2634,NO_FED,3.0479,2.5316,0.5163,24
+real_interest_rate,0.0947,0.2345,0.3291,USE_FED,6.1274,4.4129,1.7145,24
+broad_money,-0.2136,0.7553,0.5417,NO_FED,2.0422,1.3845,0.6577,24
+private_credit,-0.1944,0.7672,0.5729,NO_FED,2.0871,2.8424,-0.7553,24
+govt_consumption,-0.0918,0.4753,0.3835,NO_FED,1.0632,1.2619,-0.1987,24

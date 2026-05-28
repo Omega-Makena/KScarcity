@@ -1,0 +1,259 @@
+Mode: FAST (B_boot=10, B_perm=20) — engine-routed, ~45 min expected
+
+Loading Kenya macro data...
+Data: 34 obs x 19 variables
+GT entries: 27, null pairs: 4
+
+[ENGINE] Initializing OnlineDiscoveryEngine...
+[ENGINE] Initialized 1000 hypotheses for 19 variables
+[ENGINE] Extracted fit_score from 184 hypotheses
+
+[STEP 1-4] Running on original data (engine-routed)...
+  [engine-15] 342 pairs × 8 pairwise + 19 vars × 2 univ + 969 triplets × 4 triplet + 1 collective = 6651 tests, B=20
+  [engine-15] Pairwise: 85/342 pairs (25%)
+  [engine-15] Pairwise: 170/342 pairs (50%)
+  [engine-15] Pairwise: 255/342 pairs (75%)
+  [engine-15] Pairwise: 340/342 pairs (99%)
+  [engine-15] Triplets: 242/969 (25%)
+  [engine-15] Triplets: 484/969 (50%)
+  [engine-15] Triplets: 726/969 (75%)
+  [engine-15] Triplets: 968/969 (100%)
+  [engine-15] SimilarityHypothesis: T_obs=0.0000, p=1.0000
+  Per-pair selection: 342 pairwise + 20 univariate -> 362 representatives
+  Type distribution of winners:
+    correlational: 156
+    causal: 63
+    probabilistic: 32
+    graph: 19
+    functional: 19
+    competitive: 18
+    logical: 16
+    temporal: 11
+    mediating: 9
+    synergistic: 9
+    equilibrium: 8
+    moderating: 1
+    similarity: 1
+  FDR q=0.10: 235/362 significant (64.9%)
+
+[STEP 5] Stability selection: 10 resamples, 20 perms each
+  Per-pair selection: 342 pairwise + 20 univariate -> 362 representatives
+  Type distribution of winners:
+    correlational: 170
+    structural: 114
+    causal: 25
+    probabilistic: 14
+    equilibrium: 14
+    functional: 13
+    competitive: 6
+    temporal: 5
+    similarity: 1
+  FDR q=0.10: 346/362 significant (95.6%)
+  Resample 1/10: 346 significant at q=0.10
+  Per-pair selection: 342 pairwise + 20 univariate -> 362 representatives
+  Type distribution of winners:
+    correlational: 145
+    structural: 82
+    causal: 50
+    probabilistic: 39
+    functional: 14
+    equilibrium: 14
+    competitive: 5
+    temporal: 5
+    synergistic: 3
+    logical: 2
+    mediating: 2
+    similarity: 1
+  FDR q=0.10: 302/362 significant (83.4%)
+  Resample 2/10: 302 significant at q=0.10
+  Per-pair selection: 342 pairwise + 20 univariate -> 362 representatives
+  Type distribution of winners:
+    correlational: 155
+    structural: 77
+    causal: 49
+    probabilistic: 45
+    equilibrium: 14
+    competitive: 9
+    functional: 7
+    temporal: 5
+    similarity: 1
+  FDR q=0.10: 309/362 significant (85.4%)
+  Resample 3/10: 309 significant at q=0.10
+  Per-pair selection: 342 pairwise + 20 univariate -> 362 representatives
+  Type distribution of winners:
+    correlational: 121
+    structural: 80
+    probabilistic: 60
+    causal: 56
+    equilibrium: 17
+    functional: 13
+    competitive: 12
+    temporal: 2
+    similarity: 1
+  FDR q=0.10: 310/362 significant (85.6%)
+  Resample 4/10: 310 significant at q=0.10
+  Per-pair selection: 342 pairwise + 20 univariate -> 362 representatives
+  Type distribution of winners:
+    correlational: 189
+    graph: 37
+    causal: 36
+    probabilistic: 25
+    functional: 22
+    logical: 14
+    equilibrium: 13
+    competitive: 8
+    mediating: 6
+    temporal: 6
+    synergistic: 5
+    similarity: 1
+  FDR q=0.10: 274/362 significant (75.7%)
+  Resample 5/10: 274 significant at q=0.10
+  Per-pair selection: 342 pairwise + 20 univariate -> 362 representatives
+  Type distribution of winners:
+    correlational: 198
+    structural: 58
+    probabilistic: 25
+    functional: 22
+    causal: 19
+    equilibrium: 17
+    competitive: 12
+    logical: 3
+    synergistic: 2
+    mediating: 2
+    temporal: 2
+    graph: 1
+    similarity: 1
+  FDR q=0.10: 314/362 significant (86.7%)
+  Resample 6/10: 314 significant at q=0.10
+  Per-pair selection: 342 pairwise + 20 univariate -> 362 representatives
+  Type distribution of winners:
+    correlational: 159
+    structural: 94
+    causal: 39
+    probabilistic: 30
+    equilibrium: 15
+    competitive: 10
+    functional: 10
+    temporal: 4
+    similarity: 1
+  FDR q=0.10: 345/362 significant (95.3%)
+  Resample 7/10: 345 significant at q=0.10
+  Per-pair selection: 342 pairwise + 20 univariate -> 362 representatives
+  Type distribution of winners:
+    correlational: 157
+    causal: 60
+    probabilistic: 53
+    graph: 35
+    functional: 14
+    competitive: 14
+    equilibrium: 11
+    temporal: 8
+    mediating: 4
+    logical: 4
+    synergistic: 1
+    similarity: 1
+  FDR q=0.10: 275/362 significant (76.0%)
+  Resample 8/10: 275 significant at q=0.10
+  Per-pair selection: 342 pairwise + 20 univariate -> 362 representatives
+  Type distribution of winners:
+    correlational: 158
+    structural: 62
+    causal: 55
+    probabilistic: 51
+    functional: 15
+    equilibrium: 11
+    temporal: 8
+    competitive: 1
+    similarity: 1
+  FDR q=0.10: 310/362 significant (85.6%)
+  Resample 9/10: 310 significant at q=0.10
+  Per-pair selection: 342 pairwise + 20 univariate -> 362 representatives
+  Type distribution of winners:
+    correlational: 190
+    causal: 40
+    probabilistic: 37
+    graph: 28
+    functional: 19
+    equilibrium: 15
+    competitive: 11
+    mediating: 6
+    synergistic: 6
+    logical: 4
+    temporal: 4
+    moderating: 1
+    similarity: 1
+  FDR q=0.10: 296/362 significant (81.8%)
+  Resample 10/10: 296 significant at q=0.10
+
+  Type distribution of winners:
+    correlational: 156
+    causal: 63
+    probabilistic: 32
+    graph: 19
+    functional: 19
+    competitive: 18
+    logical: 16
+    temporal: 11
+    mediating: 9
+    synergistic: 9
+    equilibrium: 8
+    moderating: 1
+    similarity: 1
+  FDR q=0.10: 119/362 significant and stable
+
+[STEP 6] Final ranking + evaluation...
+
+  Dual-threshold report (362 hypotheses):
+    FDR q   pi_min   #passed   % passed   Est. FDP
+  --------------------------------------------------
+     0.05     0.50         0       0.0%      0.05
+     0.05     0.60         0       0.0%      0.05
+     0.05     0.70         0       0.0%      0.05
+     0.10     0.50       126      34.8%      0.10
+     0.10     0.60       119      32.9%      0.10
+     0.10     0.70       106      29.3%      0.10
+     0.20     0.50       128      35.4%      0.20
+     0.20     0.60       120      33.1%      0.20
+     0.20     0.70       106      29.3%      0.20
+
+  Calibrated Ranking Evaluation (n=362 hypotheses):
+      k       P@k       R@k
+  ------------------------------
+      5    0.0000    0.0000
+     10    0.0000    0.0000
+     15    0.0667    0.0370
+     20    0.1000    0.0741
+     30    0.0667    0.0741
+     50    0.0400    0.0741
+
+  First GT rank: 11
+  Mean GT rank:  147.6
+  Null FPR (selected): 0.000
+  Selected (dual threshold): 119
+  GT matches in selected: 6
+
+  vs. Old system:
+    Old first GT rank: 123 (all top-100 Bayesian conf = FPs)
+    New first GT rank: 11
+    Improvement: 11.2x
+
+============================================================
+Engine re-run complete. Total time: 4219s
+First GT rank: 11
+Null FPR: 0.000
+#Selected: 119
+  P@5=0.000  R@5=0.000
+  P@10=0.000  R@10=0.000
+  P@15=0.067  R@15=0.037
+  P@20=0.100  R@20=0.074
+
+Artifact D written: artifacts/rerun/results.json
+Artifact C written: artifacts/rerun/provenance.json
+Artifact E written: artifacts/rerun/SELF_AUDIT.md
+
+All artifacts written to artifacts/rerun/
+  A: engine_trace.jsonl  (139,671 records)
+  B: engine_call_log.txt (146,546 lines)
+  C: provenance.json
+  D: results.json
+  E: SELF_AUDIT.md

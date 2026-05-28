@@ -1,0 +1,606 @@
+{
+  "RWA-single": {
+    "gdp_growth": {
+      "h1": {
+        "best_method": "arima",
+        "best_mae": 3.2959,
+        "xgb_graph": 4.6278,
+        "arima": 3.2959,
+        "prophet": 4.593
+      },
+      "h3": {
+        "best_method": "arima",
+        "best_mae": 2.6509,
+        "xgb_graph": 3.285,
+        "arima": 2.6509,
+        "prophet": 6.3839
+      },
+      "h5": {
+        "best_method": "arima",
+        "best_mae": 2.9622,
+        "xgb_graph": 7.3903,
+        "arima": 2.9622,
+        "prophet": 8.5298
+      },
+      "h10": {
+        "best_method": "arima",
+        "best_mae": 2.1589,
+        "xgb_graph": 2.6695,
+        "arima": 2.1589,
+        "prophet": 15.5449
+      }
+    },
+    "inflation_cpi": {
+      "h1": {
+        "best_method": "tft",
+        "best_mae": 4.4996,
+        "xgb_graph": 4.7789,
+        "arima": 5.0612,
+        "prophet": 5.0373
+      },
+      "h3": {
+        "best_method": "lgbm_blind",
+        "best_mae": 4.7682,
+        "xgb_graph": 5.1756,
+        "arima": 4.929,
+        "prophet": 5.9519
+      },
+      "h5": {
+        "best_method": "xgb_blind",
+        "best_mae": 4.9907,
+        "xgb_graph": 4.9907,
+        "arima": 6.7681,
+        "prophet": 7.173
+      },
+      "h10": {
+        "best_method": "lgbm_blind",
+        "best_mae": 5.2189,
+        "xgb_graph": 5.6608,
+        "arima": 6.3324,
+        "prophet": 8.1631
+      }
+    },
+    "unemployment": {
+      "h1": {
+        "best_method": "xgb_blind",
+        "best_mae": 0.376,
+        "xgb_graph": 0.4815,
+        "arima": 0.5897,
+        "prophet": 0.49
+      },
+      "h3": {
+        "best_method": "lgbm_blind",
+        "best_mae": 0.5245,
+        "xgb_graph": 0.5869,
+        "arima": 0.6342,
+        "prophet": 0.592
+      },
+      "h5": {
+        "best_method": "lgbm_blind",
+        "best_mae": 0.5986,
+        "xgb_graph": 0.6621,
+        "arima": 0.6509,
+        "prophet": 0.655
+      },
+      "h10": {
+        "best_method": "persistence",
+        "best_mae": 0.6995,
+        "xgb_graph": 0.7406,
+        "arima": 0.7277,
+        "prophet": 0.8816
+      }
+    },
+    "exports_gdp": {
+      "h1": {
+        "best_method": "persistence",
+        "best_mae": 1.5018,
+        "xgb_graph": 2.0863,
+        "arima": 1.5351,
+        "prophet": 2.1139
+      },
+      "h3": {
+        "best_method": "prophet_graph",
+        "best_mae": 2.5343,
+        "xgb_graph": 3.2565,
+        "arima": 2.8393,
+        "prophet": 2.812
+      },
+      "h5": {
+        "best_method": "prophet",
+        "best_mae": 3.751,
+        "xgb_graph": 5.5192,
+        "arima": 4.0388,
+        "prophet": 3.751
+      },
+      "h10": {
+        "best_method": "prophet",
+        "best_mae": 5.6252,
+        "xgb_graph": 8.2431,
+        "arima": 6.9977,
+        "prophet": 5.6252
+      }
+    },
+    "imports_gdp": {
+      "h1": {
+        "best_method": "persistence",
+        "best_mae": 1.0975,
+        "xgb_graph": 2.5552,
+        "arima": 1.3617,
+        "prophet": 3.8375
+      },
+      "h3": {
+        "best_method": "persistence",
+        "best_mae": 2.321,
+        "xgb_graph": 2.6091,
+        "arima": 2.5005,
+        "prophet": 4.9925
+      },
+      "h5": {
+        "best_method": "prophet_graph",
+        "best_mae": 2.5861,
+        "xgb_graph": 4.1548,
+        "arima": 4.0028,
+        "prophet": 6.2991
+      },
+      "h10": {
+        "best_method": "prophet_graph",
+        "best_mae": 3.2159,
+        "xgb_graph": 10.0923,
+        "arima": 8.3083,
+        "prophet": 9.2263
+      }
+    },
+    "current_account": {
+      "h1": {
+        "best_method": "prophet",
+        "best_mae": 1.0453,
+        "xgb_graph": 1.4577,
+        "arima": 1.3872,
+        "prophet": 1.0453
+      },
+      "h3": {
+        "best_method": "xgb_blind",
+        "best_mae": 1.311,
+        "xgb_graph": 1.9071,
+        "arima": 1.3449,
+        "prophet": 1.3935
+      },
+      "h5": {
+        "best_method": "xgb_blind",
+        "best_mae": 1.6129,
+        "xgb_graph": 2.659,
+        "arima": 2.3303,
+        "prophet": 1.8819
+      },
+      "h10": {
+        "best_method": "tft",
+        "best_mae": 3.283,
+        "xgb_graph": 3.547,
+        "arima": 4.2237,
+        "prophet": 3.4286
+      }
+    },
+    "real_interest_rate": {
+      "h1": {
+        "best_method": "prophet_graph",
+        "best_mae": 5.1808,
+        "xgb_graph": 5.7434,
+        "arima": 6.0627,
+        "prophet": 5.4812
+      },
+      "h3": {
+        "best_method": "lgbm_blind",
+        "best_mae": 5.2633,
+        "xgb_graph": 5.4651,
+        "arima": 5.3542,
+        "prophet": 5.863
+      },
+      "h5": {
+        "best_method": "lgbm_blind",
+        "best_mae": 4.3344,
+        "xgb_graph": 6.6799,
+        "arima": 5.7332,
+        "prophet": 5.133
+      },
+      "h10": {
+        "best_method": "lgbm_blind",
+        "best_mae": 4.3831,
+        "xgb_graph": 5.265,
+        "arima": 6.6919,
+        "prophet": 4.8478
+      }
+    },
+    "broad_money": {
+      "h1": {
+        "best_method": "persistence",
+        "best_mae": 1.0379,
+        "xgb_graph": 1.5353,
+        "arima": 1.0445,
+        "prophet": 2.4287
+      },
+      "h3": {
+        "best_method": "arima",
+        "best_mae": 1.9933,
+        "xgb_graph": 2.1963,
+        "arima": 1.9933,
+        "prophet": 3.2033
+      },
+      "h5": {
+        "best_method": "persistence",
+        "best_mae": 2.7556,
+        "xgb_graph": 3.3195,
+        "arima": 2.8145,
+        "prophet": 4.1077
+      },
+      "h10": {
+        "best_method": "persistence",
+        "best_mae": 5.3325,
+        "xgb_graph": 5.6271,
+        "arima": 5.3699,
+        "prophet": 6.5324
+      }
+    },
+    "private_credit": {
+      "h1": {
+        "best_method": "persistence",
+        "best_mae": 1.1006,
+        "xgb_graph": 1.6173,
+        "arima": 1.1059,
+        "prophet": 1.9369
+      },
+      "h3": {
+        "best_method": "prophet_graph",
+        "best_mae": 1.8128,
+        "xgb_graph": 2.8174,
+        "arima": 2.3736,
+        "prophet": 2.5258
+      },
+      "h5": {
+        "best_method": "prophet_graph",
+        "best_mae": 2.1097,
+        "xgb_graph": 4.2045,
+        "arima": 3.6077,
+        "prophet": 3.0325
+      },
+      "h10": {
+        "best_method": "prophet_graph",
+        "best_mae": 4.0397,
+        "xgb_graph": 8.2529,
+        "arima": 7.7755,
+        "prophet": 5.2588
+      }
+    },
+    "govt_consumption": {
+      "h1": {
+        "best_method": "persistence",
+        "best_mae": 0.6439,
+        "xgb_graph": 1.2121,
+        "arima": 0.7171,
+        "prophet": 1.7332
+      },
+      "h3": {
+        "best_method": "arima",
+        "best_mae": 1.2426,
+        "xgb_graph": 1.4951,
+        "arima": 1.2426,
+        "prophet": 2.307
+      },
+      "h5": {
+        "best_method": "lgbm_blind",
+        "best_mae": 1.9303,
+        "xgb_graph": 2.4794,
+        "arima": 2.0744,
+        "prophet": 2.8606
+      },
+      "h10": {
+        "best_method": "lgbm_blind",
+        "best_mae": 2.4413,
+        "xgb_graph": 3.1085,
+        "arima": 3.2852,
+        "prophet": 3.7884
+      }
+    }
+  },
+  "RWA-fed(KEN+TZA+UGA)": {
+    "gdp_growth": {
+      "h1": {
+        "best_method": "arima",
+        "best_mae": 3.2959,
+        "xgb_graph": 6.0386,
+        "arima": 3.2959,
+        "prophet": 4.593
+      },
+      "h3": {
+        "best_method": "arima",
+        "best_mae": 2.6509,
+        "xgb_graph": 2.9012,
+        "arima": 2.6509,
+        "prophet": 6.3839
+      },
+      "h5": {
+        "best_method": "arima",
+        "best_mae": 2.9622,
+        "xgb_graph": 3.1422,
+        "arima": 2.9622,
+        "prophet": 8.5298
+      },
+      "h10": {
+        "best_method": "xgb_graph",
+        "best_mae": 2.0401,
+        "xgb_graph": 2.0401,
+        "arima": 2.1589,
+        "prophet": 15.5449
+      }
+    },
+    "inflation_cpi": {
+      "h1": {
+        "best_method": "xgb_graph",
+        "best_mae": 4.1284,
+        "xgb_graph": 4.1284,
+        "arima": 5.0612,
+        "prophet": 5.0373
+      },
+      "h3": {
+        "best_method": "lgbm_blind",
+        "best_mae": 4.7682,
+        "xgb_graph": 5.9108,
+        "arima": 4.929,
+        "prophet": 5.9519
+      },
+      "h5": {
+        "best_method": "xgb_blind",
+        "best_mae": 4.9907,
+        "xgb_graph": 5.5487,
+        "arima": 6.7681,
+        "prophet": 7.173
+      },
+      "h10": {
+        "best_method": "lgbm_blind",
+        "best_mae": 5.2189,
+        "xgb_graph": 5.2576,
+        "arima": 6.3324,
+        "prophet": 8.1631
+      }
+    },
+    "unemployment": {
+      "h1": {
+        "best_method": "xgb_blind",
+        "best_mae": 0.376,
+        "xgb_graph": 0.5615,
+        "arima": 0.5897,
+        "prophet": 0.49
+      },
+      "h3": {
+        "best_method": "lgbm_blind",
+        "best_mae": 0.5245,
+        "xgb_graph": 0.6083,
+        "arima": 0.6342,
+        "prophet": 0.592
+      },
+      "h5": {
+        "best_method": "lgbm_blind",
+        "best_mae": 0.5986,
+        "xgb_graph": 0.628,
+        "arima": 0.6509,
+        "prophet": 0.655
+      },
+      "h10": {
+        "best_method": "persistence",
+        "best_mae": 0.6995,
+        "xgb_graph": 0.7511,
+        "arima": 0.7277,
+        "prophet": 0.8816
+      }
+    },
+    "exports_gdp": {
+      "h1": {
+        "best_method": "persistence",
+        "best_mae": 1.5018,
+        "xgb_graph": 2.0554,
+        "arima": 1.5351,
+        "prophet": 2.1139
+      },
+      "h3": {
+        "best_method": "persistence",
+        "best_mae": 2.7921,
+        "xgb_graph": 2.8419,
+        "arima": 2.8393,
+        "prophet": 2.812
+      },
+      "h5": {
+        "best_method": "prophet",
+        "best_mae": 3.751,
+        "xgb_graph": 4.2373,
+        "arima": 4.0388,
+        "prophet": 3.751
+      },
+      "h10": {
+        "best_method": "prophet",
+        "best_mae": 5.6252,
+        "xgb_graph": 8.4237,
+        "arima": 6.9977,
+        "prophet": 5.6252
+      }
+    },
+    "imports_gdp": {
+      "h1": {
+        "best_method": "persistence",
+        "best_mae": 1.0975,
+        "xgb_graph": 5.0921,
+        "arima": 1.3617,
+        "prophet": 3.8375
+      },
+      "h3": {
+        "best_method": "prophet_graph",
+        "best_mae": 2.1538,
+        "xgb_graph": 8.5535,
+        "arima": 2.5005,
+        "prophet": 4.9925
+      },
+      "h5": {
+        "best_method": "prophet_graph",
+        "best_mae": 2.3083,
+        "xgb_graph": 5.0516,
+        "arima": 4.0028,
+        "prophet": 6.2991
+      },
+      "h10": {
+        "best_method": "prophet_graph",
+        "best_mae": 2.6097,
+        "xgb_graph": 9.5718,
+        "arima": 8.3083,
+        "prophet": 9.2263
+      }
+    },
+    "current_account": {
+      "h1": {
+        "best_method": "prophet_graph",
+        "best_mae": 0.9475,
+        "xgb_graph": 0.9603,
+        "arima": 1.3872,
+        "prophet": 1.0453
+      },
+      "h3": {
+        "best_method": "xgb_blind",
+        "best_mae": 1.311,
+        "xgb_graph": 1.3836,
+        "arima": 1.3449,
+        "prophet": 1.3935
+      },
+      "h5": {
+        "best_method": "xgb_blind",
+        "best_mae": 1.6129,
+        "xgb_graph": 1.9102,
+        "arima": 2.3303,
+        "prophet": 1.8819
+      },
+      "h10": {
+        "best_method": "prophet_graph",
+        "best_mae": 3.0981,
+        "xgb_graph": 3.2416,
+        "arima": 4.2237,
+        "prophet": 3.4286
+      }
+    },
+    "real_interest_rate": {
+      "h1": {
+        "best_method": "lgbm_blind",
+        "best_mae": 5.4529,
+        "xgb_graph": 5.6203,
+        "arima": 6.0627,
+        "prophet": 5.4812
+      },
+      "h3": {
+        "best_method": "lgbm_blind",
+        "best_mae": 5.2633,
+        "xgb_graph": 6.086,
+        "arima": 5.3542,
+        "prophet": 5.863
+      },
+      "h5": {
+        "best_method": "lgbm_blind",
+        "best_mae": 4.3344,
+        "xgb_graph": 6.8297,
+        "arima": 5.7332,
+        "prophet": 5.133
+      },
+      "h10": {
+        "best_method": "lgbm_blind",
+        "best_mae": 4.3831,
+        "xgb_graph": 6.4625,
+        "arima": 6.6919,
+        "prophet": 4.8478
+      }
+    },
+    "broad_money": {
+      "h1": {
+        "best_method": "persistence",
+        "best_mae": 1.0379,
+        "xgb_graph": 2.475,
+        "arima": 1.0445,
+        "prophet": 2.4287
+      },
+      "h3": {
+        "best_method": "arima",
+        "best_mae": 1.9933,
+        "xgb_graph": 2.5923,
+        "arima": 1.9933,
+        "prophet": 3.2033
+      },
+      "h5": {
+        "best_method": "persistence",
+        "best_mae": 2.7556,
+        "xgb_graph": 3.4042,
+        "arima": 2.8145,
+        "prophet": 4.1077
+      },
+      "h10": {
+        "best_method": "xgb_graph",
+        "best_mae": 5.259,
+        "xgb_graph": 5.259,
+        "arima": 5.3699,
+        "prophet": 6.5324
+      }
+    },
+    "private_credit": {
+      "h1": {
+        "best_method": "persistence",
+        "best_mae": 1.1006,
+        "xgb_graph": 1.7714,
+        "arima": 1.1059,
+        "prophet": 1.9369
+      },
+      "h3": {
+        "best_method": "prophet_graph",
+        "best_mae": 2.096,
+        "xgb_graph": 3.1443,
+        "arima": 2.3736,
+        "prophet": 2.5258
+      },
+      "h5": {
+        "best_method": "prophet_graph",
+        "best_mae": 2.8173,
+        "xgb_graph": 4.7444,
+        "arima": 3.6077,
+        "prophet": 3.0325
+      },
+      "h10": {
+        "best_method": "prophet",
+        "best_mae": 5.2588,
+        "xgb_graph": 9.1342,
+        "arima": 7.7755,
+        "prophet": 5.2588
+      }
+    },
+    "govt_consumption": {
+      "h1": {
+        "best_method": "persistence",
+        "best_mae": 0.6439,
+        "xgb_graph": 0.8569,
+        "arima": 0.7171,
+        "prophet": 1.7332
+      },
+      "h3": {
+        "best_method": "arima",
+        "best_mae": 1.2426,
+        "xgb_graph": 1.8589,
+        "arima": 1.2426,
+        "prophet": 2.307
+      },
+      "h5": {
+        "best_method": "lgbm_blind",
+        "best_mae": 1.9303,
+        "xgb_graph": 2.5847,
+        "arima": 2.0744,
+        "prophet": 2.8606
+      },
+      "h10": {
+        "best_method": "lgbm_blind",
+        "best_mae": 2.4413,
+        "xgb_graph": 3.0883,
+        "arima": 3.2852,
+        "prophet": 3.7884
+      }
+    }
+  }
+}

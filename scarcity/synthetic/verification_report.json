@@ -1,0 +1,16 @@
+{
+  "metrics": {
+    "temporal_X1": 0.801381286152914,
+    "causal_X1_X2": 0.7876196702917542,
+    "correlational_X3_X4": 0.799487950796331,
+    "equilibrium_Y4_mean": -0.06428729209941297,
+    "compositional_TotalA": 0.9471994463316268,
+    "competitive_C1_C2_sum": 99.99917460927875
+  },
+  "null_pairs": {
+    "Null1-Null2": 0.022922441650572067,
+    "X1-X3": -0.02967121580234474,
+    "TotalA-L_out": -0.016602343745846133
+  },
+  "status": "success"
+}

@@ -1,0 +1,11 @@
+digraph LearnedGraph {
+  rankdir=LR;
+  "inflation_cpi" -> "unemployment";
+  "inflation_cpi" -> "gdp_growth";
+  "real_interest_rate" -> "unemployment";
+  "real_interest_rate" -> "gdp_growth";
+  "private_credit" -> "unemployment";
+  "private_credit" -> "gdp_growth";
+  "unemployment" -> "gdp_growth";
+  "imports_gdp" -> "unemployment";
+}

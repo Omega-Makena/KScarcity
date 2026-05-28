@@ -1,0 +1,22 @@
+{
+  "git_commit": "df2a6a0d0d631307aaa10e4059d1c49e3dd23f63",
+  "engine_v2_sha256_16": "0b3c1839e2e1942c",
+  "relationships_sha256_16": "28e9bfe068aebea6",
+  "B_perm": 50,
+  "B_boot": 50,
+  "fdr_q": 0.1,
+  "stability_min": 0.6,
+  "block_size": 4,
+  "numpy_version": "2.3.5",
+  "sklearn_version": "1.6.1",
+  "platform": "Windows-10-10.0.26200-SP0",
+  "run_time_utc": "2026-05-11T18:21:49Z",
+  "engine_class": "OnlineDiscoveryEngine",
+  "engine_module": "scarcity.engine.engine_v2",
+  "hypothesis_modules": [
+    "scarcity.engine.relationships",
+    "scarcity.engine.relationships_extended"
+  ],
+  "step1_module": "scripts.experiments.calibration.step1_engine_pvalues",
+  "elapsed_seconds": 21961.4
+}

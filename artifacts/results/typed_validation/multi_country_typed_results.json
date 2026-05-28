@@ -1,0 +1,122 @@
+{
+  "KEN": {
+    "kscarcity_local": {
+      "n_discoveries": 0,
+      "f1": 0.0,
+      "precision": 0.0,
+      "recall": 0.0,
+      "null_fp_rate": 0.0,
+      "recall_by_type": {
+        "causal": 0.0,
+        "competitive": 0.0,
+        "compositional": 0.0,
+        "correlational": 0.0,
+        "equilibrium": 0.0,
+        "functional": 0.0,
+        "mediating": 0.0,
+        "structural": 0.0,
+        "synergistic": 0.0,
+        "temporal": 0.0
+      }
+    },
+    "kscarcity_federated": {
+      "n_discoveries": 0,
+      "f1": 0.0,
+      "precision": 0.0,
+      "recall": 0.0,
+      "null_fp_rate": 0.0,
+      "recall_by_type": {
+        "causal": 0.0,
+        "competitive": 0.0,
+        "compositional": 0.0,
+        "correlational": 0.0,
+        "equilibrium": 0.0,
+        "functional": 0.0,
+        "mediating": 0.0,
+        "structural": 0.0,
+        "synergistic": 0.0,
+        "temporal": 0.0
+      }
+    }
+  },
+  "TZA": {
+    "kscarcity_local": {
+      "n_discoveries": 142,
+      "f1": 0.0329,
+      "precision": 0.0211,
+      "recall": 0.0741,
+      "null_fp_rate": 0.0,
+      "recall_by_type": {
+        "causal": 0.0,
+        "competitive": 0.0,
+        "compositional": 0.0,
+        "correlational": 0.25,
+        "equilibrium": 0.0,
+        "functional": 1.0,
+        "mediating": 0.0,
+        "structural": 0.0,
+        "synergistic": 0.0,
+        "temporal": 0.0
+      }
+    },
+    "kscarcity_federated": {
+      "n_discoveries": 149,
+      "f1": 0.0317,
+      "precision": 0.0201,
+      "recall": 0.0741,
+      "null_fp_rate": 0.0,
+      "recall_by_type": {
+        "causal": 0.0,
+        "competitive": 0.0,
+        "compositional": 0.0,
+        "correlational": 0.25,
+        "equilibrium": 0.0,
+        "functional": 1.0,
+        "mediating": 0.0,
+        "structural": 0.0,
+        "synergistic": 0.0,
+        "temporal": 0.0
+      }
+    }
+  },
+  "UGA": {
+    "kscarcity_local": {
+      "n_discoveries": 82,
+      "f1": 0.0294,
+      "precision": 0.0244,
+      "recall": 0.037,
+      "null_fp_rate": 0.0,
+      "recall_by_type": {
+        "causal": 0.0,
+        "competitive": 0.0,
+        "compositional": 0.0,
+        "correlational": 0.25,
+        "equilibrium": 0.0,
+        "functional": 0.0,
+        "mediating": 0.0,
+        "structural": 0.0,
+        "synergistic": 0.0,
+        "temporal": 0.0
+      }
+    },
+    "kscarcity_federated": {
+      "n_discoveries": 85,
+      "f1": 0.0288,
+      "precision": 0.0235,
+      "recall": 0.037,
+      "null_fp_rate": 0.0,
+      "recall_by_type": {
+        "causal": 0.0,
+        "competitive": 0.0,
+        "compositional": 0.0,
+        "correlational": 0.25,
+        "equilibrium": 0.0,
+        "functional": 0.0,
+        "mediating": 0.0,
+        "structural": 0.0,
+        "synergistic": 0.0,
+        "temporal": 0.0
+      }
+    }
+  }
+}

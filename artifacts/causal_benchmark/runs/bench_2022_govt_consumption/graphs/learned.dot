@@ -1,0 +1,30 @@
+digraph LearnedGraph {
+  rankdir=LR;
+  "gdp_growth" -> "life_expectancy";
+  "gdp_growth" -> "govt_consumption";
+  "inflation_cpi" -> "life_expectancy";
+  "inflation_cpi" -> "govt_consumption";
+  "unemployment" -> "life_expectancy";
+  "unemployment" -> "govt_consumption";
+  "life_expectancy" -> "govt_consumption";
+  "gcf" -> "life_expectancy";
+  "gdp_growth" -> "school_enrollment";
+  "inflation_cpi" -> "school_enrollment";
+  "unemployment" -> "school_enrollment";
+  "school_enrollment" -> "govt_consumption";
+  "gcf" -> "school_enrollment";
+  "gdp_growth" -> "mobile_subscriptions";
+  "inflation_cpi" -> "mobile_subscriptions";
+  "unemployment" -> "mobile_subscriptions";
+  "mobile_subscriptions" -> "govt_consumption";
+  "exports_gdp" -> "mobile_subscriptions";
+  "gdp_growth" -> "govt_debt";
+  "inflation_cpi" -> "govt_debt";
+  "unemployment" -> "govt_debt";
+  "govt_debt" -> "govt_consumption";
+  "gdp_growth" -> "broad_money";
+  "inflation_cpi" -> "broad_money";
+  "unemployment" -> "broad_money";
+  "broad_money" -> "govt_consumption";
+  "private_credit" -> "broad_money";
+}

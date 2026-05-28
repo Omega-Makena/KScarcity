@@ -97,6 +97,29 @@ class MetaController:
         for hid in dead_ids:
             pool._kill(hid)
 
+    @classmethod
+    def small_dataset(cls) -> 'MetaController':
+        """Tuned thresholds for datasets with n < 100 observations.
+
+        Key decisions:
+        - min_evidence=10 (not 20): allows hypothesis graduation before the stream ends.
+        - confidence_threshold=0.55 (not 0.70): compensates for low F-test power at n<50.
+        - kill_threshold=0.0 (disabled): with λ=0.99 and pure null signal the Bayesian
+          accumulator decays as α≈0.1·λⁿ, β≈100·(1−λⁿ).  After 34 steps conf≈0.0024;
+          after 102 steps (federated) conf≈0.0006.  Any positive threshold kills null-
+          signal hypotheses (compositional, moderating, similarity, competitive) before
+          they can accumulate federation evidence.  Setting threshold=0.0 disables killing
+          entirely — pool capacity (2000) is the only pruning mechanism.  Null hypotheses
+          stay in the pool but their conf<0.01 means they are filtered out at graph
+          extraction (conf_threshold=0.45) and never used in forecasting (threshold=0.20).
+        """
+        return cls(
+            confidence_threshold=0.55,
+            stability_threshold=0.50,
+            min_evidence=10,
+            kill_threshold=0.0,
+        )
+
     def get_summary(self, pool: HypothesisPool) -> Dict[str, int]:
         """
         Generates a summary of the pool's state distribution.

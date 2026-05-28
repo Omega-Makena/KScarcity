@@ -13,9 +13,10 @@ any variable set and any data frequency.
 
 ```python
 engine = OnlineDiscoveryEngine(
-    explore_interval=10,   # how often exploration hypotheses are proposed
-    mode="balanced",       # "balanced" | "conservative" | "aggressive"
-    buffer_size=150,       # observation window for all hypothesis buffers
+    explore_interval=10,      # how often exploration hypotheses are proposed
+    mode="balanced",          # "balanced" | "conservative" | "aggressive"
+    buffer_size=150,          # observation window for all hypothesis buffers
+    small_dataset_mode=True,  # activates sparse-data settings (annual macro, N<50)
 )
 engine.initialize_v2(var_names)          # seeds all pair/triplet hypotheses
 engine.update(data_dict)                 # advance one observation
@@ -25,6 +26,28 @@ engine.get_candidate_paths()             # ranked edges (confidence ≥ 0.25)
 `buffer_size` threads through every hypothesis constructor (both in `initialize_v2` and
 in exploration steps) so high-frequency tick data (`buffer_size=50`) and monthly macro
 data (`buffer_size=300`) are each handled with an appropriate observation window.
+
+**`small_dataset_mode=True`** activates three settings tuned for annual macroeconomic
+series (N=20–50):
+
+| Setting | Default | Small-dataset value | Reason |
+|---------|---------|---------------------|--------|
+| `HypothesisPool` capacity | 1000 | **2000** | 19 vars → 38+1026+500+1 = 1565 hypotheses; 1000 silently drops triplet/similarity types |
+| `MetaController.kill_threshold` | 0.05 | **0.0** | With λ=0.99, null-signal confidence after 34 steps ≈ 0.0024 — any positive threshold kills temporal/equilibrium/compositional hypotheses |
+| `MetaController.min_evidence` | 20 | **10** | Annual series accumulate evidence slowly; lower threshold avoids stale TENTATIVE states |
+
+**Arbitration** (`_arbitrate_step`) only prunes **ACTIVE** hypotheses — TENTATIVE
+hypotheses (compositional, moderating, similarity) are left untouched. Previously, all
+hypotheses were passed to the arbiter, which silently killed TENTATIVE types whose
+per-pair confidence (≈0.003) lost to ACTIVE correlational (≈0.759) for the same variable
+pair.
+
+**Architecture — Scarcity as discoverer, not forecaster:**
+Scarcity's output is a knowledge graph of discovered relationships. This graph is handed
+to downstream forecasters (Prophet, ARIMA) as structured prior knowledge; Scarcity does
+not perform the forecasting itself. See `benchmark/evaluation/forecasting.py` for
+`evaluate_prophet_with_graph()` and `evaluate_arimax_with_graph()` — both accept the
+graph, select top-K parents per target, and use lag-1 parent values (no future leakage).
 
 ### Hypothesis Types — `relationships.py` / `relationships_extended.py`
 
@@ -71,6 +94,51 @@ zero-confidence finding.
 Centralised config dataclasses for all 15 types (see `HypothesisConfig`). All thresholds
 and forgetting factors are overridable at construction time; defaults are documented in
 `CausalConfig`, `CorrelationalConfig`, `TemporalConfig`, etc.
+
+### GPU-Accelerated Batch RLS — `gpu_batch_rls.py`
+
+Runs M independent RLS models simultaneously using PyTorch `einsum`/`bmm` on CUDA.
+Mirrors the scalar `_rls_step()` in `relationships.py` but over an entire batch of models
+in one GPU kernel. Used by the genuine engine bootstrap calibration pipeline.
+
+```python
+rls = GPUBatchRLS(M=638_174, F=3, lam=1.0, device="cuda")
+rls.update(X, Y)          # X: (M, F), Y: (M,)
+scores = rls.fit_score    # (M,) R² per model
+conf   = rls.confidence   # (M,) Bayesian confidence per model
+```
+
+| Attribute | Shape | Description |
+|-----------|-------|-------------|
+| `W` | (M, F) | RLS weight vectors |
+| `P` | (M, F, F) | Covariance matrices, initialised to 10·I |
+| `fit_score` | (M,) | Online Welford R² ∈ [0, 1] |
+| `confidence` | (M,) | Bayesian α/(α+β) ∈ [0, 1] |
+| `stability` | (M,) | 1 − CV(residuals) via EMA |
+| `evidence` | (M,) int64 | Step count per model |
+
+**λ calibration note:** Use `lam=1.0` (pure OLS) for short sequences (n<80). The effective
+memory window is 1/(1−λ), so λ=0.99 → window=100 steps and will fail to accumulate
+evidence at n=34.
+
+### GPU Hypothesis Pool — `gpu_hypothesis_pool.py`
+
+Builds and groups all hypothesis specs for one data schema. Groups by `(perm_col_idx, F)`
+so a single `GPUBatchRLS` handles all hypotheses in one group simultaneously.
+
+```python
+pool   = GPUHypothesisPool(col_names, device="cuda")  # builds 3174 specs for 19 vars
+groups = pool.groups()  # {(perm_col_idx, F): [HypoSpec, ...]} — 55 groups for 19 vars
+X, Y   = pool.extract_features_gpu(data_gpu, spec_list, t)  # (R, N_g, F), (R, N_g)
+```
+
+`LifecycleEmulator` mirrors `MetaController.manage_lifecycle()` on numpy arrays:
+TENTATIVE → ACTIVE (evidence > 20 AND conf > thresh) or → DEAD (conf < kill_thresh).
+
+**Key design facts (from §40 benchmark):**
+- 3,174 GPU hypotheses in 55 groups for KEN 19-variable dataset
+- `PERM_SHUFFLE` (not `PERM_PHASE`) is the correct null for linear AR test statistics
+- 84% lifecycle kill rate at n=34 — MetaController designed for 1000+ step streams
 
 ---
 

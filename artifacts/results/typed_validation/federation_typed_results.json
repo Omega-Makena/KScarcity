@@ -1,0 +1,138 @@
+{
+  "local_n_discoveries": 134,
+  "fed_n_discoveries": 133,
+  "local_f1": 0.0638,
+  "fed_f1": 0.0642,
+  "delta_f1": 0.0004,
+  "n_unlocked": 0,
+  "n_improved": 0,
+  "peers": [
+    "TZA",
+    "UGA"
+  ],
+  "peer_weight": 0.5,
+  "delta_recall": {
+    "causal": 0.0,
+    "competitive": 0.0,
+    "compositional": 0.0,
+    "correlational": 0.0,
+    "equilibrium": 0.0,
+    "functional": 0.0,
+    "mediating": 0.0,
+    "structural": 0.0,
+    "synergistic": 0.0,
+    "temporal": 0.0
+  },
+  "unlock_analysis": {
+    "causal": {
+      "n_gt": 6,
+      "local_hits": 0,
+      "fed_hits": 0,
+      "local_recall": 0.0,
+      "fed_recall": 0.0,
+      "unlocked": false
+    },
+    "competitive": {
+      "n_gt": 2,
+      "local_hits": 0,
+      "fed_hits": 0,
+      "local_recall": 0.0,
+      "fed_recall": 0.0,
+      "unlocked": false
+    },
+    "compositional": {
+      "n_gt": 3,
+      "local_hits": 0,
+      "fed_hits": 0,
+      "local_recall": 0.0,
+      "fed_recall": 0.0,
+      "unlocked": false
+    },
+    "correlational": {
+      "n_gt": 4,
+      "local_hits": 3,
+      "fed_hits": 3,
+      "local_recall": 0.75,
+      "fed_recall": 0.75,
+      "unlocked": false
+    },
+    "equilibrium": {
+      "n_gt": 2,
+      "local_hits": 0,
+      "fed_hits": 0,
+      "local_recall": 0.0,
+      "fed_recall": 0.0,
+      "unlocked": false
+    },
+    "functional": {
+      "n_gt": 1,
+      "local_hits": 0,
+      "fed_hits": 0,
+      "local_recall": 0.0,
+      "fed_recall": 0.0,
+      "unlocked": false
+    },
+    "mediating": {
+      "n_gt": 2,
+      "local_hits": 0,
+      "fed_hits": 0,
+      "local_recall": 0.0,
+      "fed_recall": 0.0,
+      "unlocked": false
+    },
+    "structural": {
+      "n_gt": 1,
+      "local_hits": 0,
+      "fed_hits": 0,
+      "local_recall": 0.0,
+      "fed_recall": 0.0,
+      "unlocked": false
+    },
+    "synergistic": {
+      "n_gt": 2,
+      "local_hits": 0,
+      "fed_hits": 0,
+      "local_recall": 0.0,
+      "fed_recall": 0.0,
+      "unlocked": false
+    },
+    "temporal": {
+      "n_gt": 4,
+      "local_hits": 0,
+      "fed_hits": 0,
+      "local_recall": 0.0,
+      "fed_recall": 0.0,
+      "unlocked": false
+    }
+  },
+  "threshold_sweep": {
+    "0.05": {
+      "local_f1": 0.0638,
+      "fed_f1": 0.0642
+    },
+    "0.1": {
+      "local_f1": 0.0638,
+      "fed_f1": 0.0642
+    },
+    "0.15": {
+      "local_f1": 0.0638,
+      "fed_f1": 0.0642
+    },
+    "0.2": {
+      "local_f1": 0.0698,
+      "fed_f1": 0.0686
+    },
+    "0.3": {
+      "local_f1": 0.0792,
+      "fed_f1": 0.0721
+    },
+    "0.4": {
+      "local_f1": 0.0,
+      "fed_f1": 0.0
+    },
+    "0.5": {
+      "local_f1": 0.0,
+      "fed_f1": 0.0
+    }
+  }
+}

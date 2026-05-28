@@ -1,0 +1,30 @@
+digraph LearnedGraph {
+  rankdir=LR;
+  "gdp_growth" -> "imports_gdp";
+  "gdp_growth" -> "unemployment";
+  "inflation_cpi" -> "imports_gdp";
+  "inflation_cpi" -> "unemployment";
+  "real_interest_rate" -> "imports_gdp";
+  "real_interest_rate" -> "unemployment";
+  "imports_gdp" -> "unemployment";
+  "gdp_growth" -> "electricity_access";
+  "inflation_cpi" -> "electricity_access";
+  "real_interest_rate" -> "electricity_access";
+  "electricity_access" -> "unemployment";
+  "govt_consumption" -> "electricity_access";
+  "gdp_growth" -> "internet_users";
+  "inflation_cpi" -> "internet_users";
+  "real_interest_rate" -> "internet_users";
+  "internet_users" -> "unemployment";
+  "govt_consumption" -> "internet_users";
+  "gdp_growth" -> "mobile_subscriptions";
+  "inflation_cpi" -> "mobile_subscriptions";
+  "real_interest_rate" -> "mobile_subscriptions";
+  "mobile_subscriptions" -> "unemployment";
+  "gcf" -> "mobile_subscriptions";
+  "gdp_growth" -> "broad_money";
+  "inflation_cpi" -> "broad_money";
+  "real_interest_rate" -> "broad_money";
+  "broad_money" -> "unemployment";
+  "private_credit" -> "broad_money";
+}

@@ -1,0 +1,143 @@
+{
+  "variables": [
+    "X1", "X2", "X3", "X4", "M1", "Y1", 
+    "X5", "Z1", "Y2", "X6", "Y3", "Y4",
+    "A1", "A2", "A3", "TotalA", "C1", "C2",
+    "S1", "S2", "Y5", "P1", "Y6", "Y7",
+    "G1", "G2", "G3", "Clust1_A", "Clust1_B",
+    "L1", "L2", "L_out", "Null1", "Null2"
+  ],
+  "burn_in": 100,
+  "global_config": {
+    "base_autocorrelation": 0.2,
+    "trend_coefficient": null,
+    "noise_std_default": 1.0
+  },
+  "relationships": [
+    {
+      "type": "temporal",
+      "variable": "X1",
+      "lags": [1],
+      "coefficients": [0.75],
+      "noise_std": 1.0
+    },
+    {
+      "type": "causal",
+      "source": "X1",
+      "target": "X2",
+      "lags": [1, 2],
+      "coefficients": [0.5, 0.3],
+      "noise_std": 1.0,
+      "direction": "forward"
+    },
+    {
+      "type": "correlational",
+      "pair": ["X3", "X4"],
+      "correlation": 0.8,
+      "noise_std": 1.0
+    },
+    {
+      "type": "mediating",
+      "source": "X1",
+      "mediator": "M1",
+      "target": "Y1",
+      "path_a_lag": 1,
+      "path_b_lag": 1,
+      "coeff_a": 0.7,
+      "coeff_b": 0.6,
+      "noise_std": 1.0
+    },
+    {
+      "type": "moderating",
+      "source": "X5",
+      "moderator": "Z1",
+      "target": "Y2",
+      "lag": 1,
+      "coeff_source": 0.4,
+      "coeff_moderator": 0.2,
+      "coeff_interaction": 0.8,
+      "noise_std": 1.0
+    },
+    {
+      "type": "functional",
+      "source": "X6",
+      "target": "Y3",
+      "lag": 1,
+      "function": "quadratic",
+      "coeff": 0.5,
+      "noise_std": 1.0
+    },
+    {
+      "type": "equilibrium",
+      "variable": "Y4",
+      "mean": 0.0,
+      "reversion_rate": 0.25,
+      "noise_std": 1.0
+    },
+    {
+      "type": "compositional",
+      "components": ["A1", "A2", "A3"],
+      "total": "TotalA",
+      "noise_std": 0.5
+    },
+    {
+      "type": "competitive",
+      "pair": ["C1", "C2"],
+      "total": 100.0,
+      "noise_std": 2.0
+    },
+    {
+      "type": "synergistic",
+      "sources": ["S1", "S2"],
+      "target": "Y5",
+      "lag": 1,
+      "coeffs": [0.3, 0.3],
+      "interaction_coeff": 0.9,
+      "noise_std": 1.0
+    },
+    {
+      "type": "probabilistic",
+      "source": "P1",
+      "target": "Y6",
+      "lag": 1,
+      "shift": 2.0,
+      "noise_std": 1.0
+    },
+    {
+      "type": "structural",
+      "variable": "Y7",
+      "break_time_ratio": 0.5,
+      "coeff_before": 0.2,
+      "coeff_after": 0.8,
+      "noise_std": 1.0
+    },
+    {
+      "type": "graph",
+      "edges": [
+        {"source": "G1", "target": "G2", "lag": 1, "coeff": 0.6},
+        {"source": "G2", "target": "G3", "lag": 1, "coeff": 0.5}
+      ],
+      "noise_std": 1.0
+    },
+    {
+      "type": "similarity",
+      "group": ["Clust1_A", "Clust1_B"],
+      "base_signal_std": 2.0,
+      "noise_std": 0.5
+    },
+    {
+      "type": "logical",
+      "sources": ["L1", "L2"],
+      "target": "L_out",
+      "lag": 1,
+      "operation": "AND",
+      "thresholds": [0.0, 0.0],
+      "noise_std": 0.1
+    }
+  ],
+  "null_pairs": [
+    ["Null1", "Null2"],
+    ["X1", "X3"],
+    ["TotalA", "L_out"]
+  ]
+}
