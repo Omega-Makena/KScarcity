@@ -11,14 +11,22 @@ license = "Apache-2.0"
 authors = [{ name = "Omega Makena" }]
 requires-python = ">=3.9"
 dependencies = [
-  "numpy>=1.24"
+  "numpy>=1.24",
+  "pandas>=2.0"
 ]
 license-files = ["LICENSE"]
 
 [project.optional-dependencies]
+# Offline causal-inference pipeline (scarcity.causal / run_causal)
+causal = [
+  "dowhy>=0.11"
+]
+# JIT-accelerated engine modules (anomaly detection, forecasting handoff)
+accel = [
+  "numba>=0.59"
+]
 # Streaming, sharding, and async file replay
 stream = [
-  "pandas>=2.0",
   "aiofiles>=23.2",
   "websockets>=11.0",
   "scikit-learn>=1.3"
@@ -50,11 +58,29 @@ fmi = [
 federation = [
   "cryptography>=42.0"
 ]
+# Everything except dev — convenience meta-extra
+all = [
+  "dowhy>=0.11",
+  "numba>=0.59",
+  "aiofiles>=23.2",
+  "websockets>=11.0",
+  "scikit-learn>=1.3",
+  "fastapi>=0.110",
+  "uvicorn[standard]>=0.27",
+  "python-multipart>=0.0.9",
+  "pydantic>=2.6",
+  "qrcode[pil]>=7.4",
+  "psutil>=5.9",
+  "pyyaml>=6.0",
+  "zstandard>=0.22",
+  "cryptography>=42.0"
+]
 # Test, lint, and type-check toolchain (used by CI)
 dev = [
   "pytest>=8.0",
   "pytest-cov>=4.1",
   "pytest-asyncio>=0.23",
+  "scipy>=1.11",
   "ruff>=0.4",
   "mypy>=1.9"
 ]

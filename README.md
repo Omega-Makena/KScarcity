@@ -331,6 +331,11 @@ pip install -e ".[stream,dashboard,federation]"
 pip install streamlit plotly pandas numpy cryptography torch
 ```
 
+> **Installing the library on its own?** If you just want to `pip install scarcity`
+> and use it, see the **[Getting Started guide](docs/GETTING_STARTED.md)** — it covers
+> the core install, which optional extra to pick for each capability (`causal`, `gpu`,
+> `stream`, `federation`, ...), quickstarts, and troubleshooting.
+
 ### Run Dashboards
 
 ```bash
