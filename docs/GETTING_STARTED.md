@@ -113,9 +113,10 @@ Feed rows one at a time; read out the surviving hypotheses.
 ```python
 from scarcity import OnlineDiscoveryEngine
 
-# vectorized=False -> pure-Python backend, no torch needed (core install).
+# Default backend = "auto": uses the fast tensor backend if torch is installed,
+# otherwise the pure-Python loop. Works on a core install with no extra flags.
 # small_dataset_mode=True keeps sparse relationship types alive on short series.
-engine = OnlineDiscoveryEngine(vectorized=False, small_dataset_mode=True)
+engine = OnlineDiscoveryEngine(small_dataset_mode=True)
 
 stream = [
     {"price": 1.0, "demand": 9.8, "income": 4.1},
@@ -130,11 +131,12 @@ for h in engine.export_hypothesis_summary(min_conf=0.5):
     print(h)   # {'vars': [...], 'type': '...', 'confidence': ..., 'evidence': ...}
 ```
 
-> **Important — the default needs `torch`.** `OnlineDiscoveryEngine()` defaults to
-> `vectorized=True`, which lazily imports `torch` (the GPU/tensor backend). On a
-> **core install you must pass `vectorized=False`**, or you will get an
-> `ImportError` for torch. To use the faster backend instead:
-> `pip install "scarcity[gpu]"`, then `OnlineDiscoveryEngine(device="cuda")`.
+> **Backend selection.** `vectorized` controls which backend runs:
+> `None` (default) auto-picks the tensor backend when `torch` is available and
+> silently falls back to pure Python otherwise; `False` forces pure Python;
+> `True` forces the tensor backend and raises a clear `ImportError` if torch is
+> missing. For the fast / GPU path: `pip install "scarcity[gpu]"`, then
+> `OnlineDiscoveryEngine(device="cuda")`.
 
 ### 4.2 Causal inference (`pip install "scarcity[causal]"`)
 
@@ -196,7 +198,7 @@ from scarcity.federation import HierarchicalFederation, HierarchicalFederationCo
 
 | Symptom | Cause | Fix |
 |---------|-------|-----|
-| `ModuleNotFoundError: No module named 'torch'` when creating `OnlineDiscoveryEngine()` | default `vectorized=True` needs torch | pass `vectorized=False`, or `pip install "scarcity[gpu]"` |
+| `ImportError: vectorized=True requires the 'gpu' extra` | you passed `vectorized=True` without torch | `pip install "scarcity[gpu]"`, or drop the flag to use the auto/pure-Python backend |
 | `ModuleNotFoundError: No module named 'dowhy'` | causal pipeline not installed | `pip install "scarcity[causal]"` |
 | `ModuleNotFoundError: No module named 'numba'` importing `scarcity.engine.anomaly` / `.forecasting` | JIT modules not installed | `pip install "scarcity[accel]"` |
 | `cryptography` errors in secure aggregation | secure transport not installed | `pip install "scarcity[federation]"` |
