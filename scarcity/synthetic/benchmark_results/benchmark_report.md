@@ -733,7 +733,7 @@ Rolling-origin backtest: initial train=10 years (1990–1999), test 2000–2023 
 - **Observational Equivalence:** Some generated structures may be statistically
   indistinguishable under high noise or short samples.
 - **Benchmark Overfitting:** This Phase 1 benchmark uses generator-native
-  assumptions. Phase 2 (historical backtesting) and adversarial benchmarks
+  assumpta\ions. Phase 2 (historical backtesting) and adversarial benchmarks
   are needed for full validation.
 - **Identifiability:** Causal recovery from observational data is fundamentally
   limited. This benchmark measures *Granger-style* predictive recovery,

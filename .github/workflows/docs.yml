@@ -4,7 +4,7 @@ on:
   push:
     branches: [main]
     paths:
-      - 'documentation/**'
+      - 'docs/**'
       - 'scarcity/**'
       - 'kshiked/**'
   workflow_dispatch:
@@ -31,19 +31,21 @@ jobs:
 
       - name: Copy docs to mkdocs structure
         run: |
-          mkdir -p docs
-          cp -r documentation/scarcity-docs docs/scarcity
-          cp -r documentation/kshield-docs docs/kshield
+          rm -rf site_src
+          mkdir -p site_src
+          cp -r docs/scarcity-docs site_src/scarcity
+          cp -r docs/kshield-docs site_src/kshield
           # Create index
-          echo "# Scarcity & KShield Documentation" > docs/index.md
-          echo "" >> docs/index.md
-          echo "- [Scarcity Library](scarcity/INDEX.md)" >> docs/index.md
-          echo "- [KShield System](kshield/INDEX.md)" >> docs/index.md
+          echo "# Scarcity & KShield Documentation" > site_src/index.md
+          echo "" >> site_src/index.md
+          echo "- [Scarcity Library](scarcity/INDEX.md)" >> site_src/index.md
+          echo "- [KShield System](kshield/INDEX.md)" >> site_src/index.md
 
       - name: Create mkdocs.yml
         run: |
           cat > mkdocs.yml << 'EOF'
           site_name: Scarcity Documentation
+          docs_dir: site_src
           theme:
             name: material
             palette:

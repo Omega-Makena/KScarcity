@@ -30,13 +30,12 @@ jobs:
 
       - name: Build package
         run: python -m build
-        working-directory: pypi
 
       - name: Upload artifacts
         uses: actions/upload-artifact@v4
         with:
           name: dist
-          path: pypi/dist/
+          path: dist/
 
   publish-testpypi:
     needs: build

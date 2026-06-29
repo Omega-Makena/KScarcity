@@ -280,8 +280,8 @@ PDF export is the primary format with enriched instant-analysis interpretation.
 ### Installation
 
 ```bash
-git clone https://github.com/Omega-Labs/kshiked.git
-cd kshiked
+git clone https://github.com/Omega-Makena/KScarcity.git
+cd KScarcity
 
 # Create virtual environment
 python -m venv .venv
@@ -291,8 +291,8 @@ python -m venv .venv
 # Linux/Mac
 source .venv/bin/activate
 
-# Install scarcity engine (editable)
-pip install -e pypi/
+# Install scarcity engine (editable, with optional extras)
+pip install -e ".[stream,dashboard,federation]"
 
 # Install dashboard dependencies
 pip install streamlit plotly pandas numpy cryptography torch

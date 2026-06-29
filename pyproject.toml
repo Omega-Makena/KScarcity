@@ -46,9 +46,25 @@ fmi = [
   "pyyaml>=6.0",
   "zstandard>=0.22"
 ]
+# Secure federation transport
+federation = [
+  "cryptography>=42.0"
+]
+# Test, lint, and type-check toolchain (used by CI)
+dev = [
+  "pytest>=8.0",
+  "pytest-cov>=4.1",
+  "pytest-asyncio>=0.23",
+  "ruff>=0.4",
+  "mypy>=1.9"
+]
 
 [project.urls]
-Homepage = "https://example.com/scarcity"
+Homepage = "https://github.com/Omega-Makena/KScarcity"
+Repository = "https://github.com/Omega-Makena/KScarcity"
+
+[tool.setuptools.package-data]
+scarcity = ["py.typed"]
 
 [tool.setuptools.packages.find]
 where = ["."]
@@ -64,3 +80,6 @@ exclude = [
 
 [tool.pytest.ini_options]
 asyncio_mode = "auto"
+markers = [
+  "slow: marks tests as slow (deselect with '-m \"not slow\"')",
+]
