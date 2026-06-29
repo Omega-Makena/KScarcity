@@ -10,8 +10,9 @@ HARDENED v4: Includes Meta-Controller and Explicit Scoring.
 import time
 import logging
 import math
+import importlib.util
 import numpy as np
-from typing import Dict, List, Any
+from typing import Any, Dict, List, Optional
 
 from .discovery import HypothesisPool, Hypothesis, RelationshipType, HypothesisState
 from .grouping import AdaptiveGrouper
@@ -43,6 +44,12 @@ from .types import Candidate
 
 logger = logging.getLogger(__name__)
 
+
+def _torch_available() -> bool:
+    """True if torch is importable, without actually importing it."""
+    return importlib.util.find_spec("torch") is not None
+
+
 class OnlineDiscoveryEngine:
     """
     Main entry point for the Online Relationship Discovery System.
@@ -62,17 +69,22 @@ class OnlineDiscoveryEngine:
 
     def __init__(self, explore_interval: int = 10, mode: str = "balanced",
                  buffer_size: int = 150, small_dataset_mode: bool = False,
-                 vectorized: bool = True, device: str = 'cpu'):
+                 vectorized: Optional[bool] = None, device: str = 'cpu'):
         """
         Initializes the discovery engine and its sub-components.
 
         Args:
             explore_interval: Steps between exploration phases.
-            vectorized: When True (default), delegates process_row() to the
-                batch-tensor backend (GPUDiscoveryEngine) instead of iterating
-                Python Hypothesis objects.  2-3× faster for N<200.  Uses the
-                same lifecycle thresholds as small_dataset_mode when that flag
-                is also set.
+            vectorized: Controls the hypothesis backend.
+                - ``None`` (default): auto — use the batch-tensor backend
+                  (GPUDiscoveryEngine) if ``torch`` is installed, otherwise fall
+                  back to the pure-Python loop. This makes the core install work
+                  out of the box without the ``gpu`` extra.
+                - ``True``: force the tensor backend; raises ImportError with an
+                  install hint if ``torch`` is not available.
+                - ``False``: force the pure-Python loop (no torch needed).
+                The tensor backend is 2-3× faster for N<200 and uses the same
+                lifecycle thresholds as small_dataset_mode when that flag is set.
             device: Tensor device for vectorized mode ('cpu' or 'cuda').
                 CPU is the default — CUDA only helps when B_perm ≥ 50.
         """
@@ -97,14 +109,37 @@ class OnlineDiscoveryEngine:
             self.hypotheses = HypothesisPool(capacity=2000)
             self.meta_controller = MetaController.small_dataset()
 
-        # Vectorized backend — replaces Python loop in process_row()
+        # Vectorized backend — replaces Python loop in process_row().
+        # Resolve the request: None = auto-detect torch; True/False = explicit.
+        explicit_request = vectorized is True
+        if vectorized is None:
+            vectorized = _torch_available()
+
         self._vec_engine = None
         if vectorized:
-            from .gpu_engine import GPUDiscoveryEngine
-            self._vec_engine = GPUDiscoveryEngine(
-                device=device,
-                small_dataset_mode=small_dataset_mode,
-            )
+            try:
+                from .gpu_engine import GPUDiscoveryEngine
+            except ImportError as exc:
+                if explicit_request:
+                    raise ImportError(
+                        "vectorized=True requires the 'gpu' extra (torch). "
+                        "Install it with: pip install 'scarcity[gpu]', "
+                        "or construct the engine with vectorized=False to use "
+                        "the pure-Python backend."
+                    ) from exc
+                # auto mode: torch reported available but the backend failed to
+                # import for some reason — degrade gracefully to pure Python.
+                logger.warning(
+                    "Vectorized backend unavailable (%s); "
+                    "falling back to the pure-Python loop.", exc
+                )
+            else:
+                self._vec_engine = GPUDiscoveryEngine(
+                    device=device,
+                    small_dataset_mode=small_dataset_mode,
+                )
+
+        self.vectorized = self._vec_engine is not None
 
         self.set_mode(mode)
 
