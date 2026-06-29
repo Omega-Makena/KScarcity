@@ -23,7 +23,7 @@ flowchart TD
         B3[Simulation Shock Generator]
     end
 
-    subgraph Scarcity["Scarcity Engine — Causal Discovery"]
+    subgraph Scarcity["Scarcity Engine — Relationship Discovery"]
         C1[Online Discovery Engine\n15 Relational Hypotheses]
         C2[Learned SFC Economy\nCalibrated to Kenya]
         C3[Meta-Learning Agent\nReptile Optimizer]
@@ -151,34 +151,67 @@ Real-time social media threat detection pipeline.
 ---
 
 ### 2. Scarcity Engine (`scarcity/`)
-Industrial-grade online machine learning infrastructure.
+A general **online relationship-discovery engine** — an automated statistician for
+multivariate data streams. It is not specific to economics; macroeconomics is simply the
+first domain it was applied to.
 
-**Role: relationship discovery, not forecasting.** Scarcity's output is a knowledge graph
-of discovered causal/correlational relationships among economic indicators. This graph is
-then handed to downstream forecasters (Prophet, ARIMA) as structured prior knowledge —
-Scarcity does not forecast directly. This architecture separates discovery from prediction,
-letting each component do what it does best.
+**The hypothesis-survival paradigm.** Scarcity maintains a living *population* of typed
+relational hypotheses. Each hypothesis is a small online model that proposes a specific
+relationship between variables and must **survive the data stream or die**. You feed the
+engine one row at a time; it fits, scores, and prunes competing hypotheses under natural
+selection. The output is a continuously-updated knowledge graph of *which relationships
+currently hold* — handed downstream (e.g. to forecasters like Prophet/ARIMA, or to the SFC
+simulator) as structured prior knowledge. Discovery is deliberately separated from
+prediction so each component does what it does best.
 
-**15 Relational Hypotheses tested continuously:**
-Causal (Granger), Correlational (Pearson), Temporal (VAR-p), Functional (Polynomial), Equilibrium (Mean-Reverting), Compositional (Sum Constraints), Competitive (Trade-off), Synergistic (Interaction), Probabilistic (Distribution Shift), Structural (Hierarchical), Mediating (Baron-Kenny), Moderating (Conditional), Graph (Network), Similarity (Clustering), Logical (Boolean Rules).
+**15 relational primitives — 15 different questions, tested simultaneously:**
 
-All 15 types are active in `small_dataset_mode=True` (annual macro series, N=20–50),
-including sparse types (compositional, equilibrium, mediating, moderating) that require
-pool capacity ≥ 2000 and `kill_threshold=0.0` to survive short time-series without being
-silently pruned.
+| Type | Question it answers | Method |
+|------|--------------------|--------|
+| Causal | Does A drive B (directed, lagged)? | Granger |
+| Correlational | Do A and B co-move (symmetric)? | Pearson |
+| Temporal | Is B a function of its own past? | VAR-p |
+| Functional | Is there a deterministic B = f(A)? | Polynomial / RLS |
+| Equilibrium | Do variables mean-revert to a level? | Mean-reverting |
+| Compositional | Do parts sum to a whole? | Sum constraints |
+| Competitive | Is it zero-sum / substitution? | Trade-off |
+| Synergistic | Is the joint effect super-additive? | Interaction |
+| Probabilistic | Is there distributional dependence? | Distribution shift |
+| Structural | Does a structural identity hold? | Hierarchical |
+| Mediating | Does A act *through* M to reach B? | Baron–Kenny |
+| Moderating | Does C change the strength of A→B? | Conditional |
+| Graph | Is there network-structured coupling? | Network |
+| Similarity | Are entities close / clustered? | Clustering |
+| Logical | Does a boolean if-then rule hold? | Boolean rules |
 
-**Federation multiplies discovery power:** Pooling Kenya + Tanzania + Uganda (3 × 34 years
-= ~102 effective observations) gives Granger tests 3× more statistical power. The federated
-graph discovers 198 edges (vs 114 single-country), 13 KNOWN economic relationships (vs 0),
-and mean confidence rises from 0.574 to 0.735. GDP graph coverage rises from 32% to 100%
-of test years. PROPHET+SCARCITY (federated) achieves MAE=1.7873 on Kenya GDP growth vs
-plain Prophet MAE=1.7947 — a consistent marginal improvement driven by structured parent
-knowledge available in every forecast year. Graph-informed models do not improve inflation
-forecasting (inflation is driven by its own momentum at annual frequency on short series).
+**Survival machinery (what makes it rigorous, not just a correlation miner):**
+- **Four pillars per hypothesis** — `fit_score`, Bayesian `confidence`, `evidence` count, `stability`.
+- **Skeptical Bayesian prior** (α=0.1, β=1.0 → ~9% initial belief) — hypotheses must *earn* confidence.
+- **Lifecycle as natural selection** — `TENTATIVE → ACTIVE → DECAYING → DEAD`, with a graveyard of killed hypotheses.
+- **Regime-break detection** — Page's CUSUM penalizes relationships that only hold in one regime.
+- **Exponential forgetting** (λ=0.99, ~100-step memory) — the engine *tracks* regime change instead of being anchored by old data.
+- **False-discovery control** — Benjamini–Hochberg FDR at q=0.05 deflates spurious findings from testing many type × variable-pair combinations.
+- **Calibration-safe signal** — null/noise data converges to ~5% confidence, below the promotion threshold, so noise does not get reported as structure.
+
+Because a relationship moving to `DECAYING`/`DEAD` *is itself a signal*, the same engine
+serves discovery, drift/anomaly detection, and regime monitoring.
+
+**Example application — federated macro discovery:** Pooling Kenya + Tanzania + Uganda
+(3 × 34 years ≈ 102 effective observations) gives Granger tests 3× more statistical power.
+The federated graph discovers 198 edges (vs 114 single-country), 13 KNOWN economic
+relationships (vs 0), and mean confidence rises from 0.574 to 0.735. GDP graph coverage
+rises from 32% to 100% of test years. PROPHET+SCARCITY (federated) achieves MAE=1.7873 on
+Kenya GDP growth vs plain Prophet MAE=1.7947 — a marginal improvement driven by structured
+parent knowledge available in every forecast year. (Inflation forecasting does not improve;
+at annual frequency on short series it is driven by its own momentum.)
+
+All 15 types stay active in `small_dataset_mode=True` (annual series, N=20–50); sparse types
+(compositional, equilibrium, mediating, moderating) need pool capacity ≥ 2000 and
+`kill_threshold=0.0` to survive short time-series without being silently pruned.
 
 **Key innovations:**
 - Vectorized Batch RLS (`numpy.einsum`) — thousands of equations in O(1) Python overhead
-- Page-Hinkley concept drift detection — regime shift alerts
+- Page-Hinkley / CUSUM concept-drift detection — regime shift alerts
 - CountSketch + Tensor Sketch — high-speed dimensionality reduction
 - Counterfactual Jacobian perturbation — "what-if" causal analysis
 - Multi-hop causal BFS — discovers indirect chains (A→B→C)
