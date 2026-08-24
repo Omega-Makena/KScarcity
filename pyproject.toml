@@ -12,7 +12,8 @@ authors = [{ name = "Omega Makena" }]
 requires-python = ">=3.9"
 dependencies = [
   "numpy>=1.24",
-  "pandas>=2.0"
+  "pandas>=2.0",
+  "scipy>=1.11"
 ]
 license-files = ["LICENSE"]
 
@@ -106,6 +107,15 @@ exclude = [
 
 [tool.pytest.ini_options]
 asyncio_mode = "auto"
+# Pin the fixture event-loop scope explicitly (pytest-asyncio otherwise warns
+# that the unset default will change in a future release).
+asyncio_default_fixture_loop_scope = "function"
 markers = [
   "slow: marks tests as slow (deselect with '-m \"not slow\"')",
+]
+filterwarnings = [
+  # Third-party: dowhy 0.14 datasets.py calls np.vectorize(convert_to_binary),
+  # which numpy 1.25+ flags for array->scalar coercion. Not our code; the durable
+  # fix is a dowhy release that stops passing array-returning funcs to vectorize.
+  "ignore:Conversion of an array with ndim > 0 to a scalar is deprecated:DeprecationWarning",
 ]
