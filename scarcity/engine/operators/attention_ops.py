@@ -10,11 +10,11 @@ from typing import Optional
 
 def attn_linear(q, k, v, mask: Optional[np.ndarray] = None):
     """
-    Linear attention over sequences (O(L·d) complexity).
-    
-    Implements linearized attention: output = (phi(Q) · phi(K)^T) · V
-    where phi is a feature map. For efficiency, we use a simplified version.
-    
+    Scaled dot-product softmax attention over sequences.
+
+    Computes softmax(Q·K^T / sqrt(d)) · V with FP16-stable max-subtraction.
+    (O(L^2·d) in the sequence length; the short paths this encodes keep L small.)
+
     Args:
         q: Query tensor [seq, d] in FP16
         k: Key tensor [seq, d] in FP16

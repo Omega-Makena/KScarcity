@@ -11,11 +11,16 @@ Thompson Sampling is preferred because:
 - Implicit exploration without tuning exploration parameters
 """
 
+import hashlib
 import logging
 import numpy as np
+from collections import deque
 from typing import List, Tuple, Dict, Any, Optional, Set
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from enum import Enum
+
+from scarcity.engine.types import Candidate, Reward
+from scarcity.config import ENGINE_CONFIG
 
 logger = logging.getLogger(__name__)
 
@@ -89,13 +94,12 @@ class BanditRouter:
     
     Usage:
         router = BanditRouter(config=BanditConfig(algorithm=BanditAlgorithm.THOMPSON))
-        
-        # Get proposals
-        arms = router.propose(n_proposals=10)
-        
-        # After evaluation, update with rewards
-        for arm_id, reward in zip(arms, rewards):
-            router.update(arm_id, reward)
+
+        # Get candidate paths ranked by the bandit policy
+        candidates = router.propose(n_proposals=10, context={'schema': schema})
+
+        # After evaluation, feed shaped rewards back
+        router.apply_rewards(rewards)
     """
     
     def __init__(
@@ -122,7 +126,17 @@ class BanditRouter:
         
         # Path ID to arm ID mapping for named paths
         self._path_to_arm: Dict[str, int] = {}
-        
+
+        # Candidate-proposal state (for the Candidate-returning propose contract)
+        self._proposer = ENGINE_CONFIG.proposer
+        self._diversity = ENGINE_CONFIG.diversity
+        # How many times each path_id has been proposed (frequency novelty).
+        self._proposal_counts: Dict[str, int] = {}
+        # Variable-sets of recently accepted candidates (set novelty).
+        self._recent_varsets: deque = deque(maxlen=self._diversity.recent_memory)
+        # Last known variable count, reused when a window carries no schema.
+        self._last_n_vars: Optional[int] = None
+
         logger.info(f"BanditRouter initialized with {self.config.algorithm.value} algorithm")
 
     def apply_meta_update(self, tau: Optional[float] = None, gamma_diversity: Optional[float] = None) -> None:
@@ -173,110 +187,176 @@ class BanditRouter:
         return self._path_to_arm.get(path_id)
     
     def propose(
-        self, 
-        n_proposals: int, 
+        self,
+        n_proposals: int,
         context: Optional[Dict[str, Any]] = None,
-        exclude: Optional[Set[int]] = None
-    ) -> List[int]:
+        exclude: Optional[Set[int]] = None,
+    ) -> List[Candidate]:
         """
-        Select arms to pull based on bandit policy.
-        
+        Propose candidate paths to evaluate, ranked by the bandit policy.
+
+        Generates directed variable-pair paths from the window schema, registers
+        each as a bandit arm, scores every arm under the configured policy
+        (Thompson / UCB / epsilon-greedy), and returns the top ``n_proposals`` as
+        ``Candidate`` objects for the Evaluator.
+
         Args:
-            n_proposals: Number of arms to select.
-            context: Optional context for contextual bandits (future extension).
-            exclude: Set of arm IDs to exclude from selection.
-            
+            n_proposals: Number of candidate paths to return.
+            context: Optional dict; ``context['schema']`` supplies the variable
+                set (via its ``fields``) used to enumerate candidate paths.
+            exclude: Optional set of ``path_id`` strings to skip.
+
         Returns:
-            List of selected arm IDs.
+            List of ``Candidate`` objects, highest-priority first.
         """
-        if not self.arms:
-            # Auto-register arms if none exist
-            self.register_arms(self.config.n_arms)
-        
-        exclude = exclude or set()
-        available_arms = [aid for aid in self.arms.keys() if aid not in exclude]
-        
-        if not available_arms:
+        n_vars = self._infer_n_vars(context)
+        if n_vars < 2:
             return []
-        
-        n_proposals = min(n_proposals, len(available_arms))
-        
-        if self.config.algorithm == BanditAlgorithm.THOMPSON:
-            return self._thompson_sampling(available_arms, n_proposals)
-        elif self.config.algorithm == BanditAlgorithm.UCB:
-            return self._ucb_selection(available_arms, n_proposals)
-        else:
-            return self._epsilon_greedy(available_arms, n_proposals)
-    
-    def _thompson_sampling(self, available: List[int], n: int) -> List[int]:
-        """
-        Thompson Sampling selection.
-        
-        Samples from Beta posterior for each arm and selects top-n.
-        """
-        samples = []
-        for arm_id in available:
-            stats = self.arms[arm_id]
-            # Sample from Beta(alpha, beta) posterior
-            sample = self._rng.beta(stats.alpha, stats.beta)
-            samples.append((sample, arm_id))
-        
-        # Sort by sampled value descending
-        samples.sort(reverse=True, key=lambda x: x[0])
-        return [arm_id for _, arm_id in samples[:n]]
-    
-    def _ucb_selection(self, available: List[int], n: int) -> List[int]:
-        """
-        Upper Confidence Bound selection.
-        
-        Selects arms with highest UCB score.
-        """
-        scores = []
-        for arm_id in available:
-            stats = self.arms[arm_id]
-            if stats.observations == 0:
-                score = float('inf')
-            else:
-                mean = stats.cumulative_reward / stats.observations
-                exploration = self.config.ucb_c * np.sqrt(
-                    np.log(self._step + 1) / stats.observations
-                )
-                score = mean + exploration
-            scores.append((score, arm_id))
-        
-        scores.sort(reverse=True, key=lambda x: x[0])
-        return [arm_id for _, arm_id in scores[:n]]
-    
-    def _epsilon_greedy(self, available: List[int], n: int) -> List[int]:
-        """
-        Epsilon-greedy selection.
-        
-        With probability epsilon, explore randomly.
-        Otherwise, exploit best known arms.
-        """
-        selected = []
-        
-        for _ in range(n):
-            remaining = [a for a in available if a not in selected]
-            if not remaining:
-                break
-            
-            if self._rng.random() < self.config.epsilon:
-                # Explore: random selection
-                arm_id = self._rng.choice(remaining)
-            else:
-                # Exploit: best mean reward
-                best_arm = max(
-                    remaining,
-                    key=lambda a: (
-                        self.arms[a].cumulative_reward / max(1, self.arms[a].observations)
-                    )
-                )
-                arm_id = best_arm
-            
-            selected.append(arm_id)
-        
+
+        exclude = exclude or set()
+        candidates = self._generate_candidate_paths(n_vars)
+        candidates = [c for c in candidates if c.path_id not in exclude]
+        if not candidates:
+            return []
+
+        # Score each candidate by its arm's policy value, then take the top-n.
+        scored: List[Tuple[float, Candidate]] = []
+        for cand in candidates:
+            arm_id = self.register_path(cand.path_id)
+            scored.append((self._arm_score(arm_id), cand))
+        scored.sort(reverse=True, key=lambda x: x[0])
+
+        selected = [c for _, c in scored[: max(0, n_proposals)]]
+        for cand in selected:
+            self._proposal_counts[cand.path_id] = (
+                self._proposal_counts.get(cand.path_id, 0) + 1
+            )
         return selected
+
+    def _infer_n_vars(self, context: Optional[Dict[str, Any]]) -> int:
+        """Determine the variable count for candidate generation from context."""
+        schema = (context or {}).get('schema', {}) if context else {}
+        fields = schema.get('fields') if isinstance(schema, dict) else None
+        # An explicit field list is authoritative, even if it yields < 2 vars.
+        if isinstance(fields, (dict, list)):
+            n_vars = len(fields)
+            if n_vars >= 2:
+                self._last_n_vars = n_vars
+            return n_vars
+        # No field list: honour an explicit count key if present.
+        if isinstance(schema, dict):
+            for key in ('n_features', 'n_vars', 'width'):
+                val = schema.get(key)
+                if isinstance(val, int):
+                    if val >= 2:
+                        self._last_n_vars = val
+                    return val
+        # No schema info at all: reuse the last known count, else fall back.
+        if self._last_n_vars:
+            return self._last_n_vars
+        return self._proposer.fallback_n_vars
+
+    def _generate_candidate_paths(self, n_vars: int) -> List[Candidate]:
+        """
+        Enumerate directed variable-pair candidate paths, bounded by ``max_arms``.
+
+        For each ordered pair (source i, target j) and each configured source
+        lag, builds one contemporaneous-target path. Deterministic ``path_id``
+        keeps arms stable across windows.
+        """
+        ops = tuple(self._proposer.candidate_ops)
+        cands: List[Candidate] = []
+        for i in range(n_vars):
+            for j in range(n_vars):
+                if i == j:
+                    continue
+                for lag in self._proposer.candidate_lags:
+                    lags = (int(lag), 0)
+                    vars_t = (i, j)
+                    path_id = hashlib.md5(
+                        f"{vars_t}:{lags}:{ops}".encode()
+                    ).hexdigest()[:16]
+                    cands.append(Candidate(
+                        path_id=path_id,
+                        vars=vars_t,
+                        lags=lags,
+                        ops=ops,
+                        root=i,
+                        depth=1,
+                        domain=0,
+                        gen_reason=self.config.algorithm.value,
+                    ))
+                    if len(cands) >= self._proposer.max_arms:
+                        return cands
+        return cands
+
+    def _arm_score(self, arm_id: int) -> float:
+        """Priority score for an arm under the configured bandit policy."""
+        stats = self.arms[arm_id]
+        if self.config.algorithm == BanditAlgorithm.THOMPSON:
+            return float(self._rng.beta(stats.alpha, stats.beta))
+        if self.config.algorithm == BanditAlgorithm.UCB:
+            if stats.observations == 0:
+                return float('inf')
+            mean = stats.cumulative_reward / stats.observations
+            exploration = self.config.ucb_c * np.sqrt(
+                np.log(self._step + 1) / stats.observations
+            )
+            return float(mean + exploration)
+        # epsilon-greedy: random priority with prob epsilon, else exploit mean.
+        if self._rng.random() < self.config.epsilon:
+            return float(self._rng.random())
+        return float(stats.cumulative_reward / max(1, stats.observations))
+
+    def diversity_score(self, candidate: Candidate) -> float:
+        """
+        Structural novelty of a candidate in [0, 1].
+
+        Blends frequency novelty (rarely proposed paths score higher) with
+        variable-set novelty (paths whose variables differ from recently
+        accepted ones score higher). Weight is ``diversity.novelty_weight``.
+        """
+        count = self._proposal_counts.get(candidate.path_id, 0)
+        freq_novelty = 1.0 / (1.0 + count)
+
+        var_set = frozenset(candidate.vars)
+        if var_set and self._recent_varsets:
+            max_overlap = 0.0
+            for seen in self._recent_varsets:
+                union = var_set | seen
+                if not union:
+                    continue
+                jaccard = len(var_set & seen) / len(union)
+                if jaccard > max_overlap:
+                    max_overlap = jaccard
+            set_novelty = 1.0 - max_overlap
+        else:
+            set_novelty = 1.0
+
+        w = self._diversity.novelty_weight
+        return float(np.clip(w * freq_novelty + (1.0 - w) * set_novelty, 0.0, 1.0))
+
+    def apply_rewards(self, rewards: List[Reward]) -> None:
+        """
+        Feed shaped evaluation rewards back to the arms.
+
+        Each ``Reward`` carries a ``path_id``; its arm's Beta stats are updated
+        with the (rescaled to [0, 1]) reward value and explicit accepted flag.
+        """
+        for r in rewards:
+            arm_id = self.register_path(r.path_id)
+            v01 = float(np.clip((r.value + 1.0) / 2.0, 0.0, 1.0))
+            self.update(arm_id, reward=v01, success=bool(r.accepted))
+
+    def register_acceptances(self, candidates: List[Candidate]) -> None:
+        """Record accepted candidates' variable-sets for diversity scoring."""
+        for cand in candidates:
+            self._recent_varsets.append(frozenset(cand.vars))
+
+    def update_resource_profile(self, profile: Dict[str, Any]) -> None:
+        """Refresh the resource profile context (bounded, side-effect free)."""
+        if isinstance(profile, dict) and profile:
+            self.drg = profile
     
     def update(self, arm_id: int, reward: float, success: bool = None) -> None:
         """

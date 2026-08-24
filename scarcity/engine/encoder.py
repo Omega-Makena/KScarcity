@@ -19,7 +19,7 @@ from scarcity.engine.operators.attention_ops import (
     attn_linear, pooling_avg, pooling_lastk, layernorm, rmsnorm
 )
 from scarcity.engine.operators.sketch_ops import (
-    poly_sketch, tensor_sketch, countsketch, latent_clip
+    poly_sketch, latent_clip
 )
 
 logger = logging.getLogger(__name__)
@@ -80,10 +80,6 @@ class VariableEmbeddingMapper:
         
         logger.debug(f"Initialized VariableEmbeddingMapper: {n_vars} vars, dim={id_dim}")
     
-    def update_scales(self, variances: np.ndarray):
-        """Update scale hooks from variances."""
-        if len(variances) == len(self.scales):
-            self.scales = variances.copy()
     
     def get_embedding(self, var_idx: int) -> np.ndarray:
         """Get embedding for a variable."""
@@ -153,12 +149,6 @@ class PrecisionManager:
             return x.astype(np.float32)
         return x
     
-    def trigger_fallback(self):
-        """Trigger precision fallback."""
-        self.fp16_enabled = False
-        self.fallback_count += 1
-        logger.warning(f"Precision fallback triggered: count={self.fallback_count}")
-
 
 class SketchCache:
     """
@@ -328,18 +318,23 @@ class Encoder:
         
         # Aggregate stats
         latent_norms = [np.linalg.norm(l) for l in latents]
+        sats = [m['saturation'] for m in meta if 'saturation' in m]
         stats = {
             'paths_encoded': len(candidates),
             'avg_latent_norm': float(np.mean(latent_norms)) if latent_norms else 0.0,
             'p99_latent_norm': float(np.percentile(latent_norms, 99)) if latent_norms else 0.0,
-            'saturation_pct': 0.0  # Placeholder
+            'saturation_pct': float(np.mean(sats) * 100.0) if sats else 0.0,
         }
-        
+
+        # When fp16 is off, the whole encode runs in fp32; otherwise no separate
+        # fp32 accumulation pass is timed here.
+        fp32_accum_time_ms = 0.0 if self.precision_mgr.fp16_enabled else encode_time_ms
+
         # Telemetry
         telemetry = {
             'encode_latency_ms': encode_time_ms,
             'fp16_time_frac': 1.0 if self.precision_mgr.fp16_enabled else 0.0,
-            'fp32_accum_time_ms': 0.0,  # Placeholder
+            'fp32_accum_time_ms': fp32_accum_time_ms,
             'sketch_dim_active': self.sketch_dim,
             'oom_fallbacks': self.oom_fallbacks,
             'cache_hits': self.sketch_cache.hits,
@@ -381,7 +376,8 @@ class Encoder:
             ValueError: If the path contains invalid indices or results in empty embeddings.
         """
         W, P = window.shape
-        
+        t0 = time.perf_counter()
+
         # Step 1: Variable embeddings + lags
         token_embeddings = []
         for var_idx, lag in zip(cand.vars, cand.lags):
@@ -399,7 +395,6 @@ class Encoder:
             raise ValueError("No valid variable embeddings")
         
         # Step 2: Build sequence tensor [W, d_emb]
-        d_emb = len(token_embeddings[0])
         seq_tokens = []
         
         for var_idx in cand.vars:
@@ -459,7 +454,13 @@ class Encoder:
         
         # Convert to FP16 if not already
         latent = self.precision_mgr.autocast_fp16(latent)
-        
+
+        # Saturation: fraction of latent entries pinned at the clip magnitude
+        # (a flat top means latent_clip is actively biting this path's range).
+        lf = np.abs(latent.astype(np.float32))
+        peak = float(lf.max()) if lf.size else 0.0
+        saturation = float(np.mean(lf >= 0.999 * peak)) if peak > 0.0 else 0.0
+
         # Meta
         meta = {
             'path_id': cand.path_id,
@@ -467,7 +468,8 @@ class Encoder:
             'domain': cand.domain,
             'sketch_dim': self.sketch_dim,
             'precision': 'fp16' if self.precision_mgr.fp16_enabled else 'fp32',
-            'cost_hint': 0.0  # Placeholder
+            'cost_hint': (time.perf_counter() - t0) * 1000.0,
+            'saturation': saturation,
         }
         
         return latent, meta
@@ -500,40 +502,3 @@ class Encoder:
         }
     
     # Backward compatibility
-    def encode_paths(self, window_data: Dict[str, Any], candidates: List[Dict[str, Any]]) -> List[np.ndarray]:
-        """Backward-compatible encoding."""
-        if len(candidates) == 0:
-            return []
-        
-        # Convert old dict candidates to new Candidate objects
-        new_candidates = []
-        for cand_dict in candidates:
-            new_cand = Candidate(
-                path_id=cand_dict.get('path_id', 'unknown'),
-                vars=(cand_dict.get('source', 0), cand_dict.get('target', 1)),
-                lags=(cand_dict.get('lag', 0), cand_dict.get('lag', 0)),
-                ops=('sketch', 'attn'),
-                root=cand_dict.get('source', 0),
-                depth=2,
-                domain=0,
-                gen_reason='compat'
-            )
-            new_candidates.append(new_cand)
-        
-        # Extract window
-        window = window_data.get('data')
-        if window is None:
-            return []
-        if isinstance(window, list):
-            window = np.array(window)
-        
-        # Context
-        context = {
-            'schema': window_data.get('schema', {}),
-            'window_id': window_data.get('window_id', 0),
-            'profile_rev': 0
-        }
-        
-        # Encode
-        batch = self.step(window, new_candidates, context)
-        return batch.latents

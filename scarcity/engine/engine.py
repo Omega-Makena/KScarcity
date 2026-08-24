@@ -5,7 +5,6 @@ Coordinates the online inference pipeline: Controller → Encoder → Evaluator 
 Implements full Controller ⇆ Evaluator online interaction contract.
 """
 
-import asyncio
 import logging
 import numpy as np  # type: ignore
 from typing import Dict, Any, Optional, List
@@ -19,8 +18,9 @@ from scarcity.engine.encoder import Encoder
 from scarcity.engine.evaluator import Evaluator
 from scarcity.engine.store import HypergraphStore
 from scarcity.engine.exporter import Exporter
-from scarcity.engine.types import Candidate, EvalResult, Reward
+from scarcity.engine.types import Candidate
 from scarcity.engine.resource_profile import clone_default_profile
+from scarcity.config import ENGINE_CONFIG
 
 logger = logging.getLogger(__name__)
 
@@ -198,7 +198,8 @@ class MPIEOrchestrator:
             
             # Step 2: Propose paths (Controller.propose returns List[Candidate])
             candidates = self.controller.propose(
-                n_proposals=resource_profile.get('n_paths', 200),
+                n_proposals=resource_profile.get(
+                    'n_paths', ENGINE_CONFIG.proposer.n_paths_default),
                 context={
                     'schema': data.get('schema', {}),
                     'window_meta': {'length': len(data.get('data', [])), 'timestamp': time.time()},
@@ -213,7 +214,8 @@ class MPIEOrchestrator:
             # closing the feedback loop between the two previously isolated engines.
             if self._discovery_engine is not None:
                 try:
-                    discovery_candidates = self._discovery_engine.get_candidate_paths(top_k=30)
+                    discovery_candidates = self._discovery_engine.get_candidate_paths(
+                        top_k=ENGINE_CONFIG.proposer.discovery_top_k)
                     existing_ids = {c.path_id for c in candidates}
                     new_from_discovery = [
                         c for c in discovery_candidates
@@ -251,7 +253,7 @@ class MPIEOrchestrator:
             rewards = self.evaluator.make_rewards(results, D_lookup, candidates=candidates)
             
             # Step 7: Update Controller with rewards (bandit learning)
-            self.controller.update(rewards)
+            self.controller.apply_rewards(rewards)
             accepted_candidates: List[Candidate] = []
             store_payloads: List[Dict[str, Any]] = []
             for result in results:
@@ -306,7 +308,14 @@ class MPIEOrchestrator:
             self._stats['windows_processed'] += 1
             
             # Step 11: Publish comprehensive metrics
-            await self._publish_metrics(latency_ms, len(candidates), len(accepted))
+            # Mean per-candidate diversity of this window's proposals
+            # (diversity_dict was built by the Controller in Step 5).
+            diversity_index = (
+                float(sum(diversity_dict.values()) / len(diversity_dict))
+                if diversity_dict else 0.0
+            )
+            await self._publish_metrics(
+                latency_ms, len(candidates), len(accepted), diversity_index)
             
         except Exception as e:
             logger.error(f"Error processing data window: {e}", exc_info=True)
@@ -366,7 +375,8 @@ class MPIEOrchestrator:
         
         self._stats['avg_latency_ms'] = self.latency_ema
     
-    async def _publish_metrics(self, latency_ms: float, n_candidates: int, n_accepted: int) -> None:
+    async def _publish_metrics(self, latency_ms: float, n_candidates: int,
+                               n_accepted: int, diversity_index: float = 0.0) -> None:
         """
         Publishes comprehensive system telemetry to the event bus.
 
@@ -385,11 +395,10 @@ class MPIEOrchestrator:
         
         # Get Evaluator stats
         eval_stats = self.evaluator.get_stats() if self.evaluator else {}
-        
-        # Compute diversity index from candidates (if available)
-        # This is a placeholder - full implementation would track proposed diversity
-        diversity_index = 0.0
-        
+
+        # diversity_index is the mean per-candidate diversity of this window's
+        # proposals, passed in by the caller from the Controller's scores.
+
         metrics = {
             # Orchestrator metrics
             'engine_latency_ms': latency_ms,
@@ -511,26 +520,6 @@ class MPIEOrchestrator:
         return f"var_{index}"
 
     
-    def set_oom_flag(self) -> None:
-        """
-        Sets the Out-Of-Memory (OOM) backoff flag.
-
-        This signals the orchestrator that the system is under memory pressure and
-        should reduce its workload (e.g., by proposing fewer paths) in subsequent
-        cycles. Increments the OOM incident counter.
-        """
-        self.oom_backoff = True
-        self._stats['oom_incidents'] += 1
-        logger.warning("OOM flag set - reducing work next cycle")
-    
-    def clear_oom_flag(self) -> None:
-        """
-        Clears the Out-Of-Memory (OOM) backoff flag.
-        
-        This indicates that memory pressure has subsided and the orchestrator can
-        gradually resume normal workload levels.
-        """
-        self.oom_backoff = False
     
     def get_stats(self) -> Dict[str, Any]:
         """
