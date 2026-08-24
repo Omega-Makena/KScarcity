@@ -14,7 +14,7 @@ import importlib.util
 import numpy as np
 from typing import Any, Dict, List, Optional
 
-from .discovery import HypothesisPool, Hypothesis, RelationshipType, HypothesisState
+from .discovery import HypothesisPool, RelationshipType, HypothesisState
 from .grouping import AdaptiveGrouper
 from .arbitration import HypothesisArbiter
 from .controller import MetaController
@@ -342,16 +342,24 @@ class OnlineDiscoveryEngine:
         # 1. Sanitize
         safe_row = self._sanitize_row(row)
 
-        # 2. Update hypotheses — vectorized batch-tensor path or Python loop
-        if self._vec_engine is not None:
+        # 2. Update hypotheses — vectorized batch-tensor path or Python loop.
+        # These are alternatives, not a mirror: when the tensor backend owns the
+        # data, the Python pool never sees a row and stays frozen at its
+        # initialization state.  Everything below must therefore be routed to
+        # whichever backend actually holds the evidence.
+        vec_backend = self._vec_engine is not None
+        if vec_backend:
             self._vec_engine.process_row(safe_row)
         else:
             self.hypotheses.update_all(safe_row)
         row_update_errors = int(getattr(self.hypotheses, "last_update_errors", 0))
         self.update_error_total += row_update_errors
-        
-        # 3. Meta-Controller Lifecycle
-        if self.step_count % self.lifecycle_interval == 0:
+
+        # 3. Meta-Controller Lifecycle.
+        # Skipped under the tensor backend, which runs its own lifecycle
+        # (GPUDiscoveryEngine._run_lifecycle) over its own state array. Running
+        # the Python controller here would only churn a pool with zero evidence.
+        if not vec_backend and self.step_count % self.lifecycle_interval == 0:
             self.meta_controller.manage_lifecycle(self.hypotheses)
         
         # 4. Monitor Grouping (optional in performance mode)
@@ -361,24 +369,33 @@ class OnlineDiscoveryEngine:
         if self.grouping_enabled:
             self.grouper.monitor(safe_row, hypothesis_errors)
         
-        # 5. Arbitration
-        if self.step_count % self.arbitration_interval == 0:
+        # 5. Arbitration — Python-pool only, see step 3.
+        if not vec_backend and self.step_count % self.arbitration_interval == 0:
             self._arbitrate_step()
-            
-        # 6. Exploration
-        if self.exploration_enabled and self.step_count % self.explore_interval == 0:
+
+        # 6. Exploration — Python-pool only. Under the tensor backend every
+        # candidate looks equally unexplored (no evidence anywhere), so this
+        # would just inflate the pool with hypotheses that can never be scored.
+        if (not vec_backend and self.exploration_enabled
+                and self.step_count % self.explore_interval == 0):
             self._explore_step()
 
         # 7. IV pass (every 20 steps, only when enough evidence accumulated)
-        if self.step_count % 20 == 0 and self.step_count >= 20:
+        if not vec_backend and self.step_count % 20 == 0 and self.step_count >= 20:
             self._run_iv_pass()
 
-        # Gather Stats
-        meta_stats = self.meta_controller.get_summary(self.hypotheses)
-        
+        # Gather Stats from whichever backend holds the evidence.
+        if vec_backend:
+            meta_stats = self._vec_engine.get_state_counts()
+            total_hypotheses = sum(meta_stats.values())
+        else:
+            meta_stats = self.meta_controller.get_summary(self.hypotheses)
+            total_hypotheses = len(self.hypotheses.population)
+
         return {
             "step": self.step_count,
             "engine_mode": self.mode,
+            "backend": "vectorized" if vec_backend else "python",
             "update_errors": row_update_errors,
             "update_error_total": self.update_error_total,
             "update_error_details": getattr(self.hypotheses, "last_update_error_details", [])[:5],
@@ -386,7 +403,7 @@ class OnlineDiscoveryEngine:
             "drift_alert": drift_alert,
             "group_error_signal": hypothesis_errors,
             "active_hypotheses": meta_stats['active'],
-            "total_hypotheses": len(self.hypotheses.population),
+            "total_hypotheses": total_hypotheses,
             "meta_summary": meta_stats,
             "groups": len(self.grouper.groups)
         }

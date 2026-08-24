@@ -1,7 +1,7 @@
 
 import random
 import numpy as np
-from datetime import timedelta, datetime
+from datetime import timedelta
 
 
 class BehaviorSimulator:

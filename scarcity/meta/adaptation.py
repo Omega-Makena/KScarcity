@@ -16,14 +16,14 @@ that future queries can benefit from this episode.
 
 from __future__ import annotations
 
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from typing import Any, Dict, List, Optional
 
 import numpy as np
 
-from .encoder import ContextEncoder, ContextEncoderConfig
-from .memory import EpisodicMemory, EpisodicMemoryConfig
-from .optimizer import OnlineReptileOptimizer, MetaOptimizerConfig
+from .encoder import ContextEncoder
+from .memory import EpisodicMemory
+from .optimizer import OnlineReptileOptimizer
 
 
 @dataclass

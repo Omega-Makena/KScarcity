@@ -7,11 +7,9 @@ regimes, partitions, indexing, decay, and schema versioning.
 
 import logging
 import numpy as np
-import hashlib
 from typing import Dict, Any, List, Tuple, Optional, Set
 from collections import defaultdict
 from dataclasses import dataclass, asdict
-from datetime import datetime
 import heapq
 
 logger = logging.getLogger(__name__)

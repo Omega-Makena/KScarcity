@@ -5,7 +5,7 @@ Defines shared data structures for online bandit learning and path evaluation.
 """
 
 from dataclasses import dataclass
-from typing import List, Dict, Optional, Tuple, Any
+from typing import Dict, Tuple, Any
 
 
 @dataclass

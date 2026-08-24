@@ -12,8 +12,9 @@ Core algorithms:
 
 import asyncio
 import logging
+import sys
 import time
-from typing import Dict, Optional, Any, Callable
+from typing import Dict, Optional, Any
 from collections import deque
 from datetime import datetime
 import numpy as np
@@ -446,7 +447,6 @@ class Telemetry:
 
 async def main():
     """Example usage and testing."""
-    import sys
     
     # Setup logging
     logging.basicConfig(

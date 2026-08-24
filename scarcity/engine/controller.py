@@ -6,8 +6,8 @@ based on their explicit metrics (Confidence, Stability, Evidence).
 """
 
 import logging
-from typing import Dict, List, Any
-from .discovery import Hypothesis, HypothesisState, HypothesisPool
+from typing import Dict
+from .discovery import HypothesisState, HypothesisPool
 
 logger = logging.getLogger(__name__)
 

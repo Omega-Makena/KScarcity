@@ -42,6 +42,3 @@ ECONOMIC_VARIABLES: Dict[str, str] = {
 
 # reverse mapping for lookups
 CODE_TO_NAME = {v: k for k, v in ECONOMIC_VARIABLES.items()}
-
-def get_friendly_name(code: str) -> str:
-    return CODE_TO_NAME.get(code, code)

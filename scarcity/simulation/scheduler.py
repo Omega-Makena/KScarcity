@@ -35,11 +35,6 @@ class SimulationScheduler:
         self._last_step_ts = time.time()
         self._steps_since_drift_check += 1
 
-    def should_check_drift(self) -> bool:
-        if self._steps_since_drift_check >= self.config.drift_check_interval:
-            self._steps_since_drift_check = 0
-            return True
-        return False
 
     def adapt(self, telemetry: Dict[str, float]) -> None:
         latency_ms = telemetry.get("latency_ms", 0.0)

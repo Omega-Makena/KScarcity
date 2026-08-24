@@ -23,8 +23,8 @@ import pytest
 
 from scarcity.meta.encoder import ContextEncoder, ContextEncoderConfig
 from scarcity.meta.memory import EpisodicMemory, EpisodicMemoryConfig
-from scarcity.meta.optimizer import OnlineReptileOptimizer, MetaOptimizerConfig
-from scarcity.meta.adaptation import AdaptationEngine, AdaptationConfig, AdaptationResult
+from scarcity.meta.optimizer import OnlineReptileOptimizer
+from scarcity.meta.adaptation import AdaptationEngine, AdaptationConfig
 
 
 # ---------------------------------------------------------------------------

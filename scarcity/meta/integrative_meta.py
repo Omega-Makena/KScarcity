@@ -22,11 +22,6 @@ from scarcity.runtime import EventBus, get_bus
 from scarcity.engine.resource_profile import clone_default_profile
 from .integrative_config import (
     IntegrativeMetaConfig,
-    MetaScoreConfig,
-    ControllerPolicyConfig,
-    EvaluatorPolicyConfig,
-    DRGPolicyConfig,
-    SafetyConfig,
     DEFAULT_INTEGRATIVE_CONFIG,
 )
 
@@ -411,8 +406,6 @@ class MetaIntegrativeLayer:
     def _eligible(self, knob: str) -> bool:
         return self.state.cooldowns.get(knob, 0) <= 0
 
-    def _set_cooldown(self, knob: str) -> None:
-        self.state.cooldowns[knob] = self.config['safety']['cooldown_cycles']
 
     def _success_rate(self) -> float:
         if not self.state.history:

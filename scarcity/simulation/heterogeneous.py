@@ -21,13 +21,13 @@ Dependencies: numpy only.
 from __future__ import annotations
 
 import logging
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from typing import Any, Dict, List, Optional, Tuple
 from enum import Enum
 
 import numpy as np
 
-from scarcity.simulation.sfc import SFCConfig, SFCEconomy, Sector, SectorType
+from scarcity.simulation.sfc import SFCConfig, SFCEconomy
 
 logger = logging.getLogger("scarcity.simulation.heterogeneous")
 

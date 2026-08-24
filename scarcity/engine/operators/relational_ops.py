@@ -14,9 +14,9 @@ from typing import Dict, Any, Optional, Tuple, List, Set
 from dataclasses import dataclass
 from collections import defaultdict
 
-from scarcity.engine.operators.attention_ops import attn_linear, layernorm, rmsnorm, pooling_avg
-from scarcity.engine.operators.sketch_ops import countsketch, tensor_sketch, _deterministic_hash
-from scarcity.engine.store import HypergraphStore, EdgeRec
+from scarcity.engine.operators.attention_ops import rmsnorm, pooling_avg
+from scarcity.engine.operators.sketch_ops import countsketch, _deterministic_hash
+from scarcity.engine.store import HypergraphStore
 
 logger = logging.getLogger(__name__)
 
@@ -1124,7 +1124,6 @@ def hyperedge_reducer(
     
     # Limit sources
     n_sources = min(len(hyperedge_sources), len(source_latents), max_sources)
-    sources = hyperedge_sources[:n_sources]
     latents = source_latents[:n_sources]
     
     # Validate and normalize latents
@@ -1161,7 +1160,6 @@ def hyperedge_reducer(
     
     # Apply TensorSketch across sources with consistent hashing
     # For hyperedge id, use hash of source node IDs
-    rng = _deterministic_hash(seed, f"her_{window_id}")
     
     # Sequential tensor sketch: sketch each source, then combine
     # For efficiency, use CountSketch on each source and combine
@@ -1169,7 +1167,6 @@ def hyperedge_reducer(
     
     for i, z in enumerate(latents_valid):
         # Use deterministic hash per source
-        source_rng = _deterministic_hash(seed + i, f"her_{window_id}_{i}")
         sketch = countsketch(z, dim=drg_sketch_dim, seed=seed + i, path_id=f"her_{window_id}_{i}")
         sketched.append(sketch.astype(np.float32))
     

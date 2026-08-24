@@ -10,11 +10,11 @@ All operators are online, bounded, deterministic, and DRG-aware.
 
 import logging
 import numpy as np
-from typing import Dict, Any, Optional, Tuple, List
+from typing import Dict, Any, Optional, List
 from dataclasses import dataclass
 
-from scarcity.engine.operators.attention_ops import attn_linear, layernorm, rmsnorm, pooling_avg
-from scarcity.engine.operators.sketch_ops import countsketch, latent_clip, _deterministic_hash
+from scarcity.engine.operators.attention_ops import attn_linear, rmsnorm, pooling_avg
+from scarcity.engine.operators.sketch_ops import latent_clip, _deterministic_hash
 
 logger = logging.getLogger(__name__)
 
@@ -585,7 +585,6 @@ def sparse_interact(
     max_pairs = min(max_pairs, 50)  # Hard cap
     
     # Step 1: Feature hashing for bounded subset of pairs
-    rng = _deterministic_hash(seed, path_id)
     
     # Select pairs: prioritize adjacent and balanced pairs
     pairs = []

@@ -26,7 +26,7 @@ from __future__ import annotations
 
 import logging
 from dataclasses import dataclass, field
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any, Dict, List, Optional
 
 import numpy as np
 
@@ -37,13 +37,11 @@ from scarcity.simulation.sfc import SFCConfig, SFCEconomy, Sector, SectorType
 from scarcity.simulation.io_structure import (
     IOConfig,
     LeontiefModel,
-    MultiSectorSFCEconomy,
     SubSector,
     default_kenya_io_config,
 )
 from scarcity.simulation.heterogeneous import (
     HeterogeneousConfig,
-    HeterogeneousHouseholdEconomy,
     HouseholdAgent,
     InequalityMetrics,
     IncomeQuintile,
@@ -51,13 +49,11 @@ from scarcity.simulation.heterogeneous import (
 )
 from scarcity.simulation.financial_accelerator import (
     BankState,
-    FinancialAccelerator,
     FinancialAcceleratorConfig,
 )
 from scarcity.simulation.open_economy import (
     ExternalState,
     OpenEconomyConfig,
-    OpenEconomySFC,
     default_kenya_open_economy_config,
 )
 from scarcity.simulation.bayesian import (
@@ -312,7 +308,6 @@ class ResearchSFCEconomy:
         """
         self.time += 1
         fb = self.config.feedback_strength
-        gdp = self.economy.gdp
         
         # ========================
         # 1. Financial Accelerator
@@ -346,7 +341,7 @@ class ResearchSFCEconomy:
             if self.time < len(vec):
                 vec[self.time] += total_feedback
         
-        agg_frame = self.economy.step()
+        self.economy.step()
         
         # Post-step: open economy NX adjustment
         if self.config.enable_open_economy:
@@ -564,7 +559,6 @@ class ResearchSFCEconomy:
     
     def _step_io(self):
         """IO disaggregation after aggregate step."""
-        from scarcity.simulation.io_structure import SubSectorType
         
         gdp = self.economy.gdp
         sector_names = list(self.sub_sectors.keys())

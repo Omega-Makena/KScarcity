@@ -9,7 +9,7 @@ confidence, reasonable vector sizes, and finite values.
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import Dict, Sequence, Optional
+from typing import Optional
 
 import numpy as np
 

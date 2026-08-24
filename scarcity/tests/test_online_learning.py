@@ -4,10 +4,8 @@ Test: Online Learning and Real-time Updates
 Validates that the engine converges on streaming data and detects regime changes.
 """
 
-import pytest
 import numpy as np
 import time
-from collections import deque
 
 from scarcity.engine.engine_v2 import OnlineDiscoveryEngine
 from scarcity.engine.relationships import (
@@ -152,7 +150,6 @@ class TestIncrementalUpdates:
     
     def test_bounded_memory(self):
         """Memory should not grow unboundedly with more data."""
-        import sys
         
         hyp = TemporalHypothesis('Y', lag=2, buffer_size=100)
         

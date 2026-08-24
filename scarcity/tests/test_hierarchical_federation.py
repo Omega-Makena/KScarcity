@@ -9,7 +9,6 @@ Validates the hierarchical federated learning implementation including:
 - End-to-end integration
 """
 
-import pytest
 import numpy as np
 import time
 
@@ -21,10 +20,8 @@ from scarcity.federation.basket import (
 from scarcity.federation.gossip import (
     GossipProtocol, 
     GossipConfig, 
-    GossipMessage,
     LocalDPMechanism,
     MaterialityDetector,
-    PeerSampler,
 )
 from scarcity.federation.buffer import (
     UpdateBuffer, 
@@ -32,7 +29,6 @@ from scarcity.federation.buffer import (
     BufferedUpdate,
     TriggerEngine,
     PrivacyAccountant,
-    ReplayGuard,
 )
 from scarcity.federation.layers import (
     Layer1Aggregator, 

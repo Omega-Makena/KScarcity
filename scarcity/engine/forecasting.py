@@ -12,7 +12,7 @@ import time
 from typing import Dict, Any, Optional
 
 import numpy as np
-from numba import njit, float32  # type: ignore
+from numba import njit  # type: ignore
 
 from scarcity.runtime import EventBus, get_bus
 

@@ -41,12 +41,11 @@ from __future__ import annotations
 
 import itertools
 from dataclasses import dataclass, field
-from typing import Dict, List, Optional, Tuple
+from typing import Dict, List, Tuple
 
 import numpy as np
 import torch
 
-from .gpu_batch_rls import GPUBatchRLS
 
 # ---------------------------------------------------------------------------
 # Permutation strategy constants
@@ -436,9 +435,6 @@ class LifecycleEmulator:
         # DECAYING → DEAD
         self.state[is_decay & (conf < self.kill_th)] = DX
 
-    def dead_mask(self) -> np.ndarray:
-        """Boolean (R, N_hyp): True where DEAD."""
-        return self.state == self._STATE_DEAD
 
     def summary(self, run: int = 0) -> Dict[str, int]:
         """State count dictionary for one run index."""

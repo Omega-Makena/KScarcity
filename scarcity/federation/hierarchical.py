@@ -16,14 +16,13 @@ Privacy Model:
 
 from __future__ import annotations
 
-import time
 from dataclasses import dataclass, field
-from typing import Dict, List, Optional, Tuple, Any
+from typing import Dict, Optional, Tuple, Any
 
 import numpy as np
 
-from .basket import BasketManager, BasketConfig, BasketStatus
-from .gossip import GossipProtocol, GossipConfig, GossipMessage
+from .basket import BasketManager, BasketConfig
+from .gossip import GossipProtocol, GossipConfig
 from .buffer import (
     UpdateBuffer, 
     BufferConfig, 
@@ -36,7 +35,6 @@ from .layers import (
     Layer1Config,
     Layer2Aggregator, 
     Layer2Config,
-    BasketModel,
     GlobalMetaModel
 )
 from .secure_aggregation import IdentityKeyPair
@@ -281,7 +279,7 @@ class HierarchicalFederation:
         
         for client_id in peers:
             # Pull round: get peers to request from
-            pull_peers = self.gossip.pull_round(client_id)
+            self.gossip.pull_round(client_id)
             
             # Get messages from inbox for this basket
             messages = self.gossip.get_inbox_messages(basket_id, clear=False)
@@ -359,7 +357,7 @@ class HierarchicalFederation:
             
             # Update meta-model
             basket_models = list(self.layer1.get_basket_models().values())
-            meta_params = self.meta_model.extract_shared(basket_models)
+            self.meta_model.extract_shared(basket_models)
             self.meta_model.update({
                 bm.basket_id: bm.hypothesis_params 
                 for bm in basket_models

@@ -5,7 +5,6 @@ Responsible for data hygiene and validation before it enters the identification/
 pipeline. Ensures strict schema compliance with the Spec.
 """
 import logging
-from typing import List
 
 import pandas as pd
 

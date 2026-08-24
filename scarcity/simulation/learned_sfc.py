@@ -14,10 +14,9 @@ Output format is trajectory-compatible with the dashboard.
 from __future__ import annotations
 
 import logging
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from typing import Any, Dict, List, Optional
 
-import numpy as np
 
 logger = logging.getLogger("scarcity.simulation.learned_sfc")
 
@@ -218,8 +217,12 @@ class LearnedSFCEconomy:
             from kshiked.ui.kenya_data_loader import get_latest_economic_state
             state = get_latest_economic_state()
             if state:
-                # Remap to friendly names used by discovery engine
-                from scarcity.economic_config import CODE_TO_NAME
+                # KNOWN GAP: the remap is not actually applied. CODE_TO_NAME is
+                # imported and the loop below keeps the original code as the key,
+                # so callers still receive raw codes rather than friendly names.
+                # Left as-is rather than guessed at — wiring it changes what the
+                # discovery engine sees.
+                from scarcity.economic_config import CODE_TO_NAME  # noqa: F401
                 mapped = {}
                 for k, v in state.items():
                     mapped[k] = float(v) if v is not None else 0.0

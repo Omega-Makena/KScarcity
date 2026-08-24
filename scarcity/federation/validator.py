@@ -9,7 +9,6 @@ and structural validity before allowing data to be processed.
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import Dict, Iterable, List, Sequence
 
 from .packets import PathPack, EdgeDelta, PolicyPack, CausalSemanticPack
 

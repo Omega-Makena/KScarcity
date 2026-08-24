@@ -262,7 +262,6 @@ class FederationHub:
         """
         from .relationships import CausalHypothesis
         from .discovery import HypothesisState
-        from typing import List as _List, Tuple as _Tuple
 
         if primary_id not in self._nodes:
             return 0

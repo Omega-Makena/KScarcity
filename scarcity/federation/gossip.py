@@ -16,7 +16,7 @@ from __future__ import annotations
 import time
 import math
 from dataclasses import dataclass, field
-from typing import Dict, List, Optional, Tuple, Set
+from typing import Dict, List, Optional, Tuple
 from collections import defaultdict
 
 import numpy as np
@@ -274,10 +274,6 @@ class MessageBudgetTracker:
         self._maybe_reset_day()
         self._message_counts[client_id] += 1
     
-    def remaining_budget(self, client_id: str) -> int:
-        """Get remaining message budget for client."""
-        self._maybe_reset_day()
-        return max(0, self.max_messages_per_day - self._message_counts[client_id])
     
     def _maybe_reset_day(self) -> None:
         """Reset counts if a new day has started."""

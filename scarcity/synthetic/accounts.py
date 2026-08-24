@@ -2,7 +2,6 @@
 import random
 import uuid
 import numpy as np
-import numpy as np
 from .vocabulary import COUNTY_COORDINATES, COUNTY_WEIGHTS, DEVICE_TYPES
 
 class AccountGenerator:

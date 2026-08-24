@@ -20,7 +20,6 @@ Contracts verified:
 - status() contains required keys
 """
 
-import math
 import numpy as np
 import pytest
 
@@ -100,7 +99,6 @@ class TestObserveConfidence:
         s_lo = _server("hc", "b_lo")
         s_hi = _server("hc", "b_hi")
         # Simulate high hit_rate on s_hi by recording then adapting
-        from scarcity.meta.adaptation import AdaptationEngine
         ctx = {"gain_p50": 0.5}
         s_hi.record(ctx, {"gain": 0.5}, {"gain": 0.5}, {"gain": 0.1})
         s_hi.adapt(ctx, {"gain": 0.5})  # causes a hit

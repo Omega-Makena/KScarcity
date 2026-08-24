@@ -7,7 +7,7 @@ from __future__ import annotations
 import json
 from dataclasses import dataclass
 from enum import Enum
-from typing import Any, Dict, Mapping, MutableMapping, Union
+from typing import Any, Dict, Mapping, Union
 
 import numpy as np  # type: ignore
 

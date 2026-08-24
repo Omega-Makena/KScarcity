@@ -412,7 +412,6 @@ class OpenEconomySFC:
         remit_gdp = self.external.remittances / max(gdp, 1.0)
         
         # Apply external demand effect via demand_shock channel
-        external_demand_effect = nx_gdp * 0.5 + remit_gdp * 0.3
         
         # Update FOREIGN sector balance sheet
         self.foreign_sector.assets['claims_on_domestic'] += max(0, -self.external.current_account)

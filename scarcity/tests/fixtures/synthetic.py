@@ -6,7 +6,7 @@ used to validate that scarcity can detect each type correctly.
 """
 
 import numpy as np
-from typing import Dict, Tuple, Any
+from typing import Dict
 from dataclasses import dataclass
 
 
@@ -275,33 +275,35 @@ def generate_moderating(n: int = 200, seed: int = 42) -> SyntheticDataset:
     )
 
 
-def generate_graph(n: int = 200, n_nodes: int = 20, n_edges: int = 50, 
+def generate_graph(n: int = 200, n_nodes: int = 20, n_edges: int = 50,
                    seed: int = 42) -> SyntheticDataset:
     """
-    12. GRAPH: Network structure.
-    
-    Nodes connected by edges (adjacency).
-    
-    Should detect graph communities.
+    12. GRAPH: Non-linear, graph-structured coupling.
+
+    Emits a non-monotone Target = Source^2 + noise.  The dependency is strong
+    in mutual information but nearly invisible to Pearson correlation, which is
+    exactly the "non-linear excess" fingerprint (NMI >> |r|) that
+    GraphHypothesis is built to detect.
+
+    Previously this returned two columns of *independent* random node IDs, on
+    the assumption that GraphHypothesis tracked integer adjacency.  That class
+    was rewritten to estimate MI between continuous variables, so the old
+    fixture contained no detectable structure at all — src and dst were drawn
+    independently.
+
+    ``n_nodes`` and ``n_edges`` are retained for signature compatibility with
+    existing callers and are no longer used.
     """
     rng = np.random.default_rng(seed)
-    
-    edges = []
-    for _ in range(n_edges):
-        src = rng.integers(0, n_nodes)
-        dst = rng.integers(0, n_nodes)
-        if src != dst:
-            edges.append((src, dst))
-    
-    # Create adjacency representation
-    Source = np.array([e[0] for e in edges], dtype=float)
-    Target = np.array([e[1] for e in edges], dtype=float)
-    
+
+    Source = rng.standard_normal(n)
+    Target = Source ** 2 + 0.1 * rng.standard_normal(n)
+
     return SyntheticDataset(
         data={'Source': Source, 'Target': Target},
-        ground_truth=f'Graph with {n_nodes} nodes, {len(edges)} edges',
+        ground_truth='Target = Source^2 (non-linear, near-zero Pearson)',
         relationship_type='GRAPH',
-        expected_pairs=edges[:5]  # Sample
+        expected_pairs=[('Source', 'Target')]
     )
 
 

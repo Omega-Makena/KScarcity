@@ -9,7 +9,7 @@ local `HypergraphStore`. It handles weighting, decay factors, and regime mapping
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import Dict, Iterable, Optional
+from typing import Dict, Optional
 
 import numpy as np
 

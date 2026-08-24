@@ -6,7 +6,7 @@ from __future__ import annotations
 
 from collections import defaultdict
 from dataclasses import dataclass
-from typing import Any, Dict, Iterable, List, Mapping, MutableMapping, Sequence, Tuple
+from typing import Any, Dict, List, Mapping, Sequence, Tuple
 
 from .contracts import FMIContractRegistry, PacketBase, PacketType
 

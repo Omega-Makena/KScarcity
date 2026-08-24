@@ -7,7 +7,6 @@ Tests for SFC plugin modules added in Items 6 and 7:
 from __future__ import annotations
 
 import numpy as np
-import pytest
 
 from scarcity.simulation.sfc import SFCConfig, SFCEconomy
 

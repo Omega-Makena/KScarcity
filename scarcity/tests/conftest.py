@@ -6,7 +6,6 @@ Fixtures and common test utilities for all test modules.
 
 import pytest
 import numpy as np
-from typing import Dict, Any
 
 
 @pytest.fixture

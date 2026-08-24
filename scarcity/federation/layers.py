@@ -20,13 +20,11 @@ import logging
 import math
 from dataclasses import dataclass, field
 from typing import Dict, List, Optional, Tuple, Set, Sequence
-from enum import Enum
 
 import numpy as np
 
 from .aggregator import FederatedAggregator, AggregationConfig, AggregationMethod
-from .buffer import UpdateBuffer, BufferConfig, BufferedUpdate, PrivacyAccountant
-from .gossip import GossipProtocol, GossipConfig, GossipMessage
+from .buffer import UpdateBuffer, PrivacyAccountant
 from .privacy_guard import PrivacyGuard, PrivacyConfig
 from .secure_aggregation import (
     IdentityKeyPair,

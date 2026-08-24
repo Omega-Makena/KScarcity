@@ -7,7 +7,7 @@ Previously had TODO stubs instead of actual EventBus publishing — now fixed.
 
 import logging
 import time
-from typing import Dict, Any, List, Optional
+from typing import Dict, Any, List
 
 logger = logging.getLogger(__name__)
 

@@ -21,7 +21,6 @@ from .aggregator import FederatedAggregator, AggregationConfig
 from .packets import (
     PathPack,
     EdgeDelta,
-    PolicyPack,
     CausalSemanticPack,
     serialise_packet,
 )

@@ -14,7 +14,7 @@ Basket isolation is the contract that keeps the general engine general:
 from __future__ import annotations
 
 from dataclasses import dataclass, field
-from typing import Dict, FrozenSet, List, Optional, Tuple
+from typing import Dict, FrozenSet, List
 
 # ---------------------------------------------------------------------------
 # Basket definitions

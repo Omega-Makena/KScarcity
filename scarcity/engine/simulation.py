@@ -7,8 +7,8 @@ discovered knowledge graph (hypothesis pool).
 
 import copy
 import logging
-from typing import Dict, List, Any, Optional
-from .discovery import HypothesisPool, HypothesisState, Hypothesis
+from typing import Dict, List
+from .discovery import HypothesisPool, HypothesisState
 
 logger = logging.getLogger(__name__)
 
@@ -73,10 +73,6 @@ class PolicySimulator:
         logger.info(f"policy set: lock {variable} = {value}")
 
     
-    def add_constraint(self, variable: str, limit: float, operator: str = 'max') -> None:
-        """add a fiscal rule (e.g. debt < 100)."""
-        if not hasattr(self, 'constraints'): self.constraints = []
-        self.constraints.append({'var': variable, 'limit': limit, 'op': operator})
 
     def check_constraints(self, state: Dict[str, float]) -> List[str]:
         """return list of violated constraints."""

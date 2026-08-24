@@ -5,7 +5,7 @@ Causal propagation dynamics for the simulation.
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import Dict, Tuple
+from typing import Dict
 
 import numpy as np  # type: ignore
 

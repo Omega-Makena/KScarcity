@@ -12,7 +12,7 @@ batches of parallel simulations.
 import numpy as np
 import pandas as pd
 import logging
-from typing import List, Dict, Tuple, Optional, Any
+from typing import Dict, Tuple, Optional, Any
 
 # Configure logger
 logger = logging.getLogger(__name__)

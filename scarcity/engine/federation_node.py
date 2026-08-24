@@ -24,7 +24,7 @@ from typing import Any, Dict, List, Optional, Tuple, TYPE_CHECKING
 if TYPE_CHECKING:
     from .federation_hub import FederationHub
 
-from .baskets import Basket, BasketRegistry, REGISTRY
+from .baskets import BasketRegistry, REGISTRY
 
 logger = logging.getLogger(__name__)
 

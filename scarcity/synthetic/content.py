@@ -45,7 +45,6 @@ class ContentGenerator:
         for cat in ["urban_mix", "internet_youth", "political_frustration", 
                    "protest_tone", "callout_culture", "coordination_slang", 
                    "escalation_energy", "rumor_suspicion", "sarcastic_mocking"]:
-            placeholder = "{" + f"slang_{cat.split('_')[0]}" + "}" # e.g. {slang_urban}
             # Simplified placeholder matching for the template keys I defined
             if f"{{slang_{cat}}}" in text: # exact match
                  text = text.replace(f"{{slang_{cat}}}", random.choice(SLANG_CATEGORIES[cat]))

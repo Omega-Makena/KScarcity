@@ -14,7 +14,7 @@ trusted coordinator for key distribution. It is designed to be transport-agnosti
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import Any, Dict, Iterable, List, Mapping, Optional, Sequence, Tuple, TYPE_CHECKING
+from typing import Any, Dict, Iterable, Mapping, Optional, Sequence, Tuple, TYPE_CHECKING
 import base64
 import hashlib
 

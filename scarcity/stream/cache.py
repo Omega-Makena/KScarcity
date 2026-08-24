@@ -7,7 +7,7 @@ Maintains in-memory cache with temporal decay for recently processed windows.
 import logging
 import time
 import numpy as np
-from typing import Dict, Optional, Tuple, Any
+from typing import Dict, Optional
 from collections import OrderedDict
 
 logger = logging.getLogger(__name__)

@@ -8,10 +8,9 @@ and Byzantine failures.
 
 from __future__ import annotations
 
-import math
 from dataclasses import dataclass
 from enum import Enum
-from typing import Iterable, List, Sequence, Tuple
+from typing import List, Optional, Sequence, Tuple
 
 import numpy as np
 

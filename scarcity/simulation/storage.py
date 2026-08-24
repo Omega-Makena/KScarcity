@@ -7,7 +7,7 @@ from __future__ import annotations
 import json
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Dict, Iterable, List
+from typing import Dict
 
 
 @dataclass
@@ -26,12 +26,6 @@ class SimulationStorage:
         (self.root / config.trajectories_dir).mkdir(exist_ok=True)
         (self.root / config.whatif_dir).mkdir(exist_ok=True)
 
-    def save_trajectory(self, trajectory: Iterable[Dict[str, float]], tag: str) -> Path:
-        path = self.root / self.config.trajectories_dir / f"{tag}.jsonl"
-        with path.open("w", encoding="utf-8") as fh:
-            for tick, snapshot in enumerate(trajectory):
-                fh.write(json.dumps({"t": tick, "state": snapshot}) + "\n")
-        return path
 
     def save_whatif(self, result: Dict[str, any]) -> Path:
         tag = result.get("scenario_id", "scenario")

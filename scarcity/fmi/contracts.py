@@ -6,7 +6,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass, field, asdict, is_dataclass
 from enum import Enum
-from typing import Any, Dict, Iterable, List, Mapping, MutableMapping, Optional, Tuple, Type, TypeVar, Union
+from typing import Any, Dict, List, Mapping, Optional, Tuple, Type, TypeVar, Union
 
 JsonDict = Dict[str, Any]
 T = TypeVar("T", bound="PacketBase")

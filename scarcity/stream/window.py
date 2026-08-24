@@ -5,10 +5,9 @@ Transforms raw sequential data into normalized overlapping windows using
 Welford's algorithm for online statistics and EMA smoothing.
 """
 
-import asyncio
 import logging
 import numpy as np
-from typing import Dict, List, Optional, Tuple
+from typing import Dict, List, Optional
 from collections import deque
 import time
 

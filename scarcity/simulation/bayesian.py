@@ -18,9 +18,8 @@ Dependencies: numpy only (no PyMC/Stan — pure Python for portability).
 from __future__ import annotations
 
 import logging
-import math
-from dataclasses import dataclass, field
-from typing import Any, Callable, Dict, List, Optional, Tuple
+from dataclasses import dataclass
+from typing import Dict, List, Optional, Tuple
 
 import numpy as np
 
@@ -302,7 +301,6 @@ class MCMCResult:
         if param not in self.chains:
             return (0.0, 0.0)
         samples = np.sort(self.chains[param])
-        alpha = 1.0 - level
         n = len(samples)
         interval_size = int(np.ceil(level * n))
 
@@ -432,7 +430,6 @@ class BayesianEstimator:
         """
         rng = np.random.default_rng(self.mcmc_cfg.seed)
         names = param_names or list(self.priors.keys())
-        n_params = len(names)
 
         # Initialize at prior means (or Kalman-filtered estimates)
         current = {}

@@ -9,7 +9,6 @@ from .content import ContentGenerator
 from .behavior import BehaviorSimulator
 from .vocabulary import COUNTY_COORDINATES, INTERACTION_WEIGHTS
 from .scenarios import ScenarioManager
-from .policy_events import PolicyEventInjector
 
 
 class SyntheticPipeline:

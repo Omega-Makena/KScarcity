@@ -9,7 +9,6 @@ import asyncio
 import logging
 import time
 from typing import AsyncIterator, Dict, Any, Optional, Callable
-from datetime import datetime
 import numpy as np
 
 try:
@@ -233,26 +232,3 @@ class StreamSource:
             'is_running': self._running
         }
 
-
-async def create_test_source() -> StreamSource:
-    """
-    Create a test data source for development.
-    
-    Returns:
-        StreamSource with synthetic data
-    """
-    async def generate_data():
-        """Generate synthetic test data."""
-        np.random.seed(42)
-        while True:
-            await asyncio.sleep(0.1)
-            yield np.random.randn(100, 10)  # 100 rows, 10 features
-    
-    source = StreamSource(
-        data_source=generate_data(),
-        window_size=1000,
-        name="test_source",
-        target_latency_ms=50.0
-    )
-    
-    return source

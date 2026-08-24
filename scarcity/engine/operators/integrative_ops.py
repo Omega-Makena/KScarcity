@@ -14,7 +14,6 @@ import numpy as np
 
 from scarcity.engine.operators.attention_ops import attn_linear, pooling_avg
 from scarcity.engine.operators.sketch_ops import _deterministic_hash
-from scarcity.engine.operators.stability_ops import page_hinkley
 
 logger = logging.getLogger(__name__)
 

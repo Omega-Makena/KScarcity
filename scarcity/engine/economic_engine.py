@@ -5,7 +5,7 @@ specialized engine for macroeconomic modeling.
 handling mapping between user-friendly variable names and raw world bank codes.
 """
 
-from typing import Dict, Any, List
+from typing import Dict, Any
 import logging
 from .engine_v2 import OnlineDiscoveryEngine
 from ..economic_config import ECONOMIC_VARIABLES, CODE_TO_NAME
@@ -28,7 +28,6 @@ class EconomicDiscoveryEngine:
         """
         import itertools
         from .algorithms_online import VectorizedFunctionalHypothesis, TemporalLagHypothesis
-        from .discovery import RelationshipType
         
         friendly_names = list(CODE_TO_NAME.values())
         count = 0

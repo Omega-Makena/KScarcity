@@ -14,9 +14,8 @@ import numpy as np
 import time
 import uuid
 import logging
-from collections import deque
 from dataclasses import dataclass, field
-from typing import Any, Dict, List, Optional, Tuple, Type
+from typing import Any, Dict, List, Optional, Tuple
 from enum import Enum
 
 # lazy import to avoid circular dependency if possible, or direct

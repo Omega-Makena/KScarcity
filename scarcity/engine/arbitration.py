@@ -5,7 +5,7 @@ Resolves conflicts between surviving hypotheses to produce a parsimonious knowle
 Enforces hierarchy: Causal > Temporal > Correlational.
 """
 
-from typing import Dict, List, Set, Any
+from typing import Dict, List, Any
 from collections import defaultdict
 from .discovery import Hypothesis, RelationshipType
 
@@ -87,7 +87,6 @@ class HypothesisArbiter:
             claim_list.sort(key=lambda x: (x.confidence, get_strength(x)), reverse=True)
             
             best_h = claim_list[0]
-            best_strength = get_strength(best_h)
             
             # Keep the best one
             accepted.append(best_h)
@@ -119,14 +118,20 @@ class HypothesisArbiter:
             return []
         
         conflicts = []
-        
-        _directed = {RelationshipType.CAUSAL, RelationshipType.FUNCTIONAL, RelationshipType.CORRELATIONAL}
+
+        # Group UNDIRECTED here, unlike arbitrate().
+        #
+        # arbitrate() keys directed types on variable order so that A->B and B->A
+        # both survive as distinct predictors.  Conflict detection needs the
+        # opposite: a contradiction is precisely two claims about the same pair
+        # pointing different ways, so they must land in the same bucket to be
+        # compared.  With directed keys, Causal(A,B) and Causal(B,A) fell into
+        # separate single-element buckets, were skipped by the len <= 1 guard,
+        # and the bidirectional_causality branch below became unreachable for
+        # the exact case it exists to catch.
         claims_by_pair: Dict[tuple, List[Hypothesis]] = defaultdict(list)
         for h in hypotheses:
-            if h.rel_type in _directed:
-                pair_key = tuple(h.variables[:2])
-            else:
-                pair_key = tuple(sorted(h.variables[:2]))
+            pair_key = tuple(sorted(h.variables[:2]))
             claims_by_pair[pair_key].append(h)
         
         for pair, claim_list in claims_by_pair.items():

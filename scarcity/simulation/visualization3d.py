@@ -15,7 +15,10 @@ import numpy as np
 
 try:  # pragma: no cover - optional dependency
     import torch
-    from pytorch3d.renderer import FoVPerspectiveCameras  # type: ignore
+    # Imported for its side effect as an availability probe, not for use: torch
+    # alone imports fine without pytorch3d, so dropping this would leave
+    # _HAS_PT3D wrongly True on a torch-only install.
+    from pytorch3d.renderer import FoVPerspectiveCameras  # type: ignore # noqa: F401
 
     _HAS_PT3D = True
 except Exception:  # pragma: no cover - optional dependency

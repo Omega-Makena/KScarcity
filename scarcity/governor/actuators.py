@@ -4,7 +4,6 @@ Actuator implementations for DRG decisions.
 
 from __future__ import annotations
 
-from typing import Dict, List
 
 from .registry import SubsystemRegistry
 

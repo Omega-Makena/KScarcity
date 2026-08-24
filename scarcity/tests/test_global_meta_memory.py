@@ -39,11 +39,9 @@ from scarcity.federation.domain_server import (
 from scarcity.federation.global_meta_memory import (
     GlobalMetaMemory,
     GlobalMetaMemoryConfig,
-    DomainSnapshot,
 )
 from scarcity.federation.hierarchical import (
     HierarchicalFederation,
-    HierarchicalFederationConfig,
 )
 
 

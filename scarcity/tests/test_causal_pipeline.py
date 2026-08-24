@@ -3,7 +3,6 @@ Tests for the Causal Pipeline.
 """
 import pytest
 pytest.importorskip("dowhy")
-import pandas as pd
 from dowhy import datasets
 
 from scarcity.causal.specs import EstimandSpec, EstimandType, RuntimeSpec

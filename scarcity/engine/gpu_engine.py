@@ -134,6 +134,23 @@ class GPUDiscoveryEngine:
         evid = np.concatenate(evid_p)[np.newaxis, :]
         self._lc.update(conf, stab, evid)
 
+    def get_state_counts(self) -> Dict[str, int]:
+        """
+        Lifecycle-state histogram for the tensor-backed pool.
+
+        Cheap by design — reads the int8 state array directly and does no
+        device sync or metric concatenation, so it is safe to call once per
+        row from the hosting engine's reporting path.
+        """
+        names = ('tentative', 'active', 'decaying', 'dead')
+        counts = {n: 0 for n in names}
+        if self._lc is None:
+            return counts
+        state = self._lc.state[0]
+        for code, name in enumerate(names):
+            counts[name] = int(np.count_nonzero(state == code))
+        return counts
+
     def get_hyp_metrics(
         self,
     ) -> Tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray, List[HypoSpec]]:

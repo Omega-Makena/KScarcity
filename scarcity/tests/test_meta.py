@@ -4,7 +4,6 @@ Test: Meta-Learning Layer
 Validates cross-domain transfer and meta-update generation.
 """
 
-import asyncio
 import pytest
 import numpy as np
 from scarcity.meta.domain_meta import (

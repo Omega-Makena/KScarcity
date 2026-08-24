@@ -4,7 +4,6 @@ Test: Federation Layer
 Validates Byzantine-robust aggregation methods work correctly.
 """
 
-import pytest
 import numpy as np
 from scarcity.federation.aggregator import (
     FederatedAggregator,

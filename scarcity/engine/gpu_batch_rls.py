@@ -21,7 +21,7 @@ Tracks the four metrics needed by MetaController:
 from __future__ import annotations
 
 import torch
-from typing import Optional, Tuple
+from typing import Tuple
 
 # ---------------------------------------------------------------------------
 # Module-level CUDA check
@@ -253,11 +253,3 @@ class GPUBatchRLS:
     def reset(self) -> None:
         """Re-initialize all state tensors to starting values."""
         self.__init__(self.M, self.F, self.lam, self.device, self.dtype)
-
-    def to_cpu(self) -> "GPUBatchRLS":
-        """Return a copy of this RLS pool moved to CPU (for inspection)."""
-        cpu = GPUBatchRLS(self.M, self.F, self.lam, "cpu", self.dtype)
-        for attr in ("W", "P", "n", "mean_y", "sse", "sst",
-                     "alpha", "beta", "_res_abs_ema", "_res_sq_ema"):
-            setattr(cpu, attr, getattr(self, attr).cpu())
-        return cpu

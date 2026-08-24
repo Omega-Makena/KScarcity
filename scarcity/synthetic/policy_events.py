@@ -204,19 +204,6 @@ class PolicyEvent:
             return True  # nationwide
         return county in self.affected_counties
 
-    def get_reaction_strength(self, risk_band: str) -> float:
-        """
-        How strongly an account in this risk_band reacts to this event.
-        High-risk accounts react more intensely.
-        """
-        band_mult = {
-            "Low": 0.3,
-            "Medium": 0.6,
-            "High": 0.9,
-            "Critical": 1.0,
-        }
-        return self.severity * band_mult.get(risk_band, 0.5)
-
 
 # =============================================================================
 # Kenyan Policy Event Catalog (2026 Timeline)
@@ -671,9 +658,6 @@ class PolicyEventInjector:
             return self._rng.choice(pool)
         return ""
 
-    def get_topic_cluster(self, event: PolicyEvent) -> str:
-        """Map event sector to a topic cluster label for the output CSV."""
-        return event.sector.value
 
     def get_event_by_id(self, event_id: str) -> Optional[PolicyEvent]:
         """Lookup a specific event by ID."""

@@ -209,7 +209,6 @@ class AgentRegistry:
             degree = stats.get("degree", 0.0)
             weight_sum = stats.get("weight_sum", 0.0)
             stability_sum = stats.get("stability_sum", 0.0)
-            hits_sum = stats.get("hits_sum", 0.0)
 
             avg_stability = stability_sum / max(1.0, degree)
             avg_weight = weight_sum / max(1.0, degree)

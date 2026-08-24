@@ -5,7 +5,7 @@ Provides robust normalization, clipping, and rolling statistics.
 """
 
 import numpy as np
-from typing import List, Optional
+from typing import List
 
 
 def clip(x: float, lo: float, hi: float) -> float:
@@ -39,22 +39,6 @@ def safe_div(a: float, b: float, default: float = 0.0) -> float:
         return default
     return a / b
 
-
-def rolling_ema(new_val: float, old_ema: float, alpha: float) -> float:
-    """
-    Updates an Exponential Moving Average (EMA).
-
-    Args:
-        new_val: The latest observation.
-        old_ema: The previous EMA value.
-        alpha: The smoothing factor (0 < alpha <= 1). Higher alpha discounts old history faster.
-
-    Returns:
-        The updated EMA value.
-    """
-    if old_ema == 0.0:
-        return new_val
-    return alpha * new_val + (1 - alpha) * old_ema
 
 
 def robust_zscore(x: float, median: float, mad: float) -> float:
@@ -124,22 +108,6 @@ def softplus(x: float) -> float:
         return x
     return np.log1p(np.exp(x))
 
-
-def tanh_clip(x: float, bound: float = 3.0) -> float:
-    """
-    Applies a hyperbolic tangent to softly bound a value.
-
-    Scales the input, applies tanh, and scales back, effectively compressing the value
-    into the range [-bound, +bound] with a smooth saturation.
-    
-    Args:
-        x: Input value.
-        bound: The maximum absolute value of the output.
-        
-    Returns:
-        tanh(x / bound) * bound
-    """
-    return np.tanh(clip(x / bound, -1.0, 1.0)) * bound
 
 
 def compute_median_mad(values: List[float]) -> tuple[float, float]:

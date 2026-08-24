@@ -9,10 +9,8 @@ rollback capability in case of performance degradation.
 
 from __future__ import annotations
 
-import math
-import time
 from dataclasses import dataclass, field
-from typing import Dict, Iterable, List, Optional, Tuple
+from typing import Dict, List, Optional
 
 import numpy as np
 
@@ -78,7 +76,6 @@ class OnlineReptileOptimizer:
         Returns:
             The updated global prior parameters (Dict[str, float]).
         """
-        cfg = self.config
         state = self.state
 
         self._update_beta(drg_profile)

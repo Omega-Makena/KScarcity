@@ -1,5 +1,4 @@
 """DOT graph utilities for Scarcity causal pipeline."""
-from dataclasses import dataclass, field
 import re
 from typing import Dict, List, Optional, Sequence, Tuple
 
@@ -9,11 +8,6 @@ _TIME_PATTERNS = [
     re.compile(r"_t([+-]?\d+)?$", re.IGNORECASE),
 ]
 
-
-@dataclass
-class DotGraph:
-    raw: str
-    edges: List[Tuple[str, str]] = field(default_factory=list)
 
 
 def load_dot(path: Optional[str]) -> Optional[str]:

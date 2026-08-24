@@ -8,9 +8,8 @@ includes:
 - huber loss: gradient clipping for rls.
 """
 
-import numpy as np
 import math
-from typing import List, Optional
+from typing import List
 
 # style: lowercase constant for huber
 HUBER_DELTA = 1.345

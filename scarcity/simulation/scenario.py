@@ -14,7 +14,7 @@ import json
 import logging
 import numpy as np
 from dataclasses import dataclass, field, asdict
-from typing import List, Dict, Optional, Any, Union
+from typing import List, Dict, Optional, Any
 from enum import Enum
 from pathlib import Path
 from datetime import datetime
@@ -114,14 +114,6 @@ class PolicyInstrument:
     decision_lag: int = 0
     implementation_lag: int = 0
     
-    def apply_constraints(self, value: float) -> float:
-        """Clip value to defined bounds."""
-        if self.min_value is not None:
-            value = max(self.min_value, value)
-        if self.max_value is not None:
-            value = min(self.max_value, value)
-        return value
-
 
 @dataclass
 class Scenario:
@@ -259,13 +251,3 @@ class ScenarioManager:
         # Sort by date desc
         return sorted(results, key=lambda x: x.get("created_at", ""), reverse=True)
     
-    @staticmethod
-    def delete_scenario(scenario_id: str) -> bool:
-        """Delete a scenario."""
-        path = SCENARIO_DIR / f"{scenario_id}.json"
-        if path.exists():
-            path.unlink()
-            return True
-        return False
-
-

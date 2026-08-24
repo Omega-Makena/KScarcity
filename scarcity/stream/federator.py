@@ -9,9 +9,8 @@ bandwidth allocation are planned but not implemented here.
 import asyncio
 import logging
 import json
-from typing import Dict, List, Optional, Set
+from typing import Dict, Optional
 from datetime import datetime
-import hashlib
 
 try:
     import websockets

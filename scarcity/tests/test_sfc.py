@@ -5,7 +5,6 @@ Validates SFC economy maintains consistency and produces sensible dynamics.
 """
 
 import numpy as np
-import pytest
 from scarcity.simulation.sfc import (
     SFCEconomy,
     SFCConfig,

@@ -1,6 +1,4 @@
 
-import random
-from datetime import timedelta
 from scarcity.synthetic.policy_events import PolicyEventInjector
 
 

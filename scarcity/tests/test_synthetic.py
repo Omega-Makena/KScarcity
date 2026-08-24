@@ -4,7 +4,6 @@ Test: Synthetic Data Generators
 Validates that all 15 synthetic data generators produce valid data.
 """
 
-import pytest
 import numpy as np
 from scarcity.tests.fixtures import (
     generate_causal,

@@ -6,7 +6,7 @@ to an actual estimation algorithm (DoWhy native or EconML).
 """
 import logging
 from dataclasses import dataclass
-from typing import Any, Dict, Optional
+from typing import Any, Dict
 
 from dowhy import CausalModel
 from dowhy.causal_estimator import CausalEstimate

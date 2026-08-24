@@ -5,7 +5,6 @@ Tests that each hypothesis type correctly identifies its relationship type
 using the synthetic data generators.
 """
 
-import pytest
 import numpy as np
 from scarcity.tests.fixtures import (
     generate_causal,
@@ -52,13 +51,14 @@ class TestCausalHypothesis:
         """Should detect X → Y causality."""
         dataset = generate_causal(n=200, lag=2, strength=0.8)
         hyp = CausalHypothesis('X', 'Y', lag=2)
-        
-        # Feed data
+
+        # update() — not fit_step() — is the API that owns confidence: it fits,
+        # then advances the Bayesian accumulator. evaluate() is read-only and
+        # deliberately does not compute confidence.
         for i in range(len(dataset.data['X'])):
             row = {'X': dataset.data['X'][i], 'Y': dataset.data['Y'][i]}
-            hyp.fit_step(row)
-        
-        result = hyp.evaluate({})
+            result = hyp.update(row)
+
         assert result['direction'] == 1, "Should detect X→Y direction"
         assert result['confidence'] > 0.5, f"Confidence too low: {result['confidence']}"
 
@@ -159,12 +159,15 @@ class TestCausalFalsePositiveResistance:
         y = rng.normal(0, 1, 500)
         hyp = CausalHypothesis('X', 'Y', lag=2)
 
+        # Drive through update() so confidence is actually accumulated. Reading
+        # it off evaluate() with a .get(..., 0.0) default made this assertion
+        # vacuous — it passed on the missing key, not on a low value.
         for i in range(len(x)):
-            hyp.fit_step({'X': float(x[i]), 'Y': float(y[i])})
+            result = hyp.update({'X': float(x[i]), 'Y': float(y[i])})
 
-        result = hyp.evaluate({})
         assert abs(result.get('gain_forward', 0.0)) < 0.1, f"Unexpected directional gain: {result}"
-        assert result.get('confidence', 0.0) < 0.35, f"Unexpected confidence: {result}"
+        assert 'confidence' in result, "update() must report accumulated confidence"
+        assert result['confidence'] < 0.35, f"Unexpected confidence: {result}"
 
 
 class TestEquilibriumHypothesis:
@@ -282,6 +285,74 @@ class TestMediatingHypothesis:
         result = hyp.evaluate({})
         assert result.get('has_mediation', False), f"Should detect mediation: {result}"
 
+    def test_detects_indirect_only_mediation_with_cancelling_total_effect(self):
+        """Regression: indirect-only mediation must fire even when the total
+        effect is ~0.
+
+        The Baron-Kenny causal-steps gate (|c'| < |c|) rejected mediation
+        whenever the direct and indirect paths cancel, which is common in
+        feedback systems (e.g. glucose->insulin->beta). The modern criterion
+        (Zhao/Lynch/Chen 2010) drops that requirement: a significant indirect
+        effect a*b is sufficient. Here the direct path is built to cancel the
+        indirect one, so total effect c ~ 0 while a*b is strongly significant.
+        Under the old gate this returned has_mediation=False.
+        """
+        rng = np.random.default_rng(3)
+        n = 300
+        x = rng.normal(0, 1, n)
+        m = 0.9 * x + 0.1 * rng.normal(0, 1, n)          # a ~ 0.9
+        y = 0.8 * m - 0.6 * x + 0.1 * rng.normal(0, 1, n)  # b ~ 0.8, c' ~ -0.6
+        # indirect a*b ~ 0.72, direct c' ~ -0.6  =>  total c ~ 0.12  (|c'| > |c|)
+
+        hyp = MediatingHypothesis('X', 'M', 'Y')
+        for i in range(n):
+            hyp.fit_step({'X': float(x[i]), 'M': float(m[i]), 'Y': float(y[i])})
+
+        result = hyp.evaluate({})
+        assert abs(result['c_prime']) > abs(result['c_path']), (
+            f"fixture must have cancelling paths (|c'|>|c|): {result}")
+        assert result['has_mediation'], f"Indirect-only mediation should fire: {result}"
+        assert result['sobel_p'] < 0.05, f"Indirect effect should be significant: {result}"
+
+    def test_sobel_se_is_scaled_by_residual_variance(self):
+        """Regression: Sobel SE must use sigma^2 * P, not the raw RLS P matrix.
+
+        P is the inverse information matrix, not the coefficient covariance.
+        Using it unscaled assumes sigma^2 = 1 and inflated SE by ~20x on this
+        fixture, driving sobel_p to 0.63 and suppressing every mediation signal.
+        The online estimator uses lambda=0.98 forgetting (n_eff ~ 50), so its SE
+        stays a bounded factor above the OLS full-sample reference of ~0.057.
+        """
+        dataset = generate_mediating(n=200)
+        hyp = MediatingHypothesis('X', 'M', 'Y')
+        for i in range(len(dataset.data['X'])):
+            hyp.fit_step({
+                'X': dataset.data['X'][i],
+                'M': dataset.data['M'][i],
+                'Y': dataset.data['Y'][i],
+            })
+
+        result = hyp.evaluate({})
+        sobel_se = abs(result['indirect_effect'] / result['sobel_z'])
+        assert sobel_se < 0.30, f"Sobel SE not residual-scaled: {sobel_se:.4f}"
+        assert result['sobel_z'] > 3.0, f"Indirect effect should be significant: {result}"
+        assert result['sobel_p'] < 0.01, f"Sobel p too weak: {result}"
+
+    def test_no_mediation_on_direct_effect_only(self):
+        """Null control — X→Y direct, M irrelevant, so no indirect path."""
+        rng = np.random.default_rng(11)
+        n = 200
+        x = rng.normal(0, 1, n)
+        m = rng.normal(0, 1, n)          # independent of both X and Y
+        y = 0.8 * x + 0.1 * rng.normal(0, 1, n)
+
+        hyp = MediatingHypothesis('X', 'M', 'Y')
+        for i in range(n):
+            hyp.fit_step({'X': float(x[i]), 'M': float(m[i]), 'Y': float(y[i])})
+
+        result = hyp.evaluate({})
+        assert not result['has_mediation'], f"False mediation: {result}"
+
 
 class TestModeratingHypothesis:
     def test_detects_moderation(self):
@@ -304,19 +375,42 @@ class TestModeratingHypothesis:
 
 class TestGraphHypothesis:
     def test_detects_graph_structure(self):
-        """Should track graph edges."""
-        dataset = generate_graph(n_nodes=20, n_edges=50)
+        """Should detect non-linear coupling that Pearson misses."""
+        dataset = generate_graph(n=200)
         hyp = GraphHypothesis('Source', 'Target')
-        
+
         for i in range(len(dataset.data['Source'])):
             row = {
                 'Source': dataset.data['Source'][i],
                 'Target': dataset.data['Target'][i]
             }
             hyp.fit_step(row)
-        
+
         result = hyp.evaluate({})
-        assert result.get('n_edges', 0) > 10, f"Should track edges: {result}"
+        assert result.get('has_graph_structure', False), f"Should detect structure: {result}"
+        assert result['normalized_mi'] > 0.3, f"MI too low: {result}"
+        # The whole point of this type: MI sees what Pearson cannot.
+        assert result['nonlinear_excess'] > 0.1, f"No non-linear excess: {result}"
+        assert abs(result['pearson_r']) < 0.3, f"Coupling should be near-invisible to Pearson: {result}"
+
+    def test_does_not_fire_on_independent_noise(self):
+        """Null control — independent variables are not graph-coupled.
+
+        Note: the histogram MI estimator is only calibrated once n is large
+        relative to n_bins^2. At n=200 with the default 10 bins the null rate is
+        0%; at n=30 (the class's own evaluate() threshold) it is ~95%.
+        """
+        rng = np.random.default_rng(5)
+        x = rng.normal(0, 1, 200)
+        y = rng.normal(0, 1, 200)
+        hyp = GraphHypothesis('Source', 'Target')
+
+        for i in range(len(x)):
+            hyp.fit_step({'Source': float(x[i]), 'Target': float(y[i])})
+
+        result = hyp.evaluate({})
+        assert not result.get('has_graph_structure', False), (
+            f"False positive on independent noise: {result}")
 
 
 class TestSimilarityHypothesis:
@@ -352,4 +446,88 @@ class TestLogicalHypothesis:
         
         result = hyp.evaluate({})
         assert result.get('best_rule') == 'AND', f"Should detect AND rule: {result}"
-        assert result.get('rule_accuracy', 0) > 0.9
+        # 'rule_accuracy' was split into two distinct measures: the online EMA
+        # ('best_accuracy_ema') and full-buffer verification with the current
+        # thresholds ('verified_accuracy'). The latter is the honest one.
+        assert result.get('verified_accuracy', 0) > 0.9, f"Rule accuracy too low: {result}"
+
+
+class TestRLSNumericalStability:
+    """Regression tests for RLS covariance windup.
+
+    The naive update ``P_new = (P - outer(K, Px)) / lam`` divides by lam every
+    step, amplifying rounding by (1/lam)**n. On an ill-conditioned design that
+    destroyed the covariance: P lost positive-definiteness around step 1520 and
+    reached -4.8e14 by step 3840, turning every variance read off its diagonal
+    into a NaN and silently disabling MediatingHypothesis. _rls_step now uses
+    the Joseph form, which is algebraically identical but PSD by construction.
+    """
+
+    @staticmethod
+    def _ill_conditioned_stream(n, seed=0):
+        # Constant column vs a mean-114/sd-21 regressor: condition number ~4e5,
+        # the same shape as [1, glucose] in the biological trajectories.
+        rng = np.random.default_rng(seed)
+        g = 114.0 + 20.8 * rng.normal(size=n)
+        y = 0.115 * g + 0.5 * rng.normal(size=n)
+        return g, y
+
+    def test_covariance_stays_positive_definite_over_long_stream(self):
+        from scarcity.engine.relationships import _rls_step
+        g, y = self._ill_conditioned_stream(6000)
+        P = np.eye(2) * 100.0
+        coef = np.zeros(2)
+        for i in range(len(g)):
+            P, coef, _ = _rls_step(P, coef, np.array([1.0, g[i]]), y[i], 0.98)
+            if (i + 1) % 500 == 0:
+                eig = np.linalg.eigvalsh(P)
+                assert np.all(eig > 0), f"P lost positive-definiteness at step {i+1}: {eig}"
+                assert np.all(np.isfinite(P)), f"P diverged at step {i+1}"
+
+    def test_long_stream_estimate_stays_accurate(self):
+        """Windup also biased the coefficients — naive drifted ~10% by n=6000."""
+        from scarcity.engine.relationships import _rls_step
+        g, y = self._ill_conditioned_stream(6000)
+        P = np.eye(2) * 100.0
+        coef = np.zeros(2)
+        for i in range(len(g)):
+            P, coef, _ = _rls_step(P, coef, np.array([1.0, g[i]]), y[i], 0.98)
+        assert abs(coef[1] - 0.115) < 0.005, f"slope drifted: {coef[1]}"
+
+    def test_joseph_form_matches_naive_update_algebraically(self):
+        """The fix must not change the mathematics, only its conditioning."""
+        from scarcity.engine.relationships import _rls_step
+        rng = np.random.default_rng(3)
+        for _ in range(5):
+            k = int(rng.integers(2, 5))
+            A = rng.normal(size=(k, k))
+            P = A @ A.T + np.eye(k) * 0.5
+            x = rng.normal(size=k)
+            coef = rng.normal(size=k)
+            lam = 0.98
+            Px = P @ x
+            K = Px / (lam + float(x @ Px))
+            naive_P = (P - np.outer(K, Px)) / lam
+            got_P, _, _ = _rls_step(P, coef, x, float(rng.normal()), lam)
+            assert np.abs(got_P - naive_P).max() < 1e-9
+
+    def test_mediation_survives_a_long_stream(self):
+        """MediatingHypothesis read variances off P, so windup silenced it."""
+        rng = np.random.default_rng(5)
+        n = 4000
+        x = rng.normal(0, 1, n)
+        m = 0.8 * x + 0.1 * rng.normal(0, 1, n)
+        y = 0.8 * m + 0.1 * rng.normal(0, 1, n)
+
+        hyp = MediatingHypothesis('X', 'M', 'Y')
+        for i in range(n):
+            hyp.fit_step({'X': float(x[i]), 'M': float(m[i]), 'Y': float(y[i])})
+
+        result = hyp.evaluate({})
+        # Under the naive update this was NaN -> z=0 -> p=1, so mediation could
+        # never fire past ~1520 steps. The forgetting factor holds the effective
+        # sample near 1/(1-lam) ~ 50, so z does not grow with stream length —
+        # significance, not a large z, is the thing to assert.
+        assert np.isfinite(result['sobel_z']), f"Sobel z is not finite: {result}"
+        assert result['sobel_p'] < 0.05, f"mediation lost on a long stream: {result}"
+        assert result['has_mediation'], f"mediation not detected: {result}"

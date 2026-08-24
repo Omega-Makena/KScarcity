@@ -489,7 +489,6 @@ class SFCEconomy:
         Call once after construction and before ``initialize()``.
         """
         from scarcity.simulation.heterogeneous import (
-            HeterogeneousConfig,
             default_kenya_heterogeneous_config,
             InequalityMetrics,
         )
