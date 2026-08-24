@@ -437,9 +437,11 @@ class Evaluator:
         agreement = sum(1 for i in range(min(len(signs_current), len(signs_last))) 
                         if signs_current[i] == signs_last[i]) / max(len(signs_current), len(signs_last))
         
-        # Spearman-like (simplified)
-        # Full implementation would use scipy.stats.spearmanr
-        stability = 0.5 * agreement + 0.5  # Normalize to [0,1]
+        # Sign-agreement stability: the fraction of gains that keep their sign
+        # across consecutive windows, rescaled to [0.5, 1.0] (0.5 = chance-level
+        # agreement, 1.0 = every gain stable). This is a robust per-window
+        # stability proxy; it is not a rank correlation.
+        stability = 0.5 * agreement + 0.5
         
         self.last_window_stability = gains
         return float(clip(stability, 0.0, 1.0))
@@ -474,7 +476,6 @@ class Evaluator:
         
         # Compute window-local normalization
         gains = [r.gain for r in results if 'error' not in r.extras]
-        ci_widths = [r.ci_hi - r.ci_lo for r in results if 'error' not in r.extras]
         
         if len(gains) == 0:
             median_gain, mad_gain = 0.0, 1.0

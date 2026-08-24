@@ -8,7 +8,6 @@ Each hypothesis class accepts an optional config object with sensible defaults.
 from __future__ import annotations
 
 from dataclasses import dataclass, field
-from typing import Optional
 
 
 @dataclass
@@ -23,12 +22,17 @@ class CausalConfig:
         min_samples_for_eval: Minimum buffer length before computing Granger test.
         ridge_alpha: Regularization for regression (prevents singularity).
         min_prediction_samples: Minimum samples before predictions are generated.
+        asym_ratio: Forward F-stat must exceed backward by this ratio before a
+            direction is claimed; keeps ambiguous pairs undirected.
+        sig_alpha: Significance level for the Granger F-test.
     """
     direction_threshold: float = 0.02
     confidence_multiplier: float = 2.0
     min_samples_for_eval: int = 10  # lag + this value
     ridge_alpha: float = 1e-3
     min_prediction_samples: int = 5  # lag + this value
+    asym_ratio: float = 1.3
+    sig_alpha: float = 0.05
 
 
 @dataclass

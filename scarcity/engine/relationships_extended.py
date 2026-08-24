@@ -88,9 +88,22 @@ class MediatingHypothesis(Hypothesis):
         # Sobel test
         self.sobel_z = 0.0
         self.sobel_p = 1.0
-        # Coefficient variances for Sobel SE (from RLS covariance diagonal)
+        # Coefficient variances for Sobel SE.
+        # NOTE: the RLS P matrix is the inverse information matrix, NOT the
+        # coefficient covariance.  Cov(theta_hat) = sigma^2 * P, so P must be
+        # scaled by the regression's residual variance.  Using P alone assumes
+        # sigma^2 = 1 and inflates SE whenever the fit is tight (sigma^2 < 1),
+        # which silently suppresses every mediation signal.
         self._var_a = 1.0
         self._var_b = 1.0
+
+        # Forgetting-factor residual variance per path, tracked as a ratio of
+        # discounted sums so it is unbiased from the first step (no EMA warm-up
+        # bias at the n>=20 evaluation threshold).
+        self._s2_a_num = 0.0
+        self._s2_a_den = 0.0
+        self._s2_bc_num = 0.0
+        self._s2_bc_den = 0.0
 
     def fit_step(self, row: Dict[str, float]) -> None:
         if not all(v in row for v in [self.source, self.mediator, self.target]):
@@ -100,24 +113,33 @@ class MediatingHypothesis(Hypothesis):
             return
         self._n += 1
 
+        lam = self._lambda
+
         # Path a
         fa = np.array([1.0, x])
-        self._Pa, self._coef_a, _ = _rls_step(self._Pa, self._coef_a, fa, m, self._lambda)
+        self._Pa, self._coef_a, res_a = _rls_step(
+            self._Pa, self._coef_a, fa, m, lam)
         self.a_path = float(self._coef_a[1])
-        self._var_a = float(self._Pa[1, 1])
+        self._s2_a_num = lam * self._s2_a_num + res_a ** 2
+        self._s2_a_den = lam * self._s2_a_den + 1.0
+        s2_a = self._s2_a_num / max(1e-12, self._s2_a_den)
+        self._var_a = s2_a * float(self._Pa[1, 1])
 
         # Path c (total)
         fc = np.array([1.0, x])
-        self._Pc, self._coef_c, _ = _rls_step(self._Pc, self._coef_c, fc, y, self._lambda)
+        self._Pc, self._coef_c, _ = _rls_step(self._Pc, self._coef_c, fc, y, lam)
         self.c_path = float(self._coef_c[1])
 
         # Paths b and c'
         fbc = np.array([1.0, x, m])
-        self._Pbc, self._coef_bc, _ = _rls_step(
-            self._Pbc, self._coef_bc, fbc, y, self._lambda)
+        self._Pbc, self._coef_bc, res_bc = _rls_step(
+            self._Pbc, self._coef_bc, fbc, y, lam)
         self.c_prime = float(self._coef_bc[1])
         self.b_path = float(self._coef_bc[2])
-        self._var_b = float(self._Pbc[2, 2])
+        self._s2_bc_num = lam * self._s2_bc_num + res_bc ** 2
+        self._s2_bc_den = lam * self._s2_bc_den + 1.0
+        s2_bc = self._s2_bc_num / max(1e-12, self._s2_bc_den)
+        self._var_b = s2_bc * float(self._Pbc[2, 2])
 
         self.indirect_effect = self.a_path * self.b_path
 
@@ -137,13 +159,21 @@ class MediatingHypothesis(Hypothesis):
             self.sobel_z = 0.0
             self.sobel_p = 1.0
 
-        # Lowered threshold (Fix #5): p<0.20 and relaxed path-coefficient guards
-        # (>0.01) to detect indirect effects in short annual macro series (n~44).
+        # Modern mediation criterion (Zhao, Lynch & Chen 2010, "Reconsidering
+        # Baron and Kenny"; Hayes 2009): a significant indirect effect a*b is
+        # necessary AND sufficient. We deliberately do NOT require the
+        # causal-steps total-effect condition |c'| < |c|, which rejects
+        # indirect-only mediation — the case where the direct and indirect paths
+        # cancel so the total effect c ~ 0 while the indirect path is strongly
+        # significant (common in feedback systems, e.g. glucose->insulin->beta).
+        # The Sobel test on a*b, with non-trivial path guards, is the criterion.
+        # p<0.05 is the standard level; it is trustworthy now that the Sobel SE
+        # is residual-variance-scaled (the old p<0.20 compensated for an
+        # inflated SE that is no longer present).
         has_mediation = (
             abs(self.a_path) > 0.01 and
             abs(self.b_path) > 0.01 and
-            abs(self.c_prime) < abs(self.c_path) and
-            self.sobel_p < 0.20
+            self.sobel_p < 0.05
         )
         full_mediation = has_mediation and abs(self.c_prime) < 0.05
         fit = min(1.0, abs(self.indirect_effect) * 2.0) if has_mediation else 0.2
@@ -358,19 +388,43 @@ class GraphHypothesis(Hypothesis):
 
     def _mutual_information(self, X: np.ndarray, Y: np.ndarray) -> Tuple[float, float]:
         """
-        Estimate MI(X;Y) via histogram joint distribution.
-        Returns (MI in nats, NMI = MI / √(H(X)·H(Y))).
+        Estimate MI(X;Y) via a histogram joint distribution with Miller--Madow
+        bias correction and a sample-adaptive bin count.
+
+        The plug-in histogram estimator is biased upward by roughly
+        (cells-1)/(2N) nats — enough that at small N it reports spurious
+        dependence on independent data. We reduce that bias two ways: the bin
+        count scales as sqrt(N/5) (fewer bins when data is scarce, where the
+        bias is worst), and the Miller--Madow correction subtracts the leading
+        (K-1)/(2N) term of each entropy. Returns (MI in nats,
+        NMI = MI / sqrt(H(X)*H(Y))).
         """
-        bins = self.n_bins
-        joint, xe, ye = np.histogram2d(X, Y, bins=bins, density=False)
-        joint = joint.astype(float) + 1e-10
+        n = len(X)
+        if n < 2:
+            return 0.0, 0.0
+        bins = max(3, min(self.n_bins, int(np.sqrt(n / 5.0))))
+        counts, _, _ = np.histogram2d(X, Y, bins=bins, density=False)
+        cx = counts.sum(axis=1)
+        cy = counts.sum(axis=0)
+
+        joint = counts.astype(float) + 1e-10
         joint /= joint.sum()
         px = joint.sum(axis=1)
         py = joint.sum(axis=0)
         outer = np.outer(px, py)
         mask = (joint > 1e-12) & (outer > 1e-12)
         mi = float(np.sum(joint[mask] * np.log(joint[mask] / outer[mask])))
+
+        # Miller--Madow: MI_MM = MI + (K_X + K_Y - K_XY - 1)/(2N), where K_* are
+        # the non-empty bin counts. K_XY is typically large, so the term is
+        # negative and removes the plug-in's upward bias (the source of the
+        # small-N false positives).
+        k_x = int((cx > 0).sum())
+        k_y = int((cy > 0).sum())
+        k_xy = int((counts > 0).sum())
+        mi += (k_x + k_y - k_xy - 1) / (2.0 * n)
         mi = max(0.0, mi)
+
         h_x = -float(np.sum(px[px > 1e-12] * np.log(px[px > 1e-12])))
         h_y = -float(np.sum(py[py > 1e-12] * np.log(py[py > 1e-12])))
         nmi = float(np.clip(mi / (np.sqrt(max(1e-10, h_x * h_y))), 0.0, 1.0))

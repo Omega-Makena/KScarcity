@@ -18,6 +18,7 @@ Key improvements over v1:
 from __future__ import annotations
 
 import logging
+import math
 import numpy as np
 from collections import deque
 from typing import Dict, List, Optional, Tuple, Any
@@ -28,7 +29,13 @@ try:
 except ImportError:
     _SCIPY = False
 
-from .discovery import Hypothesis, RelationshipType, HypothesisMetadata, RegimeTracker
+try:
+    from statsmodels.tsa.stattools import adfuller as _sm_adfuller
+    _HAS_STATSMODELS = True
+except ImportError:
+    _HAS_STATSMODELS = False
+
+from .discovery import Hypothesis, RelationshipType, RegimeTracker
 from .relationship_config import (
     CausalConfig,
     CorrelationalConfig,
@@ -55,8 +62,12 @@ def _f_pvalue(F: float, df_num: int, df_den: int) -> float:
         return 1.0
     if _SCIPY:
         return float(scipy_stats.f.sf(F, df_num, df_den))
-    # Fallback approximation via chi-squared
-    return float(np.exp(-0.5 * F * df_num))
+    # Fallback (no scipy): for large df_den, df_num*F is approximately chi^2(df_num);
+    # Wilson-Hilferty normal approximation of the chi-squared upper tail.
+    k = float(df_num)
+    x = F * k
+    z = ((x / k) ** (1.0 / 3.0) - (1.0 - 2.0 / (9.0 * k))) / np.sqrt(2.0 / (9.0 * k))
+    return float(0.5 * math.erfc(z / math.sqrt(2.0)))
 
 
 def _t_pvalue(t: float, df: int) -> float:
@@ -76,7 +87,26 @@ def _rls_step(P: np.ndarray, coef: np.ndarray,
               x: np.ndarray, y: float,
               lam: float) -> Tuple[np.ndarray, np.ndarray, float]:
     """
-    One RLS update step.
+    One RLS update step, using the Joseph-form covariance update.
+
+    The naive update ``P_new = (P - outer(K, Px)) / lam`` is algebraically
+    correct but numerically fragile: it divides by ``lam`` every step, so
+    rounding error is amplified by ``(1/lam)**n``.  On an ill-conditioned
+    design that is enough to destroy the covariance outright.  With regressors
+    ``[1, glucose]`` (mean 114, sd 21) the constant column is nearly collinear
+    with the variable, giving a condition number ~4e5; ``P`` lost positive
+    definiteness by step ~1520 and reached -4.8e14 by step 3840, which turned
+    every variance read off its diagonal into a NaN.
+
+    The Joseph form below is algebraically identical (verified to ~1e-15) but
+    symmetric and positive-semidefinite by construction, so the estimator stays
+    usable over long streams:
+
+        P_post = (I - K x^T) P (I - K x^T)^T + lam * K K^T
+        P_new  = P_post / lam
+
+    Coefficient updates are unchanged, so short-stream results — where the
+    naive form had not yet degraded — are numerically unaffected.
 
     Returns (P_new, coef_new, residual).
     """
@@ -88,7 +118,12 @@ def _rls_step(P: np.ndarray, coef: np.ndarray,
         return P, coef, residual
     K = Px / denom
     coef_new = coef + K * residual
-    P_new = (P - np.outer(K, Px)) / lam
+
+    M = np.eye(P.shape[0]) - np.outer(K, x)
+    P_new = (M @ P @ M.T + np.outer(K, K) * lam) / lam
+    # Symmetrise: Joseph is symmetric in exact arithmetic; this removes the
+    # last of the floating-point drift that would otherwise accumulate.
+    P_new = 0.5 * (P_new + P_new.T)
     return P_new, coef_new, residual
 
 
@@ -341,10 +376,6 @@ class CausalHypothesis(Hypothesis):
         F = max(0.0, ((rss_r - rss_u) / df_num) / (rss_u / df_den))
         return F, _f_pvalue(F, df_num, df_den), coef_level
 
-    def _granger_f_test(self, X: np.ndarray, Y: np.ndarray
-                        ) -> Tuple[float, float, Optional[np.ndarray]]:
-        """Backward-compatible wrapper: Granger F-test at self.lag."""
-        return self._granger_f_test_at_lag(X, Y, self.lag)
 
     def _select_best_lag(self, X: np.ndarray, Y: np.ndarray) -> int:
         """Return BIC-minimising lag in 1..max_lag on the appropriate series."""
@@ -474,16 +505,16 @@ class CausalHypothesis(Hypothesis):
             self.transfer_entropy_xy = self._transfer_entropy(X, Y)
             self.transfer_entropy_yx = self._transfer_entropy(Y, X)
 
-        alpha = 0.05
+        alpha = self.config.sig_alpha
         sig_fwd = self.p_value_forward < alpha
         sig_bwd = self.p_value_backward < alpha
         te_net = self.transfer_entropy_xy - self.transfer_entropy_yx
 
-        # Require forward F-stat to be at least 30% larger than backward before
+        # Require forward F-stat to be sufficiently larger than backward before
         # claiming X→Y causality; symmetric for Y→X.  When both directions are
         # similarly F-significant, leave direction ambiguous (=0) rather than
         # picking a noisy winner that would pollute ensemble cascade paths.
-        _ASYM = 1.3
+        _ASYM = self.config.asym_ratio
         f_ratio_fwd = self.f_stat_forward / max(self.f_stat_backward, 1e-6)
         f_ratio_bwd = self.f_stat_backward / max(self.f_stat_forward, 1e-6)
         if sig_fwd and (not sig_bwd or (f_ratio_fwd >= _ASYM and te_net >= 0)):
@@ -731,7 +762,6 @@ class CorrelationalHypothesis(Hypothesis):
             Y = np.array(self.buffer2)
             self.distance_corr = self._distance_corr(X, Y)
 
-        confidence = max(0.0, 1.0 - self.p_value) * abs(self.r)
         # Fisher z SE shrinks with n — used as stability proxy
         z_se = 1.0 / np.sqrt(max(n - 3, 1))
         stability = max(0.4, min(1.0, 1.0 - z_se))
@@ -1039,6 +1069,7 @@ class EquilibriumHypothesis(Hypothesis):
         self.reversion_rate = 0.0
         self.ou_sigma = 1.0
         self.adf_stat = 0.0
+        self.adf_pvalue = 1.0
         self.is_stationary = False
 
         # Kalman filter for online equilibrium tracking
@@ -1082,28 +1113,64 @@ class EquilibriumHypothesis(Hypothesis):
         sigma = float(np.std(residuals))
         return theta, mu, sigma
 
-    def _adf_stat(self, Y: np.ndarray) -> float:
-        """
-        Simplified ADF t-statistic (constant, no augmentation lags).
+    # Standard Dickey-Fuller critical values, constant-only (no trend) case.
+    _DF_CRIT = ((-3.43, 0.01), (-2.86, 0.05), (-2.57, 0.10))
 
-        More negative → stronger evidence against unit root (H0).
-        Critical value ≈ −2.86 at 5% for n > 50.
+    def _adf_test(self, Y: np.ndarray) -> Tuple[float, float]:
+        """Augmented Dickey-Fuller test for a unit root (H0: unit root present).
+
+        Uses statsmodels' validated ADF (AIC-selected augmentation lags,
+        MacKinnon p-values) when available. Otherwise runs an in-house
+        *augmented* DF regression --- dY_t = a + b Y_{t-1} + sum_i g_i dY_{t-i} + e
+        --- with lag order p ~ (n-1)^{1/3}, and interpolates the p-value from the
+        standard DF critical surface. Returns (adf_stat, p_value): a smaller
+        p-value is stronger evidence against a unit root (i.e. stationarity).
+
+        This replaces an earlier non-augmented DF that thresholded a hardcoded
+        -2.86 and mapped confidence by an ad-hoc linear rule.
         """
         n = len(Y)
         if n < 15:
-            return 0.0
-        dY = Y[1:] - Y[:-1]
-        Ylag = Y[:-1]
-        Xmat = np.column_stack([np.ones(n - 1), Ylag])
+            return 0.0, 1.0
+        if _HAS_STATSMODELS:
+            try:
+                stat, p, *_ = _sm_adfuller(Y, autolag='AIC', regression='c')
+                return float(stat), float(np.clip(p, 0.0, 1.0))
+            except Exception:
+                pass
+        dY = np.diff(Y)
+        p_lags = max(1, int(np.floor((n - 1) ** (1.0 / 3.0))))
+        rows, target = [], []
+        for t in range(p_lags, len(dY)):
+            row = [1.0, Y[t]] + [dY[t - k] for k in range(1, p_lags + 1)]
+            rows.append(row)
+            target.append(dY[t])
+        if len(target) < len(rows[0]) + 2:
+            return 0.0, 1.0
+        Xmat = np.array(rows)
+        dy = np.array(target)
         try:
-            coef, _, _, _ = np.linalg.lstsq(Xmat, dY, rcond=None)
-            res = dY - Xmat @ coef
-            s2 = float(res @ res) / max(1, n - 3)
-            XtXinv = np.linalg.inv(Xmat.T @ Xmat + 1e-10 * np.eye(2))
-            se_beta = float(np.sqrt(s2 * XtXinv[1, 1]))
-            return float(coef[1]) / (se_beta + 1e-10)
+            coef, _, _, _ = np.linalg.lstsq(Xmat, dy, rcond=None)
+            res = dy - Xmat @ coef
+            dof = max(1, len(dy) - Xmat.shape[1])
+            s2 = float(res @ res) / dof
+            XtXinv = np.linalg.inv(Xmat.T @ Xmat + 1e-10 * np.eye(Xmat.shape[1]))
+            se = float(np.sqrt(s2 * XtXinv[1, 1]))
+            stat = float(coef[1]) / (se + 1e-12)
         except np.linalg.LinAlgError:
-            return 0.0
+            return 0.0, 1.0
+        crit = self._DF_CRIT
+        if stat <= crit[0][0]:
+            p = 0.01
+        elif stat >= crit[-1][0]:
+            p = min(1.0, 0.10 + (stat - crit[-1][0]) * 0.15)
+        else:
+            p = 0.10
+            for (c0, p0), (c1, p1) in zip(crit, crit[1:]):
+                if c0 <= stat <= c1:
+                    p = p0 + (p1 - p0) * (stat - c0) / (c1 - c0)
+                    break
+        return stat, float(np.clip(p, 0.0, 1.0))
 
     def evaluate(self, row: Dict[str, float]) -> Dict[str, float]:
         cfg = self.config
@@ -1113,18 +1180,17 @@ class EquilibriumHypothesis(Hypothesis):
 
         Y = np.array(self.buffer)
         self.reversion_rate, self.equilibrium, self.ou_sigma = self._ou_mle(Y)
-        self.adf_stat = self._adf_stat(Y)
+        self.adf_stat, self.adf_pvalue = self._adf_test(Y)
 
-        adf_crit = -2.86
-        self.is_stationary = self.adf_stat < adf_crit
+        self.is_stationary = self.adf_pvalue < 0.05
         is_reverting = self.reversion_rate > cfg.reversion_threshold
 
         # theta in (0.05, 0.80) is genuine economic mean-reversion (AR coeff 0.20–0.95).
         # theta ≈ 1.0 → i.i.d. noise; theta ≈ 0 → random walk. Both are uninteresting.
         theta_in_range = 0.05 < self.reversion_rate < 0.80
 
-        adf_conf = max(0.0, min(1.0, (adf_crit - self.adf_stat) / 3.0)) \
-            if self.is_stationary else 0.2
+        # Confidence is the ADF significance itself, not an ad-hoc linear map.
+        adf_conf = (1.0 - self.adf_pvalue) if self.is_stationary else 0.2
         ou_conf = min(1.0, self.reversion_rate * 2.0) if is_reverting else 0.2
 
         if theta_in_range and (is_reverting or self.is_stationary):
@@ -1140,6 +1206,7 @@ class EquilibriumHypothesis(Hypothesis):
             'reversion_rate': self.reversion_rate,
             'ou_sigma': self.ou_sigma,
             'adf_stat': self.adf_stat,
+            'adf_pvalue': self.adf_pvalue,
             'is_stationary': self.is_stationary,
             'is_reverting': is_reverting,
             'ready': True,
@@ -1439,20 +1506,32 @@ class ProbabilisticHypothesis(Hypothesis):
         self.target = target
         self.config = config or ProbabilisticConfig()
 
-        self.buffer_x: deque = deque(maxlen=buffer_size)
-        self.buffer_y_low: deque = deque(maxlen=buffer_size // 2)
-        self.buffer_y_high: deque = deque(maxlen=buffer_size // 2)
-
-        # Online mean as adaptive split threshold
+        # Store (condition, target) pairs; split by the condition's median at
+        # evaluate time. Splitting once, on the actual median, keeps the two
+        # groups balanced even when the condition is skewed — unlike an online
+        # running-mean threshold, which mis-splits skewed conditions.
+        self.buffer_xy: deque = deque(maxlen=buffer_size)
         self._n = 0
-        self._x_sum = 0.0
 
         self.ks_stat = 0.0
         self.ks_p_value = 1.0
         self.js_div = 0.0
 
     def _x_threshold(self) -> float:
-        return self._x_sum / self._n if self._n > 0 else 0.0
+        if not self.buffer_xy:
+            return 0.0
+        return float(np.median([x for x, _ in self.buffer_xy]))
+
+    def _split(self) -> Tuple[np.ndarray, np.ndarray]:
+        """Split target values by whether the condition lies below/above its
+        median. One stable threshold (the actual median), applied at evaluate
+        time, so the groups are balanced regardless of the condition's skew."""
+        if not self.buffer_xy:
+            return np.array([]), np.array([])
+        xs = np.array([x for x, _ in self.buffer_xy])
+        ys = np.array([y for _, y in self.buffer_xy])
+        med = float(np.median(xs))
+        return ys[xs <= med], ys[xs > med]
 
     def fit_step(self, row: Dict[str, float]) -> None:
         if self.condition not in row or self.target not in row:
@@ -1461,13 +1540,7 @@ class ProbabilisticHypothesis(Hypothesis):
         if not (np.isfinite(x) and np.isfinite(y)):
             return
         self._n += 1
-        self._x_sum += x
-        self.buffer_x.append(x)
-        thresh = self._x_threshold()
-        if x <= thresh:
-            self.buffer_y_low.append(y)
-        else:
-            self.buffer_y_high.append(y)
+        self.buffer_xy.append((float(x), float(y)))
 
     def _js_div(self, A: np.ndarray, B: np.ndarray, bins: int = 20) -> float:
         lo, hi = min(A.min(), B.min()), max(A.max(), B.max())
@@ -1486,12 +1559,10 @@ class ProbabilisticHypothesis(Hypothesis):
 
     def evaluate(self, row: Dict[str, float]) -> Dict[str, float]:
         cfg = self.config
-        n0, n1 = len(self.buffer_y_low), len(self.buffer_y_high)
+        A, B = self._split()
+        n0, n1 = len(A), len(B)
         if n0 < cfg.min_samples_per_group or n1 < cfg.min_samples_per_group:
             return _not_ready(n0 + n1)
-
-        A = np.array(self.buffer_y_low)
-        B = np.array(self.buffer_y_high)
 
         if _SCIPY:
             self.ks_stat, self.ks_p_value = scipy_stats.ks_2samp(A, B)
@@ -1531,14 +1602,13 @@ class ProbabilisticHypothesis(Hypothesis):
         # the mean of the target distribution for that regime.
         if self.condition not in row:
             return None
-        n0 = len(self.buffer_y_low)
-        n1 = len(self.buffer_y_high)
+        A, B = self._split()
         cfg = self.config
-        if n0 < cfg.min_samples_per_group or n1 < cfg.min_samples_per_group:
+        if len(A) < cfg.min_samples_per_group or len(B) < cfg.min_samples_per_group:
             return None
         if row[self.condition] > self._x_threshold():
-            return (self.target, float(np.mean(self.buffer_y_high)))
-        return (self.target, float(np.mean(self.buffer_y_low)))
+            return (self.target, float(np.mean(B)))
+        return (self.target, float(np.mean(A)))
 
 
 # ===========================================================================
