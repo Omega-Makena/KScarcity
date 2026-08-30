@@ -128,11 +128,25 @@ class GPUDiscoveryEngine:
 
         return {'step': self.step_count}
 
+    def _group_confidence(self, key, r):
+        """Type-aware confidence for a (perm_col, F) group.
+
+        Most types use the RLS goodness-of-fit confidence (does the model
+        predict Y). Interaction types (synergistic / moderating, F=4) instead
+        use the significance of the interaction coefficient a*b (feature index
+        3) — the term that defines the relationship — so a strong additive but
+        non-interacting fit does not masquerade as synergy.
+        """
+        specs = self._pool.groups()[key]
+        if specs and getattr(specs[0], "interaction", False) and r.F >= 4:
+            return r.coef_significance(3)
+        return r.confidence
+
     def _run_lifecycle(self) -> None:
         conf_p, stab_p, evid_p = [], [], []
         for key in self._group_order:
             r = self._rls[key]
-            conf_p.append(r.confidence.cpu().numpy())
+            conf_p.append(self._group_confidence(key, r).cpu().numpy())
             stab_p.append(r.stability.cpu().numpy())
             evid_p.append(r.evidence.cpu().numpy())
         conf = np.concatenate(conf_p)[np.newaxis, :]   # (1, N_hyp)
@@ -170,7 +184,7 @@ class GPUDiscoveryEngine:
         for key in self._group_order:
             spec_list = groups[key]
             r = self._rls[key]
-            conf_p.append(r.confidence.cpu().numpy())
+            conf_p.append(self._group_confidence(key, r).cpu().numpy())
             stab_p.append(r.stability.cpu().numpy())
             evid_p.append(r.evidence.cpu().numpy())
             specs_ordered.extend(spec_list)
