@@ -182,7 +182,87 @@ class GPUDiscoveryEngine:
             for i in torch.nonzero(struc, as_tuple=True)[0].tolist():
                 conf[i] = self._anova_confidence(specs[i])
 
+        if r.F >= 2:
+            # Compositional: a near-exact linear identity (accounting relation),
+            # i.e. R^2 ~ 1. Ramp on the fit above 0.9 so only near-perfect
+            # relationships qualify — an approximate coupling is correlational,
+            # not an identity.
+            comp = _mask("compositional")
+            if bool(comp.any()):
+                r2 = ((r.fit_score - 0.9) / 0.1).clamp(0.0, 1.0)
+                conf = torch.where(comp, r2, conf)
+
+        prob = _mask("probabilistic")
+        if bool(prob.any()):
+            for i in torch.nonzero(prob, as_tuple=True)[0].tolist():
+                conf[i] = self._conditional_confidence(specs[i])
+
+        logic = _mask("logical")
+        if bool(logic.any()):
+            for i in torch.nonzero(logic, as_tuple=True)[0].tolist():
+                conf[i] = self._logical_confidence(specs[i])
+
         return conf
+
+    def _conditional_confidence(self, spec, d_floor: float = 0.30) -> torch.Tensor:
+        """Probabilistic: P(outcome | predictor) shifts with the predictor.
+
+        Splits the outcome at the predictor's median and measures the effect
+        size (Cohen's d) between the two conditional groups. Effect-size gated:
+        below d_floor (near-zero under independence, regardless of sample size)
+        the confidence is zero, which defeats the uniform-under-null false
+        positives of a bare significance test. Above the gate, the two-sample
+        significance is returned.
+        """
+        d = self._data[0]
+        zero = torch.zeros((), device=d.device, dtype=d.dtype)
+        a, b = d[:, spec.col_a], d[:, spec.col_y]
+        m = torch.isfinite(a) & torch.isfinite(b)
+        a, b = a[m], b[m]
+        if b.shape[0] < 20:
+            return zero
+        hi = a > a.median()
+        lo = ~hi
+        nh, nl = int(hi.sum()), int(lo.sum())
+        if nh < 5 or nl < 5:
+            return zero
+        bh, bl = b[hi], b[lo]
+        vh, vl = bh.var(), bl.var()
+        pooled_sd = torch.sqrt((((nh - 1) * vh + (nl - 1) * vl) / max(nh + nl - 2, 1)).clamp(min=1e-12))
+        cohen_d = (bh.mean() - bl.mean()).abs() / (pooled_sd + 1e-12)
+        if float(cohen_d) < d_floor:
+            return zero
+        se = torch.sqrt((vh / nh + vl / nl).clamp(min=1e-12))
+        t = (bh.mean() - bl.mean()).abs() / se
+        return torch.erf(t / (2.0 ** 0.5)).clamp(0.0, 1.0)
+
+    def _logical_confidence(self, spec, acc_floor: float = 0.15) -> torch.Tensor:
+        """Logical: a Boolean rule over binarized variables predicts the outcome.
+
+        Binarizes a, b, c at their medians and scores the best of AND / OR /
+        IMPLIES / EQUIV (and their negations) at predicting c. Effect-size gated
+        on how far the best accuracy beats chance (|acc - 0.5| >= acc_floor), then
+        a binomial z with a Sidak correction for choosing the best of 8 rules —
+        together these stop a rule that fits random data by chance from reading
+        as significant.
+        """
+        d = self._data[0]
+        zero = torch.zeros((), device=d.device, dtype=d.dtype)
+        a, b, c = d[:, spec.col_a], d[:, spec.col_b], d[:, spec.col_y]
+        m = torch.isfinite(a) & torch.isfinite(b) & torch.isfinite(c)
+        a, b, c = a[m], b[m], c[m]
+        n = a.shape[0]
+        if n < 20:
+            return zero
+        ab, bb, cb = a > a.median(), b > b.median(), c > c.median()
+        rules = [ab & bb, ab | bb, (~ab) | bb, ab == bb]   # AND, OR, IMPLIES, EQUIV
+        best = max(float((r == cb).float().mean()) for r in rules)
+        best = max(best, 1.0 - best)                       # a rule and its negation
+        if (best - 0.5) < acc_floor:
+            return zero
+        z = (best - 0.5) / ((0.25 / n) ** 0.5)
+        single = float(torch.erf(torch.tensor(max(z, 0.0)) / (2.0 ** 0.5)).clamp(0.0, 1.0))
+        return torch.tensor(single ** 8, device=d.device, dtype=d.dtype)
 
     def _anova_confidence(self, spec, n_bins: int = 4) -> torch.Tensor:
         """One-way ANOVA: does the outcome differ across groups of the predictor.
@@ -354,8 +434,57 @@ class GPUDiscoveryEngine:
                     "stability": float(stab[i]),
                 },
             })
+        # Similarity is a collective type excluded from the RLS groups; evaluate
+        # it separately from the stored series and append it to the graph.
+        for s in self._pool.specs:
+            if getattr(s, "F", 0) > 0 or self._rel_type_str(s.rel_type) != "similarity":
+                continue
+            variables = list(s.variables)
+            c = self._similarity_confidence(s)
+            items.append({
+                "id": f"similarity:{'|'.join(map(str, variables))}",
+                "type": "similarity",
+                "state": "active" if c > 0.55 else "tentative",
+                "created_at": 0.0,
+                "generation": 0,
+                "variables": variables,
+                "metrics": {
+                    "fit_score": 0.0,
+                    "confidence": c,
+                    "evidence": int(self._data.shape[1]),
+                    "stability": 0.0,
+                },
+            })
         items.sort(key=lambda d: d["metrics"]["confidence"], reverse=True)
         return items[:top_k]
+
+    def _similarity_confidence(self, spec) -> float:
+        """Similarity: variables in the subset co-move (are redundant).
+
+        Mean absolute pairwise Pearson correlation across the subset — an effect
+        size in [0, 1] that is near zero for independent variables (regardless of
+        sample size) and near one when they move together. No bare significance,
+        so it does not false-fire on noise.
+        """
+        if self._data is None or self._data.shape[1] < 20:
+            return 0.0
+        d = self._data[0]                                  # (T, N)
+        idx = [i for i, name in enumerate(self._col_names) if name in spec.variables]
+        if len(idx) < 2:
+            return 0.0
+        X = d[:, idx]
+        X = X[torch.isfinite(X).all(1)]
+        if X.shape[0] < 20:
+            return 0.0
+        Xc = X - X.mean(0)
+        std = Xc.std(0, unbiased=True)
+        if bool((std < 1e-9).any()):
+            return 0.0
+        k = X.shape[1]
+        cov = (Xc.t() @ Xc) / (X.shape[0] - 1)
+        corr = (cov / torch.outer(std, std)).abs()
+        off_mean = (corr.sum() - corr.diag().sum()) / (k * (k - 1))
+        return float(off_mean.clamp(0.0, 1.0))
 
     def get_candidate_paths(self, top_k: int = 30) -> List[Candidate]:
         """Export top hypotheses as Candidate objects (parity with CPU engine)."""

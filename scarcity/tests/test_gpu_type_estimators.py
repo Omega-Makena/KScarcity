@@ -157,3 +157,70 @@ def test_structural_fires_when_outcome_differs_by_group():
 
 def test_structural_quiet_when_independent_of_group():
     assert _max_conf(_grouped(False), "structural", cols=("g", "y")) < 0.55
+
+
+# --- probabilistic: conditional distribution shift (effect-size gated) --------
+
+def test_probabilistic_fires_on_conditional_shift():
+    rows = _pair(lambda a, rng: a + 0.3 * rng.normal(size=len(a)))
+    assert _max_conf(rows, "probabilistic", cols=("a", "b")) > 0.55
+
+
+def test_probabilistic_quiet_when_independent():
+    rows = _pair(lambda a, rng: rng.normal(size=len(a)))
+    assert _max_conf(rows, "probabilistic", cols=("a", "b")) < 0.55
+
+
+# --- logical: a Boolean rule predicts the outcome (effect-size gated) ---------
+
+def _logic(rule, n=500, seed=5):
+    rng = np.random.default_rng(seed)
+    a = rng.normal(size=n)
+    b = rng.normal(size=n)
+    if rule:
+        c = np.where((a > 0) & (b > 0), 1.0, -1.0) + 0.1 * rng.normal(size=n)
+    else:
+        c = rng.normal(size=n)
+    return [{"a": float(a[i]), "b": float(b[i]), "c": float(c[i])} for i in range(n)], n
+
+
+def test_logical_fires_on_boolean_rule():
+    assert _max_conf(_logic(True), "logical", cols=("a", "b", "c")) > 0.55
+
+
+def test_logical_quiet_on_random():
+    assert _max_conf(_logic(False), "logical", cols=("a", "b", "c")) < 0.55
+
+
+# --- compositional: a near-exact linear identity (R^2 ~ 1) --------------------
+
+def test_compositional_fires_on_identity():
+    rows = _pair(lambda a, rng: 2.0 * a)                    # exact b = 2a
+    assert _max_conf(rows, "compositional", cols=("a", "b")) > 0.55
+
+
+def test_compositional_quiet_on_noisy_coupling():
+    # An approximate coupling is correlational, not an accounting identity.
+    rows = _pair(lambda a, rng: a + 1.0 * rng.normal(size=len(a)))
+    assert _max_conf(rows, "compositional", cols=("a", "b")) < 0.55
+
+
+# --- similarity: variables co-move / are redundant (effect size) --------------
+
+def _factor(comove, n=500, seed=9):
+    rng = np.random.default_rng(seed)
+    cols = ("a", "b", "c", "d")
+    if comove:
+        f = rng.normal(size=n)
+        data = {c: f + 0.2 * rng.normal(size=n) for c in cols}
+    else:
+        data = {c: rng.normal(size=n) for c in cols}
+    return [{c: float(data[c][i]) for c in cols} for i in range(n)], n
+
+
+def test_similarity_fires_on_comovement():
+    assert _max_conf(_factor(True), "similarity", cols=("a", "b", "c", "d")) > 0.55
+
+
+def test_similarity_quiet_when_independent():
+    assert _max_conf(_factor(False), "similarity", cols=("a", "b", "c", "d")) < 0.55
