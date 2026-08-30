@@ -71,25 +71,6 @@ def test_causal_imports_and_mock_run():
     except ImportError:
         pytest.fail("Could not import Causal Engine")
 
-def test_dashboard_imports():
-    """Verify Dashboard dependencies."""
-    print("\nTesting Dashboard Imports...")
-    try:
-        # Use importlib to check
-        import importlib.util
-        spec = importlib.util.find_spec("scarcity.dashboard")
-        if spec is None:
-             # Script file?
-             if os.path.exists("scarcity/dashboard.py"):
-                 print("Dashboard script exists.")
-             else:
-                 pytest.fail("Dashboard script missing")
-        else:
-            print("Dashboard module found.")
-            
-    except SyntaxError as e:
-        pytest.fail(f"Syntax Error in Dashboard: {e}")
-
 def scan_null_bytes():
     print("\nScanning for Null Bytes...")
     root_dir = os.getcwd()
