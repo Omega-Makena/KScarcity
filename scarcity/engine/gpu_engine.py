@@ -20,8 +20,14 @@ from typing import Any, Dict, List, Optional, Tuple
 import numpy as np
 import torch
 
+import hashlib
+
 from .gpu_batch_rls import GPUBatchRLS
 from .gpu_hypothesis_pool import GPUHypothesisPool, HypoSpec, LifecycleEmulator
+from .types import Candidate
+
+# Lifecycle int8 -> LifecycleState string (matches discovery.HypothesisState values).
+_LC_STATE = {0: "tentative", 1: "active", 2: "decaying", 3: "dead"}
 
 # ---------------------------------------------------------------------------
 # Rel-type classification (mirrors graph_extractor.py logic)
@@ -173,6 +179,74 @@ class GPUDiscoveryEngine:
         evid  = np.concatenate(evid_p)
         state = self._lc.state[0]    # (N_hyp,), int8; run=0
         return conf, stab, evid, state, specs_ordered
+
+    @staticmethod
+    def _rel_type_str(rel_type: Any) -> str:
+        return rel_type if isinstance(rel_type, str) else getattr(rel_type, "value", str(rel_type))
+
+    def get_knowledge_graph(self, top_k: int = 50) -> List[Dict[str, Any]]:
+        """Export discovered hypotheses in the same format as the CPU engine.
+
+        Mirrors OnlineDiscoveryEngine.get_knowledge_graph: the strongest
+        hypotheses (by confidence) serialized to the Hypothesis.to_dict() shape,
+        so downstream consumers (bridges, benchmark, graph extraction) are
+        backend-agnostic.
+        """
+        if self._pool is None:
+            return []
+        conf, stab, evid, state, specs = self.get_hyp_metrics()
+        items: List[Dict[str, Any]] = []
+        for i, s in enumerate(specs):
+            variables = list(s.variables)
+            rel = self._rel_type_str(s.rel_type)
+            items.append({
+                "id": f"{rel}:{'|'.join(map(str, variables))}",
+                "type": rel,
+                "state": _LC_STATE.get(int(state[i]), "tentative"),
+                "created_at": 0.0,
+                "generation": 0,
+                "variables": variables,
+                "metrics": {
+                    "fit_score": 0.0,
+                    "confidence": float(conf[i]),
+                    "evidence": int(evid[i]),
+                    "stability": float(stab[i]),
+                },
+            })
+        items.sort(key=lambda d: d["metrics"]["confidence"], reverse=True)
+        return items[:top_k]
+
+    def get_candidate_paths(self, top_k: int = 30) -> List[Candidate]:
+        """Export top hypotheses as Candidate objects (parity with CPU engine)."""
+        if self._pool is None:
+            return []
+        var_index = {name: idx for idx, name in enumerate(self._col_names)}
+        conf, stab, evid, state, specs = self.get_hyp_metrics()
+        order = np.argsort(-conf)
+        candidates: List[Candidate] = []
+        for i in order:
+            if int(state[i]) == _DEAD or float(conf[i]) < 0.25:
+                continue
+            variables = list(specs[i].variables)
+            if len(variables) < 2:
+                continue
+            try:
+                var_indices = tuple(var_index[v] for v in variables[:2] if v in var_index)
+            except KeyError:
+                continue
+            if len(var_indices) < 2:
+                continue
+            rel = self._rel_type_str(specs[i].rel_type)
+            path_key = f"{var_indices}:{rel}"
+            path_id = hashlib.md5(path_key.encode()).hexdigest()[:16]
+            candidates.append(Candidate(
+                path_id=path_id, vars=var_indices, lags=(0, 0),
+                ops=("identity", "identity"), root=var_indices[0], depth=1,
+                domain=0, gen_reason=f"discovery:{rel}",
+            ))
+            if len(candidates) >= top_k:
+                break
+        return candidates
 
 
 # ---------------------------------------------------------------------------
