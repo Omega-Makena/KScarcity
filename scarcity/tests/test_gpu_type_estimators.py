@@ -107,3 +107,36 @@ def test_mediating_quiet_when_independent():
 def test_mediating_quiet_on_direct_effect():
     # A direct a->c effect with no a->b path is not mediation.
     assert _max_conf(_chain("direct"), "mediating", cols=("a", "b", "c")) < 0.55
+
+
+# --- equilibrium: a mean-reverting (stationary) series, ADF-style -------------
+
+def _series(phi, n=600, seed=3):
+    rng = np.random.default_rng(seed)
+    v = np.zeros(n)
+    for t in range(1, n):
+        v[t] = phi * v[t - 1] + rng.normal()
+    w = rng.normal(size=n)
+    rows = [{"v": float(v[i]), "w": float(w[i])} for i in range(n)]
+    return rows, n
+
+
+def _eq_conf(rows_n):
+    rows, n = rows_n
+    e = GPUDiscoveryEngine(device="cpu")
+    e.initialize_v2({"fields": [{"name": "v"}, {"name": "w"}]}, use_causal=True)
+    for r in rows:
+        e.process_row(r)
+    return max(
+        (h["metrics"]["confidence"] for h in e.get_knowledge_graph()
+         if h["type"] == "equilibrium" and "v" in h["variables"]),
+        default=0.0,
+    )
+
+
+def test_equilibrium_fires_on_mean_reversion():
+    assert _eq_conf(_series(0.5)) > 0.55        # phi < 1: stationary
+
+
+def test_equilibrium_quiet_on_random_walk():
+    assert _eq_conf(_series(1.0)) < 0.55        # phi ~ 1: unit root, not equilibrium

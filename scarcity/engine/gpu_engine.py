@@ -161,6 +161,17 @@ class GPUDiscoveryEngine:
                 comp_conf = torch.where(neg, r.coef_significance(1), torch.zeros_like(conf))
                 conf = torch.where(comp, comp_conf, conf)
 
+        if r.F >= 2:
+            eq = _mask("equilibrium")
+            if bool(eq.any()):
+                # AR(1) v_t ~ [1, v_{t-1}]: W[:,1] is phi. Mean-reversion
+                # (stationarity) means phi significantly < 1 (ADF-style unit-root
+                # test); a random walk (phi ~ 1) is not an equilibrium.
+                phi = r.W[:, 1]
+                eq_conf = torch.where(
+                    phi < 1.0, r.coef_significance(1, null=1.0), torch.zeros_like(conf))
+                conf = torch.where(eq, eq_conf, conf)
+
         med = _mask("mediating")
         if bool(med.any()):
             for i in torch.nonzero(med, as_tuple=True)[0].tolist():

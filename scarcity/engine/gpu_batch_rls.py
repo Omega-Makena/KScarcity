@@ -246,21 +246,21 @@ class GPUBatchRLS:
         """Step count per model. Shape: (M,). dtype int64."""
         return self.n
 
-    def coef_significance(self, j: int) -> torch.Tensor:
-        """Confidence that coefficient ``j`` is non-zero, per model. Shape (M,).
+    def coef_significance(self, j: int, null: float = 0.0) -> torch.Tensor:
+        """Confidence that coefficient ``j`` differs from ``null``, per model.
 
-        Two-sided significance of the regression coefficient via a t-statistic
-        t = |W_j| / SE(W_j), with SE(W_j) = sqrt(sigma^2 * P[j,j]) (RLS
-        covariance scaled by the residual variance). Mapped to [0, 1] as
-        2*Phi(|t|) - 1. This is the type-specific signal for hypotheses whose
-        meaning is "does this particular term matter" (interaction terms for
-        synergistic / moderating) rather than "does the model fit overall".
+        Two-sided significance via a t-statistic t = |W_j - null| / SE(W_j),
+        with SE(W_j) = sqrt(sigma^2 * P[j,j]) (RLS covariance scaled by the
+        residual variance). Mapped to [0, 1] as 2*Phi(|t|) - 1. The type-specific
+        signal for hypotheses whose meaning is "does this term matter" — e.g. an
+        interaction coefficient vs 0 (synergistic), or an AR(1) coefficient vs 1
+        (equilibrium / unit root). Shape (M,).
         """
         n = self.n.clamp(min=1).to(self.dtype)
         dof = (n - float(self.F)).clamp(min=1.0)
         sigma2 = (self.sse / dof).clamp(min=0.0)
         var_coef = (sigma2 * self.P[:, j, j]).clamp(min=1e-12)
-        t = self.W[:, j].abs() / var_coef.sqrt()
+        t = (self.W[:, j] - null).abs() / var_coef.sqrt()
         # Standard-normal CDF via erf; 2*Phi(|t|) - 1 = erf(|t| / sqrt(2)).
         conf = torch.erf(t / (2.0 ** 0.5)).clamp(0.0, 1.0)
         # No confidence until a coefficient is actually estimable.
