@@ -129,18 +129,39 @@ class GPUDiscoveryEngine:
         return {'step': self.step_count}
 
     def _group_confidence(self, key, r):
-        """Type-aware confidence for a (perm_col, F) group.
+        """Per-hypothesis, type-aware confidence for a (perm_col, F) group.
 
-        Most types use the RLS goodness-of-fit confidence (does the model
-        predict Y). Interaction types (synergistic / moderating, F=4) instead
-        use the significance of the interaction coefficient a*b (feature index
-        3) — the term that defines the relationship — so a strong additive but
-        non-interacting fit does not masquerade as synergy.
+        Prediction-style types (causal / correlational / temporal / functional /
+        graph) keep the RLS goodness-of-fit confidence. Types defined by a
+        specific term or sign get their own statistic, computed from the batched
+        RLS state and applied only to the hypotheses of that type (F=2 groups mix
+        several types, so the override must be per-hypothesis, not per-group):
+
+        - synergistic / moderating: significance of the interaction coefficient
+          a*b (feature 3) — so an additive fit is not mistaken for synergy.
+        - competitive: significance of a *negative* slope (feature 1) — a
+          substitute relationship, not just any strong coupling.
         """
         specs = self._pool.groups()[key]
-        if specs and getattr(specs[0], "interaction", False) and r.F >= 4:
-            return r.coef_significance(3)
-        return r.confidence
+        conf = r.confidence.clone()                       # (M,) fit-based default
+        types = np.array([self._rel_type_str(s.rel_type) for s in specs])
+
+        def _mask(name):
+            return torch.as_tensor(types == name, device=conf.device)
+
+        if r.F >= 4:
+            inter = _mask("synergistic") | _mask("moderating")
+            if bool(inter.any()):
+                conf = torch.where(inter, r.coef_significance(3), conf)
+
+        if r.F >= 2:
+            comp = _mask("competitive")
+            if bool(comp.any()):
+                neg = r.W[:, 1] < 0                        # substitute = negative slope
+                comp_conf = torch.where(neg, r.coef_significance(1), torch.zeros_like(conf))
+                conf = torch.where(comp, comp_conf, conf)
+
+        return conf
 
     def _run_lifecycle(self) -> None:
         conf_p, stab_p, evid_p = [], [], []

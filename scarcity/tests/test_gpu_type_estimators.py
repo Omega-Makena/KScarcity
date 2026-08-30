@@ -57,3 +57,23 @@ def test_moderating_fires_on_real_interaction():
 def test_moderating_quiet_without_interaction():
     rows = _triple(lambda a, b, rng: a + b + 0.1 * rng.normal(size=len(a)))
     assert _max_conf(rows, "moderating") < 0.55
+
+
+# --- competitive: a substitute (significant negative) relationship ------------
+
+def _pair(fn, n=400, seed=1):
+    rng = np.random.default_rng(seed)
+    a = rng.normal(size=n)
+    b = fn(a, rng)
+    return [{"a": float(a[i]), "b": float(b[i])} for i in range(n)], n
+
+
+def test_competitive_fires_on_substitute():
+    rows = _pair(lambda a, rng: -a + 0.1 * rng.normal(size=len(a)))
+    assert _max_conf(rows, "competitive", cols=("a", "b")) > 0.55
+
+
+def test_competitive_quiet_on_complement():
+    # A positive (complementary) relationship is not competitive.
+    rows = _pair(lambda a, rng: a + 0.1 * rng.normal(size=len(a)))
+    assert _max_conf(rows, "competitive", cols=("a", "b")) < 0.55
