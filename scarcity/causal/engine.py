@@ -306,7 +306,9 @@ def _run_single_spec(
             logger.warning(f"Could not compute confidence intervals: {exc}")
 
         stage = "validation"
-        refutations = Validator.validate(model, estimate, runtime)
+        _eff_val = getattr(estimate, "value", estimate)
+        observed_effect = float(np.mean(np.asarray(_eff_val, dtype=float)))
+        refutations = Validator.validate(spec, clean_data, observed_effect, runtime)
 
         graph_edges = _extract_graph_edges(model, spec, dot_text)
 
