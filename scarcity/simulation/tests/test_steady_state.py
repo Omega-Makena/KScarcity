@@ -6,13 +6,18 @@ from scarcity.simulation.parameters import AllParams
 from scarcity.simulation.sfc_engine import find_steady_state, step
 from scarcity.simulation.types import PolicyState, SECTORS, ShockVector
 
-# KNOWN BUG: the sfc_engine functional steady-state solver does not converge with
-# default_kenya() params — it hits max_iter, lands ~576x off target GDP, and the
-# accounting residuals explode (~1e125). The class-based SFCEconomy (sfc.py) — the
-# engine the macro evidence uses — is unaffected. Tracked for a solver fix; until
-# then these are expected failures rather than silent AttributeErrors.
+# PARTIALLY FIXED: the sfc_engine functional steady-state solver did not converge
+# with default_kenya() params. One cause is now fixed — the fiscal debt brake
+# (compute_government_block) was parameterized (fiscal_consolidation_speed) but
+# never implemented, so government debt compounded at the borrowing rate with no
+# steady state. A second, deeper cause remains: the sector accounts are not
+# mutually consistent at the fixed point (disposable income exceeds GDP, so the
+# behavioral investment and the national-income-residual investment diverge and
+# the accounting residuals explode). Full convergence needs a coherent
+# household/government/production re-closure — a modeling task, not a one-line
+# bug. The class-based SFCEconomy (sfc.py) the macro evidence uses is unaffected.
 _SOLVER_BROKEN = pytest.mark.xfail(
-    reason="sfc_engine.find_steady_state diverges with default_kenya params",
+    reason="sfc_engine steady state: sector accounts not mutually consistent (needs re-closure)",
     strict=False,
 )
 

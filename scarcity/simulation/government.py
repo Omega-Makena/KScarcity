@@ -66,6 +66,22 @@ def compute_government_block(
     G_other = float(params.other_recurrent_share) * G_planned
 
     G_total = G_wages + G_transfers + G_interest + G_investment + G_other + float(fiscal_pressure)
+
+    # Fiscal reaction / debt brake: move the primary balance toward the target
+    # debt-to-GDP ratio so government debt converges to a steady state. Without
+    # it the debt law of motion B' = (1 + i_gov) * B + primary_deficit is
+    # explosive (debt compounds at the borrowing rate with nothing responding to
+    # it), and no level steady state exists. The parameterized consolidation
+    # speed closes a fraction of the gap each quarter; the adjustment is zero at
+    # the target ratio. Floored so debt service and investment stay funded.
+    debt_ratio = float(B_gov_prev) / max(float(NGDP), 1e-9)
+    fiscal_adjustment = (
+        float(params.fiscal_consolidation_speed)
+        * (debt_ratio - float(params.debt_gdp_ratio_2023))
+        * float(NGDP)
+    )
+    G_total = max(G_total - fiscal_adjustment, G_interest + G_investment)
+
     DEFICIT = G_total - T_rev
 
     amortization_payments = 0.0
