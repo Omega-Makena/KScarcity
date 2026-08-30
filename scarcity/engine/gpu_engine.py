@@ -177,7 +177,53 @@ class GPUDiscoveryEngine:
             for i in torch.nonzero(med, as_tuple=True)[0].tolist():
                 conf[i] = self._sobel_confidence(specs[i])
 
+        struc = _mask("structural")
+        if bool(struc.any()):
+            for i in torch.nonzero(struc, as_tuple=True)[0].tolist():
+                conf[i] = self._anova_confidence(specs[i])
+
         return conf
+
+    def _anova_confidence(self, spec, n_bins: int = 4) -> torch.Tensor:
+        """One-way ANOVA: does the outcome differ across groups of the predictor.
+
+        Bins the group variable into quantiles and tests whether the outcome's
+        between-group variance is significant (eta-squared + an F-test). torch
+        has no F CDF, so F is turned into a z-score via Fisher's chi-square
+        approximation (chi^2 ~ F*df_between for large df_within) and mapped to
+        [0, 1] as erf(|z|/sqrt(2)).
+        """
+        d = self._data[0]                                  # (T, N)
+        zero = torch.zeros((), device=d.device, dtype=d.dtype)
+        g = d[:, spec.col_a]                               # group variable
+        y = d[:, spec.col_y]                               # outcome
+        m = torch.isfinite(g) & torch.isfinite(y)
+        g, y = g[m], y[m]
+        n = y.shape[0]
+        if n < 4 * n_bins:
+            return zero
+        edges = torch.quantile(g, torch.linspace(0, 1, n_bins + 1, device=d.device, dtype=d.dtype))
+        bins = torch.bucketize(g, edges[1:-1].contiguous())   # 0..n_bins-1
+        grand = y.mean()
+        ss_tot = ((y - grand) ** 2).sum()
+        if float(ss_tot) < 1e-12:
+            return zero
+        ss_between = zero
+        k_eff = 0
+        for gb in range(n_bins):
+            sel = bins == gb
+            ng = int(sel.sum())
+            if ng > 0:
+                ss_between = ss_between + ng * (y[sel].mean() - grand) ** 2
+                k_eff += 1
+        df_b = max(k_eff - 1, 1)
+        df_w = max(n - k_eff, 1)
+        ss_within = (ss_tot - ss_between).clamp(min=1e-12)
+        F = (ss_between / df_b) / (ss_within / df_w)
+        # Fisher chi-square -> z: chi2 ~ F*df_b; z = sqrt(2 chi2) - sqrt(2 df_b - 1).
+        chi2 = F * df_b
+        z = (torch.sqrt(2.0 * chi2) - (2.0 * df_b - 1.0) ** 0.5).clamp(min=0.0)
+        return torch.erf(z / (2.0 ** 0.5)).clamp(0.0, 1.0)
 
     def _sobel_confidence(self, spec) -> torch.Tensor:
         """Mediation significance via the Sobel test on the indirect path.

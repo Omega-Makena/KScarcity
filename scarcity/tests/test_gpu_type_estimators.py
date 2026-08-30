@@ -140,3 +140,20 @@ def test_equilibrium_fires_on_mean_reversion():
 
 def test_equilibrium_quiet_on_random_walk():
     assert _eq_conf(_series(1.0)) < 0.55        # phi ~ 1: unit root, not equilibrium
+
+
+# --- structural: the outcome differs across groups of the predictor (ANOVA) ---
+
+def _grouped(differs, n=600, seed=4):
+    rng = np.random.default_rng(seed)
+    g = rng.integers(0, 4, size=n).astype(float)
+    y = g * 2.0 + 0.3 * rng.normal(size=n) if differs else rng.normal(size=n)
+    return [{"g": float(g[i]), "y": float(y[i])} for i in range(n)], n
+
+
+def test_structural_fires_when_outcome_differs_by_group():
+    assert _max_conf(_grouped(True), "structural", cols=("g", "y")) > 0.55
+
+
+def test_structural_quiet_when_independent_of_group():
+    assert _max_conf(_grouped(False), "structural", cols=("g", "y")) < 0.55
