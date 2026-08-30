@@ -77,3 +77,33 @@ def test_competitive_quiet_on_complement():
     # A positive (complementary) relationship is not competitive.
     rows = _pair(lambda a, rng: a + 0.1 * rng.normal(size=len(a)))
     assert _max_conf(rows, "competitive", cols=("a", "b")) < 0.55
+
+
+# --- mediating: a significant indirect path a -> b -> c (Sobel) ---------------
+
+def _chain(kind, n=500, seed=2):
+    rng = np.random.default_rng(seed)
+    a = rng.normal(size=n)
+    if kind == "mediation":
+        b = a + 0.3 * rng.normal(size=n)
+        c = b + 0.3 * rng.normal(size=n)
+    elif kind == "direct":            # c depends on a directly, not through b
+        b = rng.normal(size=n)
+        c = a + 0.3 * rng.normal(size=n)
+    else:                             # independent
+        b = rng.normal(size=n)
+        c = rng.normal(size=n)
+    return [{"a": float(a[i]), "b": float(b[i]), "c": float(c[i])} for i in range(n)], n
+
+
+def test_mediating_fires_on_real_chain():
+    assert _max_conf(_chain("mediation"), "mediating", cols=("a", "b", "c")) > 0.55
+
+
+def test_mediating_quiet_when_independent():
+    assert _max_conf(_chain("independent"), "mediating", cols=("a", "b", "c")) < 0.55
+
+
+def test_mediating_quiet_on_direct_effect():
+    # A direct a->c effect with no a->b path is not mediation.
+    assert _max_conf(_chain("direct"), "mediating", cols=("a", "b", "c")) < 0.55

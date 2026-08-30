@@ -161,7 +161,56 @@ class GPUDiscoveryEngine:
                 comp_conf = torch.where(neg, r.coef_significance(1), torch.zeros_like(conf))
                 conf = torch.where(comp, comp_conf, conf)
 
+        med = _mask("mediating")
+        if bool(med.any()):
+            for i in torch.nonzero(med, as_tuple=True)[0].tolist():
+                conf[i] = self._sobel_confidence(specs[i])
+
         return conf
+
+    def _sobel_confidence(self, spec) -> torch.Tensor:
+        """Mediation significance via the Sobel test on the indirect path.
+
+        For a mediating hypothesis a -> b -> c: alpha is the a->b slope, beta is
+        the b->c slope adjusting for a (from the c ~ [1, a, b] regression). The
+        indirect effect is alpha*beta; the Sobel z = alpha*beta / SE, with
+        SE = sqrt(beta^2 se_alpha^2 + alpha^2 se_beta^2), mapped to [0, 1] as
+        erf(|z|/sqrt(2)). Computed from the stored series (the b->c effect is not
+        recoverable from the pool's single c~[1,a,b] fit alone).
+        """
+        d = self._data[0]                                  # (T, N)
+        zero = torch.zeros((), device=d.device, dtype=d.dtype)
+        a = d[:, spec.col_a]
+        b = d[:, spec.col_b]
+        c = d[:, spec.col_y]
+        mask = torch.isfinite(a) & torch.isfinite(b) & torch.isfinite(c)
+        a, b, c = a[mask], b[mask], c[mask]
+        n = a.shape[0]
+        if n < 10:
+            return zero
+        am, bm, cm = a - a.mean(), b - b.mean(), c - c.mean()
+        var_a = (am * am).sum()
+        if float(var_a) < 1e-12:
+            return zero
+        # Path a->b
+        alpha = (am * bm).sum() / var_a
+        res_b = bm - alpha * am
+        se_alpha = torch.sqrt((res_b * res_b).sum() / max(n - 2, 1) / var_a)
+        # Path b->c adjusting for a: regress cm on [am, bm] (no intercept, centered)
+        X = torch.stack([am, bm], dim=1)                   # (n, 2)
+        XtX = X.t() @ X
+        try:
+            XtX_inv = torch.linalg.inv(XtX + 1e-9 * torch.eye(2, device=d.device, dtype=d.dtype))
+        except Exception:
+            return zero
+        coef = XtX_inv @ (X.t() @ cm)                      # [a_effect, beta]
+        beta = coef[1]
+        resid_c = cm - X @ coef
+        sigma2_c = (resid_c * resid_c).sum() / max(n - 3, 1)
+        se_beta = torch.sqrt((sigma2_c * XtX_inv[1, 1]).clamp(min=1e-12))
+        denom = torch.sqrt((beta ** 2 * se_alpha ** 2 + alpha ** 2 * se_beta ** 2).clamp(min=1e-12))
+        z = (alpha * beta).abs() / denom
+        return torch.erf(z / (2.0 ** 0.5)).clamp(0.0, 1.0)
 
     def _run_lifecycle(self) -> None:
         conf_p, stab_p, evid_p = [], [], []
