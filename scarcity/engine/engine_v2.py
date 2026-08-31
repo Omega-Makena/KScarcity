@@ -33,6 +33,7 @@ from .relationships import (
     ProbabilisticHypothesis,
     StructuralHypothesis,
 )
+from .relationship_config import CorrelationalConfig
 from .relationships_extended import (
     MediatingHypothesis,
     ModeratingHypothesis,
@@ -69,7 +70,8 @@ class OnlineDiscoveryEngine:
 
     def __init__(self, explore_interval: int = 10, mode: str = "balanced",
                  buffer_size: int = 150, small_dataset_mode: bool = False,
-                 vectorized: Optional[bool] = None, device: str = 'cpu'):
+                 vectorized: Optional[bool] = None, device: str = 'cpu',
+                 forgetting_window: int = 0):
         """
         Initializes the discovery engine and its sub-components.
 
@@ -94,6 +96,10 @@ class OnlineDiscoveryEngine:
         self.meta_controller = MetaController()
 
         self.buffer_size = buffer_size
+        # Forgetting window for windowed estimators (0 = cumulative/lifetime).
+        # When > 0, correlation-style hypotheses weight only the last N samples so
+        # relationships that die mid-stream decay instead of surviving on old data.
+        self.forgetting_window = forgetting_window
         self.step_count = 0
         self.explore_interval = explore_interval
         self.start_time = time.time()
@@ -263,8 +269,13 @@ class OnlineDiscoveryEngine:
         for a, b in pairs:
             # Correlational — both directions: each is a distinct predictor for shock propagation.
             # Corr(a,b) uses a to predict b; Corr(b,a) uses b to predict a.
-            self.hypotheses.add(CorrelationalHypothesis(a, b, buffer_size=bs))
-            self.hypotheses.add(CorrelationalHypothesis(b, a, buffer_size=bs))
+            _cbuf = max(bs, self.forgetting_window)
+            self.hypotheses.add(CorrelationalHypothesis(
+                a, b, buffer_size=_cbuf,
+                config=CorrelationalConfig(window=self.forgetting_window)))
+            self.hypotheses.add(CorrelationalHypothesis(
+                b, a, buffer_size=_cbuf,
+                config=CorrelationalConfig(window=self.forgetting_window)))
 
             # Functional (linear regression, both directions)
             self.hypotheses.add(FunctionalHypothesis(a, b, degree=1, buffer_size=bs))

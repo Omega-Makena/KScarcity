@@ -26,9 +26,13 @@ from benchmark.real_data.rolling_backtest import RollingOriginBacktest
 from benchmark.evaluation.federation_metrics import FederationEvaluator
 
 
-def run_synthetic_benchmark(schema_path: str, n_samples: int = 3000, seed: int = 42) -> dict:
+def run_synthetic_benchmark(schema_path: str, n_samples: int = 3000, seed: int = 42,
+                            forgetting_window: int = 0) -> dict:
     print("\n--- PHASE: Synthetic Generation & Calibration ---")
-    bench = SyntheticBenchmark(schema_path=schema_path, seed=seed, B_perm=100)
+    if forgetting_window:
+        print(f"  forgetting_window={forgetting_window} (windowed correlation)")
+    bench = SyntheticBenchmark(schema_path=schema_path, seed=seed, B_perm=100,
+                               forgetting_window=forgetting_window)
     results = bench.run(n_samples=n_samples)
     print(f"  Strict F1={results['metrics']['strict']['f1']:.4f}  "
           f"Null FPR={results['metrics']['null_fpr']:.4f}")
@@ -93,6 +97,9 @@ def main():
     parser.add_argument("--schema", default="benchmark/synthetic/benchmark_schema.json")
     parser.add_argument("--n_samples", type=int, default=3000)
     parser.add_argument("--seed", type=int, default=42)
+    parser.add_argument("--forgetting_window", type=int, default=0,
+                        help="Windowed correlation (0 = cumulative). Validates that "
+                             "forgetting preserves recovery F1.")
     parser.add_argument("--out_dir", default="benchmark/reports/outputs")
     args = parser.parse_args()
 
@@ -102,7 +109,8 @@ def main():
     data_dict = {}
 
     if args.phase in ("synthetic", "all"):
-        synthetic_result = run_synthetic_benchmark(args.schema, args.n_samples, args.seed)
+        synthetic_result = run_synthetic_benchmark(args.schema, args.n_samples, args.seed,
+                                                   forgetting_window=args.forgetting_window)
 
     if args.phase in ("real", "all"):
         backtest_rows = run_real_world_backtest()

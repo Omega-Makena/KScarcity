@@ -43,9 +43,11 @@ class SyntheticBenchmark:
     GPU-accelerated calibration, and ground-truth evaluation.
     """
 
-    def __init__(self, schema_path: str, seed: int = 42, B_perm: int = 100):
+    def __init__(self, schema_path: str, seed: int = 42, B_perm: int = 100,
+                 forgetting_window: int = 0):
         self.schema_path = schema_path
         self.seed = seed
+        self.forgetting_window = forgetting_window
         self.generator = create_benchmark_generator(schema_path, seed)
         self.B_perm = B_perm
         self.calibrator = BenchmarkCalibrator(
@@ -70,7 +72,7 @@ class SyntheticBenchmark:
 
         if HAS_ENGINE:
             print("  [2/4] Streaming through Scarcity engine...", flush=True)
-            engine = OnlineDiscoveryEngine()
+            engine = OnlineDiscoveryEngine(forgetting_window=self.forgetting_window)
             schema = {"fields": [{"name": v} for v in self.generator.variables]}
             engine.initialize_v2(schema, use_causal=True)
 
