@@ -273,6 +273,9 @@ class Hypothesis(abc.ABC):
             "created_at": self.meta.created_at,
             "generation": self.meta.generation,
             "variables": self.variables,
+            # Direction for directional types (+1 forward vars[0]->vars[-1],
+            # -1 reversed, 0 undirected); None for non-directional types.
+            "direction": getattr(self, "direction", None),
             "metrics": {
                 "fit_score": self.fit_score,
                 "confidence": self.confidence,

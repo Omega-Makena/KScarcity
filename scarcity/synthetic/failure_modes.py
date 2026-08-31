@@ -30,18 +30,31 @@ def _rows(arrays: Dict[str, np.ndarray]) -> List[Dict[str, float]]:
     return [{k: float(arrays[k][t]) for k in names} for t in range(n)]
 
 
+def _new_engine(variables: List[str]):
+    """A pure-Python engine with full discovery (causal type enabled)."""
+    from scarcity.engine import OnlineDiscoveryEngine
+    eng = OnlineDiscoveryEngine(vectorized=False, small_dataset_mode=True)
+    eng.initialize_v2({"fields": [{"name": v} for v in variables]}, use_causal=True)
+    return eng
+
+
 def _discover(rows: List[Dict[str, float]], variables: List[str],
               min_conf: float = 0.55):
     """Stream rows through the pure-Python engine; return the knowledge graph."""
-    from scarcity.engine import OnlineDiscoveryEngine
-    eng = OnlineDiscoveryEngine(vectorized=False, small_dataset_mode=True)
-    eng.initialize({"fields": [{"name": v} for v in variables]})
+    eng = _new_engine(variables)
     for r in rows:
         eng.process_row(r)
     kg = eng.get_knowledge_graph()
     strong = [e for e in kg if e["metrics"].get("confidence", 0) >= min_conf
               and e.get("state") != "dead"]
     return eng, kg, strong
+
+
+def _directed_pair(edge) -> Tuple[str, str]:
+    """(source, target) for a directional edge, honouring its ``direction`` field
+    (+1 forward vars[0]->vars[-1], -1 reversed, 0/None treated as forward)."""
+    v = edge["variables"]
+    return (v[-1], v[0]) if edge.get("direction") == -1 else (v[0], v[-1])
 
 
 def _causal_ate(rows, treatment, outcome, confounders):
@@ -134,24 +147,21 @@ def _s_reverse_causality(seed: int) -> ScenarioResult:
     _, kg, _ = _discover(rows, ["a", "b"])
     directional = [e for e in kg if e["type"] in ("causal", "temporal")
                    and e["metrics"]["confidence"] >= 0.55]
-
-    def conf(src, tgt):
-        return max((e["metrics"]["confidence"] for e in directional
-                    if e["variables"][0] == src and e["variables"][-1] == tgt), default=0.0)
-
-    ba, ab = conf("b", "a"), conf("a", "b")
-    top = max(kg, key=lambda e: e["metrics"].get("confidence", 0.0), default=None)
-    top_desc = f"{top['type']}{tuple(top['variables'])}@{top['metrics'].get('confidence',0):.2f}" if top else "none"
-    if ba >= 0.55 and ba > ab:
-        verdict, obs = "correct", f"directional B->A (conf {ba:.2f})"
-    elif ab >= 0.55 and ab > ba:
-        verdict, obs = "misled", f"wrong direction A->B (conf {ab:.2f})"
+    dirs = {_directed_pair(e) for e in directional}          # resolved by direction field
+    to_a = ("b", "a") in dirs
+    to_b = ("a", "b") in dirs
+    if to_a and not to_b:
+        verdict, obs = "correct", "directional edge B -> A recovered"
+    elif to_b and not to_a:
+        verdict, obs = "misled", "wrong direction A -> B"
+    elif to_a and to_b:
+        verdict, obs = "detected", "coupling found but direction not resolved (both B->A and A->B)"
     else:
-        verdict, obs = "missed", f"no confirmed directional edge (strongest: {top_desc})"
+        verdict, obs = "missed", "no confirmed directional edge"
     return ScenarioResult(
         "reverse_causality", "direction",
         "recover the directional edge B -> A (A depends on lagged B, r=0.95)",
-        obs, verdict, {"conf_B_to_A": ba, "conf_A_to_B": ab, "strongest": top_desc},
+        obs, verdict, {"directed_edges": sorted(dirs)},
     )
 
 
@@ -162,9 +172,7 @@ def _s_nonstationary_decay(seed: int) -> ScenarioResult:
     y1 = 0.9 * x1 + rng.normal(scale=0.2, size=half)          # regime 1: x -> y
     x2 = rng.normal(size=half)
     y2 = rng.normal(size=half)                                # regime 2: independent
-    from scarcity.engine import OnlineDiscoveryEngine
-    eng = OnlineDiscoveryEngine(vectorized=False, small_dataset_mode=True)
-    eng.initialize({"fields": [{"name": "x"}, {"name": "y"}]})
+    eng = _new_engine(["x", "y"])
 
     def _conf():
         return max((e["metrics"]["confidence"] for e in eng.get_knowledge_graph()
@@ -246,7 +254,7 @@ def _s_feedback_loop(seed: int) -> ScenarioResult:
     _, kg, _ = _discover(rows, ["a", "b"])
     directional = [e for e in kg if e["type"] in ("causal", "temporal")
                    and e["metrics"]["confidence"] >= 0.55]
-    dirs = {(e["variables"][0], e["variables"][-1]) for e in directional}
+    dirs = {_directed_pair(e) for e in directional}
     both = ("a", "b") in dirs and ("b", "a") in dirs
     verdict = "correct" if both else ("detected" if dirs else "missed")
     return ScenarioResult(
