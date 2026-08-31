@@ -118,8 +118,13 @@ class GPUHypothesisPool:
         self.specs: List[HypoSpec] = []
         self._build_specs()
 
-        # {(perm_col_idx, F): [list of spec indices]}
+        # {(perm_col_idx, F): [list of spec indices]} — used by the permutation
+        # calibration path, which batches all hypotheses sharing a permuted column.
         self._groups: Dict[Tuple[int, int], List[int]] = {}
+        # {F: [list of spec indices]} — used by the R=1 streaming engine, which
+        # never permutes, so perm_col is irrelevant and grouping by feature-dim
+        # alone collapses ~100 tiny groups into 3 large batched RLS updates.
+        self._stream_groups: Dict[int, List[int]] = {}
         self._index_groups()
 
     # ------------------------------------------------------------------
@@ -255,14 +260,14 @@ class GPUHypothesisPool:
             ))
 
     def _index_groups(self) -> None:
-        """Group spec indices by (perm_col_idx, F) for batched GPU execution."""
+        """Group spec indices by (perm_col_idx, F) and, for streaming, by F alone."""
         ci = self.col_index
         for idx, s in enumerate(self.specs):
             if s.F <= 0:
                 continue  # similarity handled separately on CPU
             perm_idx = ci.get(s.perm_col, -1)
-            key = (perm_idx, s.F)
-            self._groups.setdefault(key, []).append(idx)
+            self._groups.setdefault((perm_idx, s.F), []).append(idx)
+            self._stream_groups.setdefault(s.F, []).append(idx)
 
     # ------------------------------------------------------------------
     # Public queries
@@ -293,6 +298,21 @@ class GPUHypothesisPool:
             self._groups_cache = cached
         return cached
 
+    def stream_groups(self) -> Dict[int, List[HypoSpec]]:
+        """Return {F: [HypoSpec, ...]} for the R=1 streaming engine (cached).
+
+        One group per feature-dim (F=2/3/4) instead of one per (perm_col, F), so
+        the engine issues 3 large batched RLS updates per row rather than ~100.
+        """
+        cached = getattr(self, "_stream_groups_cache", None)
+        if cached is None:
+            cached = {
+                key: [self.specs[i] for i in idxs]
+                for key, idxs in self._stream_groups.items()
+            }
+            self._stream_groups_cache = cached
+        return cached
+
     # ------------------------------------------------------------------
     # Feature extraction (GPU)
     # ------------------------------------------------------------------
@@ -311,8 +331,8 @@ class GPUHypothesisPool:
         over N_g specs into a handful of batched tensor ops.
         """
         dev = self.device
-        idx: Dict[Tuple[int, int], dict] = {}
-        for key, spec_idxs in self._groups.items():
+        idx: Dict[int, dict] = {}
+        for key, spec_idxs in self._stream_groups.items():
             specs = [self.specs[i] for i in spec_idxs]
             lt = lambda seq: torch.tensor(seq, dtype=torch.long, device=dev)
             # col_b/col_a can be -1 (unused): clamp so the gather never indexes
@@ -333,7 +353,7 @@ class GPUHypothesisPool:
     def extract_features_gpu_fast(
         self,
         data: torch.Tensor,          # (R, T, N_vars)
-        key:  Tuple[int, int],       # group key (perm_col_idx, F)
+        key:  int,                   # stream group key (feature-dim F)
         t:    int,
     ) -> Tuple[torch.Tensor, torch.Tensor]:
         """Loop-free equivalent of :meth:`extract_features_gpu` for one group.

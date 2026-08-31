@@ -106,7 +106,9 @@ class GPUDiscoveryEngine:
         self._N = len(self._col_names)
 
         self._pool = GPUHypothesisPool(self._col_names, device=self.device)
-        groups = self._pool.groups()
+        # Streaming (R=1) groups by feature-dim alone: ~3 large batched RLS
+        # updates per row instead of ~100 tiny (perm_col, F) ones.
+        groups = self._pool.stream_groups()
         self._group_order = list(groups.keys())
 
         for key, spec_list in groups.items():
@@ -174,7 +176,7 @@ class GPUDiscoveryEngine:
         - competitive: significance of a *negative* slope (feature 1) — a
           substitute relationship, not just any strong coupling.
         """
-        specs = self._pool.groups()[key]
+        specs = self._pool.stream_groups()[key]
         conf = r.confidence.clone()                       # (M,) fit-based default
         types = np.array([self._rel_type_str(s.rel_type) for s in specs])
 
@@ -507,7 +509,7 @@ class GPUDiscoveryEngine:
         """
         conf_p, stab_p, evid_p = [], [], []
         specs_ordered: List[HypoSpec] = []
-        groups = self._pool.groups()
+        groups = self._pool.stream_groups()
         for key in self._group_order:
             spec_list = groups[key]
             r = self._rls[key]
