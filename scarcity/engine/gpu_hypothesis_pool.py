@@ -278,15 +278,98 @@ class GPUHypothesisPool:
         return len(self.specs)
 
     def groups(self) -> Dict[Tuple[int, int], List[HypoSpec]]:
-        """Return {(perm_col_idx, F): [HypoSpec, ...]} for GPU processing."""
-        return {
-            key: [self.specs[i] for i in idxs]
-            for key, idxs in self._groups.items()
-        }
+        """Return {(perm_col_idx, F): [HypoSpec, ...]} for GPU processing.
+
+        Cached: group membership is fixed after construction, so the spec lists
+        are built once (they were previously rebuilt on every call — tens of
+        thousands of times per benchmark).
+        """
+        cached = getattr(self, "_groups_cache", None)
+        if cached is None:
+            cached = {
+                key: [self.specs[i] for i in idxs]
+                for key, idxs in self._groups.items()
+            }
+            self._groups_cache = cached
+        return cached
 
     # ------------------------------------------------------------------
     # Feature extraction (GPU)
     # ------------------------------------------------------------------
+
+    # ------------------------------------------------------------------
+    # Vectorized feature extraction — one gather per group, no Python loop
+    # ------------------------------------------------------------------
+
+    def _build_gather_index(self) -> None:
+        """Precompute per-group index tensors so extract is loop-free.
+
+        Every feature recipe collapses to
+            slot0 = 1 , slot1 = col_a@lag_a , slot2 = col_b@lag_b , slot3 = a*b
+        with the single exception of ``graph`` (cos/sin), handled by a mask.
+        Building the index once turns per-row extraction from a Python loop
+        over N_g specs into a handful of batched tensor ops.
+        """
+        dev = self.device
+        idx: Dict[Tuple[int, int], dict] = {}
+        for key, spec_idxs in self._groups.items():
+            specs = [self.specs[i] for i in spec_idxs]
+            lt = lambda seq: torch.tensor(seq, dtype=torch.long, device=dev)
+            # col_b/col_a can be -1 (unused): clamp so the gather never indexes
+            # out of range; those slots are either unread (F<3) or overwritten
+            # (graph slot 2).
+            col_a = lt([max(s.col_a, 0) for s in specs])
+            col_b = lt([max(s.col_b, 0) for s in specs])
+            col_y = lt([s.col_y for s in specs])
+            lag_a = lt([s.lag_a for s in specs])
+            lag_b = lt([s.lag_b for s in specs])
+            is_graph = torch.tensor([s.rel_type == "graph" for s in specs],
+                                    dtype=torch.bool, device=dev)
+            idx[key] = dict(col_a=col_a, col_b=col_b, col_y=col_y,
+                            lag_a=lag_a, lag_b=lag_b, is_graph=is_graph,
+                            F=specs[0].F, any_graph=bool(is_graph.any()))
+        self._gather_index = idx
+
+    def extract_features_gpu_fast(
+        self,
+        data: torch.Tensor,          # (R, T, N_vars)
+        key:  Tuple[int, int],       # group key (perm_col_idx, F)
+        t:    int,
+    ) -> Tuple[torch.Tensor, torch.Tensor]:
+        """Loop-free equivalent of :meth:`extract_features_gpu` for one group.
+
+        Produces X (R, N_g, F) and Y (R, N_g) identical to the per-spec path.
+        """
+        if not hasattr(self, "_gather_index"):
+            self._build_gather_index()
+        gi = self._gather_index[key]
+        F = gi["F"]
+        R = data.shape[0]
+        N_g = gi["col_a"].shape[0]
+        dev, dt = data.device, data.dtype
+
+        t_a = (t - gi["lag_a"]).clamp_(min=0)            # (N_g,)
+        a = data[:, t_a, gi["col_a"]]                    # (R, N_g) advanced index
+
+        X = torch.zeros(R, N_g, F, device=dev, dtype=dt)
+        X[:, :, 0] = 1.0
+        if F >= 2:
+            X[:, :, 1] = a
+        if F >= 3:
+            t_b = (t - gi["lag_b"]).clamp_(min=0)
+            b = data[:, t_b, gi["col_b"]]
+            X[:, :, 2] = b
+            if F >= 4:                                   # interaction term a*b
+                X[:, :, 3] = a * b
+        Y = data[:, t, gi["col_y"]]                      # (R, N_g)
+
+        if gi["any_graph"]:                              # graph: [cos a, sin a, 1]
+            g = gi["is_graph"]
+            ga = data[:, t, gi["col_a"]]                 # graph uses lag 0
+            X[:, :, 0] = torch.where(g, torch.cos(ga), X[:, :, 0])
+            X[:, :, 1] = torch.where(g, torch.sin(ga), X[:, :, 1])
+            X[:, :, 2] = torch.where(g, torch.ones_like(ga), X[:, :, 2])
+        return X, Y
 
     def extract_features_gpu(
         self,

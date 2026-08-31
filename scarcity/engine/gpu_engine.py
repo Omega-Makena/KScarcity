@@ -94,6 +94,11 @@ class GPUDiscoveryEngine:
         self._data: Optional[torch.Tensor] = None   # (1, T, N)
         self.step_count: int = 0
         self._lc_interval: int = 10
+        # The stored-data confidence tests (ANOVA, Sobel, conditional, logical)
+        # recompute over history at every lifecycle interval. Cap them to the most
+        # recent window so cost stays linear in stream length instead of quadratic;
+        # 2000 points is ample power for these statistics and keeps them recent.
+        self._stat_window: int = 2000
 
     def initialize_v2(self, schema: Dict[str, Any], use_causal: bool = True) -> None:
         fields = schema.get('fields', [])
@@ -124,6 +129,15 @@ class GPUDiscoveryEngine:
         """The filled portion of the buffer, shape (1, n_rows, N)."""
         return self._data[:, :self._n_rows]
 
+    def _recent(self) -> torch.Tensor:
+        """Most-recent window of stored rows, shape (min(window, n_rows), N).
+
+        Bounds the stored-data confidence tests so their per-call cost is O(window)
+        rather than O(n_rows), keeping streaming linear.
+        """
+        lo = max(0, self._n_rows - self._stat_window)
+        return self._data[0, lo:self._n_rows]
+
     def process_row(self, row: Dict[str, Any]) -> Dict[str, Any]:
         vals = [float(row.get(c, float('nan'))) for c in self._col_names]
         if self._n_rows >= self._data.shape[1]:                # grow by doubling
@@ -137,10 +151,8 @@ class GPUDiscoveryEngine:
         self.step_count += 1
 
         data_view = self._view()
-        groups = self._pool.groups()
         for key in self._group_order:
-            spec_list = groups[key]
-            X, Y = self._pool.extract_features_gpu(data_view, spec_list, t)
+            X, Y = self._pool.extract_features_gpu_fast(data_view, key, t)
             self._rls[key].update(X.squeeze(0), Y.squeeze(0))
 
         if self.step_count % self._lc_interval == 0:
@@ -199,8 +211,9 @@ class GPUDiscoveryEngine:
 
         struc = _mask("structural")
         if bool(struc.any()):
-            for i in torch.nonzero(struc, as_tuple=True)[0].tolist():
-                conf[i] = self._anova_confidence(specs[i])
+            idx = torch.nonzero(struc, as_tuple=True)[0]
+            sub = [specs[i] for i in idx.tolist()]
+            conf[idx] = self._anova_confidence_batch(sub).to(conf.dtype)
 
         if r.F >= 2:
             # Compositional: a near-exact linear identity (accounting relation),
@@ -214,8 +227,9 @@ class GPUDiscoveryEngine:
 
         prob = _mask("probabilistic")
         if bool(prob.any()):
-            for i in torch.nonzero(prob, as_tuple=True)[0].tolist():
-                conf[i] = self._conditional_confidence(specs[i])
+            idx = torch.nonzero(prob, as_tuple=True)[0]
+            sub = [specs[i] for i in idx.tolist()]
+            conf[idx] = self._conditional_confidence_batch(sub).to(conf.dtype)
 
         logic = _mask("logical")
         if bool(logic.any()):
@@ -234,7 +248,7 @@ class GPUDiscoveryEngine:
         positives of a bare significance test. Above the gate, the two-sample
         significance is returned.
         """
-        d = self._data[0, :self._n_rows]
+        d = self._recent()
         zero = torch.zeros((), device=d.device, dtype=d.dtype)
         a, b = d[:, spec.col_a], d[:, spec.col_y]
         m = torch.isfinite(a) & torch.isfinite(b)
@@ -256,6 +270,92 @@ class GPUDiscoveryEngine:
         t = (bh.mean() - bl.mean()).abs() / se
         return torch.erf(t / (2.0 ** 0.5)).clamp(0.0, 1.0)
 
+    def _conditional_confidence_batch(self, specs, d_floor: float = 0.30) -> torch.Tensor:
+        """Vectorized :meth:`_conditional_confidence` over many hypotheses at once.
+
+        Replaces a Python loop over 1000+ probabilistic hypotheses with a handful
+        of batched tensor ops. Columns that contain NaNs (rare) fall back to the
+        exact per-hypothesis path so results are unchanged.
+        """
+        d = self._recent()
+        H = len(specs)
+        out = torch.zeros(H, device=d.device, dtype=d.dtype)
+        T = d.shape[0]
+        if T < 20:
+            return out
+        cols_a = torch.tensor([s.col_a for s in specs], device=d.device)
+        cols_y = torch.tensor([s.col_y for s in specs], device=d.device)
+        A = d[:, cols_a]                                   # (T, H)
+        B = d[:, cols_y]
+        finite = torch.isfinite(A).all(0) & torch.isfinite(B).all(0)   # (H,)
+        med = A.median(0).values                           # (H,)
+        hi = A > med                                       # (T, H)
+        nh = hi.sum(0).to(d.dtype)
+        nl = T - nh
+        sh = (B * hi).sum(0)
+        sl = (B * ~hi).sum(0)
+        mh = sh / nh.clamp(min=1)
+        ml = sl / nl.clamp(min=1)
+        sqh = (B * B * hi).sum(0)
+        sql = (B * B * ~hi).sum(0)
+        vh = ((sqh - nh * mh * mh) / (nh - 1).clamp(min=1)).clamp(min=0)
+        vl = ((sql - nl * ml * ml) / (nl - 1).clamp(min=1)).clamp(min=0)
+        pooled = torch.sqrt((((nh - 1) * vh + (nl - 1) * vl) / (nh + nl - 2).clamp(min=1)).clamp(min=1e-12))
+        cohen_d = (mh - ml).abs() / (pooled + 1e-12)
+        se = torch.sqrt((vh / nh.clamp(min=1) + vl / nl.clamp(min=1)).clamp(min=1e-12))
+        t = (mh - ml).abs() / se
+        conf = torch.erf(t / (2.0 ** 0.5)).clamp(0.0, 1.0)
+        valid = finite & (nh >= 5) & (nl >= 5) & (cohen_d >= d_floor)
+        out = torch.where(valid, conf, out)
+        if not bool(finite.all()):                         # exact fallback for NaN cols
+            for i in (~finite).nonzero(as_tuple=True)[0].tolist():
+                out[i] = self._conditional_confidence(specs[i], d_floor)
+        return out
+
+    def _anova_confidence_batch(self, specs, n_bins: int = 4) -> torch.Tensor:
+        """Vectorized :meth:`_anova_confidence` over many hypotheses at once."""
+        d = self._recent()
+        H = len(specs)
+        out = torch.zeros(H, device=d.device, dtype=d.dtype)
+        T = d.shape[0]
+        if T < 4 * n_bins:
+            return out
+        cols_a = torch.tensor([s.col_a for s in specs], device=d.device)
+        cols_y = torch.tensor([s.col_y for s in specs], device=d.device)
+        G = d[:, cols_a]                                   # (T, H) group var
+        Y = d[:, cols_y]                                   # (T, H) outcome
+        finite = torch.isfinite(G).all(0) & torch.isfinite(Y).all(0)
+        qs = torch.linspace(0, 1, n_bins + 1, device=d.device, dtype=d.dtype)
+        edges = torch.quantile(G, qs, dim=0)               # (n_bins+1, H)
+        inner = edges[1:-1]                                # (n_bins-1, H)
+        # bucketize per column: bin = count of inner edges < value (matches
+        # torch.bucketize(g, edges[1:-1]) for continuous data)
+        bins = (G.unsqueeze(0) >= inner.unsqueeze(1)).sum(0)   # (T, H) in 0..n_bins-1
+        grand = Y.mean(0)                                  # (H,)
+        ss_tot = ((Y - grand) ** 2).sum(0)                 # (H,)
+        ss_between = torch.zeros(H, device=d.device, dtype=d.dtype)
+        k_eff = torch.zeros(H, device=d.device, dtype=d.dtype)
+        for gb in range(n_bins):
+            sel = bins == gb                               # (T, H)
+            ng = sel.sum(0).to(d.dtype)                    # (H,)
+            gmean = (Y * sel).sum(0) / ng.clamp(min=1)
+            ss_between = ss_between + torch.where(ng > 0, ng * (gmean - grand) ** 2,
+                                                  torch.zeros_like(ng))
+            k_eff = k_eff + (ng > 0).to(d.dtype)
+        df_b = (k_eff - 1).clamp(min=1)
+        df_w = (T - k_eff).clamp(min=1)
+        ss_within = (ss_tot - ss_between).clamp(min=1e-12)
+        F = (ss_between / df_b) / (ss_within / df_w)
+        chi2 = F * df_b
+        z = (torch.sqrt(2.0 * chi2) - torch.sqrt(2.0 * df_b - 1.0)).clamp(min=0.0)
+        conf = torch.erf(z / (2.0 ** 0.5)).clamp(0.0, 1.0)
+        valid = finite & (ss_tot >= 1e-12)
+        out = torch.where(valid, conf, out)
+        if not bool(finite.all()):
+            for i in (~finite).nonzero(as_tuple=True)[0].tolist():
+                out[i] = self._anova_confidence(specs[i], n_bins)
+        return out
+
     def _logical_confidence(self, spec, acc_floor: float = 0.15) -> torch.Tensor:
         """Logical: a Boolean rule over binarized variables predicts the outcome.
 
@@ -266,7 +366,7 @@ class GPUDiscoveryEngine:
         together these stop a rule that fits random data by chance from reading
         as significant.
         """
-        d = self._data[0, :self._n_rows]
+        d = self._recent()
         zero = torch.zeros((), device=d.device, dtype=d.dtype)
         a, b, c = d[:, spec.col_a], d[:, spec.col_b], d[:, spec.col_y]
         m = torch.isfinite(a) & torch.isfinite(b) & torch.isfinite(c)
@@ -293,7 +393,7 @@ class GPUDiscoveryEngine:
         approximation (chi^2 ~ F*df_between for large df_within) and mapped to
         [0, 1] as erf(|z|/sqrt(2)).
         """
-        d = self._data[0, :self._n_rows]                                  # (T, N)
+        d = self._recent()                                                # recent window
         zero = torch.zeros((), device=d.device, dtype=d.dtype)
         g = d[:, spec.col_a]                               # group variable
         y = d[:, spec.col_y]                               # outcome
@@ -335,7 +435,7 @@ class GPUDiscoveryEngine:
         erf(|z|/sqrt(2)). Computed from the stored series (the b->c effect is not
         recoverable from the pool's single c~[1,a,b] fit alone).
         """
-        d = self._data[0, :self._n_rows]                                  # (T, N)
+        d = self._recent()                                                # recent window
         zero = torch.zeros((), device=d.device, dtype=d.dtype)
         a = d[:, spec.col_a]
         b = d[:, spec.col_b]
@@ -488,7 +588,7 @@ class GPUDiscoveryEngine:
         """
         if self._data is None or self._n_rows < 20:
             return 0.0
-        d = self._data[0, :self._n_rows]                                  # (T, N)
+        d = self._recent()                                                # recent window
         idx = [i for i, name in enumerate(self._col_names) if name in spec.variables]
         if len(idx) < 2:
             return 0.0
