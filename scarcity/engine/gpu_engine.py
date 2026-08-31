@@ -71,12 +71,19 @@ class GPUDiscoveryEngine:
         self,
         device: Optional[str] = None,
         small_dataset_mode: bool = False,
+        forgetting_window: int = 0,
     ) -> None:
         # Default to CPU — for N<200, BLAS vectorisation beats CUDA kernel overhead
         if device is None:
             device = 'cpu'
         self.device = device
         self.small_dataset_mode = small_dataset_mode
+        # Batched RLS forgetting factor. The GPU backend forgets by construction
+        # (recursive least squares with lambda < 1); forgetting_window tunes it:
+        # lambda = 1 - 1/window, so a smaller window ages out stale relationships
+        # faster. 0 keeps the standard lambda = 0.99 (effective window ~100).
+        self._rls_lambda = (min(max(1.0 - 1.0 / forgetting_window, 0.90), 0.9999)
+                            if forgetting_window > 0 else 0.99)
 
         self._col_names: List[str] = []
         self._N: int = 0
@@ -100,27 +107,40 @@ class GPUDiscoveryEngine:
         for key, spec_list in groups.items():
             M = len(spec_list)
             F = spec_list[0].F
-            self._rls[key] = GPUBatchRLS(M, F, device=self.device)
+            self._rls[key] = GPUBatchRLS(M, F, lam=self._rls_lambda, device=self.device)
 
         N_hyp = sum(len(sl) for sl in groups.values())
         self._lc = LifecycleEmulator(
             N_hyp=N_hyp, R=1, small_dataset=self.small_dataset_mode
         )
 
-        self._data = torch.zeros(1, 0, self._N, device=self.device, dtype=torch.float64)
+        # Preallocated ring-free buffer; grows by doubling so per-row append is
+        # amortized O(1) instead of the O(n^2) torch.cat it replaced.
+        self._data = torch.zeros(1, 256, self._N, device=self.device, dtype=torch.float64)
+        self._n_rows = 0
         self.step_count = 0
+
+    def _view(self) -> torch.Tensor:
+        """The filled portion of the buffer, shape (1, n_rows, N)."""
+        return self._data[:, :self._n_rows]
 
     def process_row(self, row: Dict[str, Any]) -> Dict[str, Any]:
         vals = [float(row.get(c, float('nan'))) for c in self._col_names]
-        new_row = torch.tensor(vals, dtype=torch.float64, device=self.device).view(1, 1, self._N)
-        self._data = torch.cat([self._data, new_row], dim=1)
-        t = self._data.shape[1] - 1
+        if self._n_rows >= self._data.shape[1]:                # grow by doubling
+            grown = torch.zeros(1, self._data.shape[1] * 2, self._N,
+                                device=self.device, dtype=torch.float64)
+            grown[:, :self._n_rows] = self._data[:, :self._n_rows]
+            self._data = grown
+        self._data[0, self._n_rows] = torch.tensor(vals, dtype=torch.float64, device=self.device)
+        self._n_rows += 1
+        t = self._n_rows - 1
         self.step_count += 1
 
+        data_view = self._view()
         groups = self._pool.groups()
         for key in self._group_order:
             spec_list = groups[key]
-            X, Y = self._pool.extract_features_gpu(self._data, spec_list, t)
+            X, Y = self._pool.extract_features_gpu(data_view, spec_list, t)
             self._rls[key].update(X.squeeze(0), Y.squeeze(0))
 
         if self.step_count % self._lc_interval == 0:
@@ -214,7 +234,7 @@ class GPUDiscoveryEngine:
         positives of a bare significance test. Above the gate, the two-sample
         significance is returned.
         """
-        d = self._data[0]
+        d = self._data[0, :self._n_rows]
         zero = torch.zeros((), device=d.device, dtype=d.dtype)
         a, b = d[:, spec.col_a], d[:, spec.col_y]
         m = torch.isfinite(a) & torch.isfinite(b)
@@ -246,7 +266,7 @@ class GPUDiscoveryEngine:
         together these stop a rule that fits random data by chance from reading
         as significant.
         """
-        d = self._data[0]
+        d = self._data[0, :self._n_rows]
         zero = torch.zeros((), device=d.device, dtype=d.dtype)
         a, b, c = d[:, spec.col_a], d[:, spec.col_b], d[:, spec.col_y]
         m = torch.isfinite(a) & torch.isfinite(b) & torch.isfinite(c)
@@ -273,7 +293,7 @@ class GPUDiscoveryEngine:
         approximation (chi^2 ~ F*df_between for large df_within) and mapped to
         [0, 1] as erf(|z|/sqrt(2)).
         """
-        d = self._data[0]                                  # (T, N)
+        d = self._data[0, :self._n_rows]                                  # (T, N)
         zero = torch.zeros((), device=d.device, dtype=d.dtype)
         g = d[:, spec.col_a]                               # group variable
         y = d[:, spec.col_y]                               # outcome
@@ -315,7 +335,7 @@ class GPUDiscoveryEngine:
         erf(|z|/sqrt(2)). Computed from the stored series (the b->c effect is not
         recoverable from the pool's single c~[1,a,b] fit alone).
         """
-        d = self._data[0]                                  # (T, N)
+        d = self._data[0, :self._n_rows]                                  # (T, N)
         zero = torch.zeros((), device=d.device, dtype=d.dtype)
         a = d[:, spec.col_a]
         b = d[:, spec.col_b]
@@ -451,7 +471,7 @@ class GPUDiscoveryEngine:
                 "metrics": {
                     "fit_score": 0.0,
                     "confidence": c,
-                    "evidence": int(self._data.shape[1]),
+                    "evidence": int(self._n_rows),
                     "stability": 0.0,
                 },
             })
@@ -466,9 +486,9 @@ class GPUDiscoveryEngine:
         sample size) and near one when they move together. No bare significance,
         so it does not false-fire on noise.
         """
-        if self._data is None or self._data.shape[1] < 20:
+        if self._data is None or self._n_rows < 20:
             return 0.0
-        d = self._data[0]                                  # (T, N)
+        d = self._data[0, :self._n_rows]                                  # (T, N)
         idx = [i for i, name in enumerate(self._col_names) if name in spec.variables]
         if len(idx) < 2:
             return 0.0
