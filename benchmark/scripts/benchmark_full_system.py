@@ -27,12 +27,12 @@ from benchmark.evaluation.federation_metrics import FederationEvaluator
 
 
 def run_synthetic_benchmark(schema_path: str, n_samples: int = 3000, seed: int = 42,
-                            forgetting_window: int = 0) -> dict:
+                            forgetting_window: int = 0, use_gpu: bool = False) -> dict:
     print("\n--- PHASE: Synthetic Generation & Calibration ---")
     if forgetting_window:
         print(f"  forgetting_window={forgetting_window} (windowed correlation)")
     bench = SyntheticBenchmark(schema_path=schema_path, seed=seed, B_perm=100,
-                               forgetting_window=forgetting_window)
+                               forgetting_window=forgetting_window, use_gpu=use_gpu)
     results = bench.run(n_samples=n_samples)
     print(f"  Strict F1={results['metrics']['strict']['f1']:.4f}  "
           f"Null FPR={results['metrics']['null_fpr']:.4f}")
@@ -100,6 +100,10 @@ def main():
     parser.add_argument("--forgetting_window", type=int, default=0,
                         help="Windowed correlation (0 = cumulative). Validates that "
                              "forgetting preserves recovery F1.")
+    parser.add_argument("--use_gpu", action="store_true",
+                        help="Stream via the batch-tensor GPU engine (~3x faster on "
+                             "the 34-var schema). Recovery F1 is calibrator-driven and "
+                             "unchanged; this only speeds the streaming phase.")
     parser.add_argument("--out_dir", default="benchmark/reports/outputs")
     args = parser.parse_args()
 
@@ -110,7 +114,8 @@ def main():
 
     if args.phase in ("synthetic", "all"):
         synthetic_result = run_synthetic_benchmark(args.schema, args.n_samples, args.seed,
-                                                   forgetting_window=args.forgetting_window)
+                                                   forgetting_window=args.forgetting_window,
+                                                   use_gpu=args.use_gpu)
 
     if args.phase in ("real", "all"):
         backtest_rows = run_real_world_backtest()

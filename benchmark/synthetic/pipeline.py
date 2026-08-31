@@ -44,10 +44,11 @@ class SyntheticBenchmark:
     """
 
     def __init__(self, schema_path: str, seed: int = 42, B_perm: int = 100,
-                 forgetting_window: int = 0):
+                 forgetting_window: int = 0, use_gpu: bool = False):
         self.schema_path = schema_path
         self.seed = seed
         self.forgetting_window = forgetting_window
+        self.use_gpu = use_gpu
         self.generator = create_benchmark_generator(schema_path, seed)
         self.B_perm = B_perm
         self.calibrator = BenchmarkCalibrator(
@@ -71,9 +72,14 @@ class SyntheticBenchmark:
         engine_metrics: Dict[str, Any] = {}
 
         if HAS_ENGINE:
-            print("  [2/4] Streaming through Scarcity engine...", flush=True)
-            engine = OnlineDiscoveryEngine(forgetting_window=self.forgetting_window)
+            backend = "GPU batch-tensor" if self.use_gpu else "pure-Python"
+            print(f"  [2/4] Streaming through Scarcity engine ({backend})...", flush=True)
             schema = {"fields": [{"name": v} for v in self.generator.variables]}
+            if self.use_gpu:
+                from scarcity.engine.gpu_engine import GPUDiscoveryEngine
+                engine = GPUDiscoveryEngine(forgetting_window=self.forgetting_window)
+            else:
+                engine = OnlineDiscoveryEngine(forgetting_window=self.forgetting_window)
             engine.initialize_v2(schema, use_causal=True)
 
             t0 = time.time()
@@ -85,18 +91,23 @@ class SyntheticBenchmark:
                     engine.process(row)
             engine_time = time.time() - t0
 
-            N_hyp = len(engine.hypotheses.population) if hasattr(engine, 'hypotheses') else 0
-            hypotheses_per_sec = (N_hyp * n_samples) / engine_time if engine_time > 0 else 0
-
-            # Extract discovery state counts from hypothesis pool
             promoted = killed = 0
-            if hasattr(engine, 'hypotheses') and hasattr(engine.hypotheses, 'population'):
-                for h in engine.hypotheses.population.values():
-                    state_str = str(getattr(getattr(h, 'state', None), 'name', '')).upper()
-                    if any(k in state_str for k in ('PROMOTED', 'CONFIRMED', 'ACCEPTED')):
-                        promoted += 1
-                    elif any(k in state_str for k in ('KILLED', 'REJECTED', 'PRUNED')):
-                        killed += 1
+            if self.use_gpu:
+                # GPU backend: counts from the batched lifecycle state array
+                _, _, _, state, specs = engine.get_hyp_metrics()
+                N_hyp = len(specs)
+                promoted = int((state == 1).sum())      # active
+                killed = int((state == 3).sum())        # dead
+            else:
+                N_hyp = len(engine.hypotheses.population) if hasattr(engine, 'hypotheses') else 0
+                if hasattr(engine, 'hypotheses') and hasattr(engine.hypotheses, 'population'):
+                    for h in engine.hypotheses.population.values():
+                        state_str = str(getattr(getattr(h, 'state', None), 'name', '')).upper()
+                        if any(k in state_str for k in ('PROMOTED', 'CONFIRMED', 'ACCEPTED')):
+                            promoted += 1
+                        elif any(k in state_str for k in ('KILLED', 'REJECTED', 'PRUNED')):
+                            killed += 1
+            hypotheses_per_sec = (N_hyp * n_samples) / engine_time if engine_time > 0 else 0
 
             engine_metrics = {
                 'n_hypotheses': N_hyp,
