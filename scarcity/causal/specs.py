@@ -138,6 +138,8 @@ class RuntimeSpec:
     refute_placebo_treatment: bool = True
     refute_data_subset: bool = True
     refutation_simulations: int = 100
+    # Sensitivity to unobserved confounding (omitted-variable-bias robustness)
+    sensitivity_analysis: bool = True
 
     # Computational
     n_jobs: int = 1

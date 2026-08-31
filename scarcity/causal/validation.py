@@ -29,6 +29,7 @@ import numpy as np
 import pandas as pd
 
 from scarcity.causal.specs import RuntimeSpec
+from scarcity.causal.sensitivity import sensitivity_analysis
 
 logger = logging.getLogger(__name__)
 
@@ -148,20 +149,28 @@ class Validator:
         requested or the simulation budget is zero.
         """
         results: Dict[str, Any] = {}
+        treatment = spec.treatment
+        outcome = spec.outcome
+        confounders: List[str] = list(getattr(spec, "confounders", []) or [])
+        d = data.dropna(subset=[treatment, outcome, *confounders])
+
+        # Sensitivity to unobserved confounding — independent of the simulation
+        # budget (it fits a single adjusted regression, no permutations).
+        if getattr(runtime, "sensitivity_analysis", True):
+            try:
+                results["sensitivity"] = sensitivity_analysis(d, treatment, outcome, confounders)
+            except Exception as exc:
+                logger.warning(f"Sensitivity analysis failed: {exc}")
+                results["sensitivity"] = {"status": "error", "error": str(exc)}
+
         n_sim = int(getattr(runtime, "refutation_simulations", 0) or 0)
         if n_sim <= 0:
             return results
 
-        treatment = spec.treatment
-        outcome = spec.outcome
-        confounders: List[str] = list(getattr(spec, "confounders", []) or [])
         rng = np.random.default_rng(runtime.resolved_seed())
-
         if not np.isfinite(observed_effect):
             logger.warning("Observed effect is not finite; skipping refutation.")
             return results
-
-        d = data.dropna(subset=[treatment, outcome, *confounders])
         if len(d) < 20:
             logger.warning("Too few rows for refutation; skipping.")
             return results
