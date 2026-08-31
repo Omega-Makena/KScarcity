@@ -8,6 +8,8 @@ This is the comprehensive documentation for the SCARCITY (Scarcity-aware Causal 
 **Last Updated**: December 3, 2025 
 **Status**: Production Ready
 
+> **Start here for the whole picture:** [SYSTEM_ARCHITECTURE.md](SYSTEM_ARCHITECTURE.md) — a complete, illustrated walkthrough of the framework (subsystems, the 15 relationship types, the hypothesis lifecycle and calibration gate, the CPU/GPU backends, the offline causal arm, federation, and the SFC simulation), with architecture diagrams and a step-by-step data-flow illustration.
+
 ---
 
 ## Quick Start Guides
