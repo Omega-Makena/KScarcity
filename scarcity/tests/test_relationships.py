@@ -531,3 +531,30 @@ class TestRLSNumericalStability:
         assert np.isfinite(result['sobel_z']), f"Sobel z is not finite: {result}"
         assert result['sobel_p'] < 0.05, f"mediation lost on a long stream: {result}"
         assert result['has_mediation'], f"mediation not detected: {result}"
+
+
+def test_correlational_windowed_forgetting_decays_stale_edge():
+    """A windowed correlation forgets a relationship that dies mid-stream;
+    the default cumulative estimator does not (documents the drift-decay fix)."""
+    import numpy as np
+    from scarcity.engine.relationships import CorrelationalHypothesis
+    from scarcity.engine.relationship_config import CorrelationalConfig
+    rng = np.random.default_rng(0)
+    x1 = rng.normal(size=1500); y1 = 0.9 * x1 + rng.normal(scale=0.2, size=1500)
+    x2 = rng.normal(size=1500); y2 = rng.normal(size=1500)      # regime 2: independent
+
+    def run(window):
+        h = CorrelationalHypothesis("x", "y", buffer_size=200,
+                                    config=CorrelationalConfig(window=window))
+        for t in range(1500):
+            h.fit_step({"x": float(x1[t]), "y": float(y1[t])})
+        for t in range(1500):
+            h.fit_step({"x": float(x2[t]), "y": float(y2[t])})
+        return h.evaluate({})
+
+    windowed = run(150)
+    cumulative = run(0)
+    # windowed forgets: correlation collapses and is no longer significant
+    assert abs(windowed["correlation"]) < 0.2 and windowed["p_value"] > 0.05
+    # cumulative stays stale: still significant despite the relationship being gone
+    assert cumulative["p_value"] < 0.05

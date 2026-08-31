@@ -48,6 +48,12 @@ class CorrelationalConfig:
     min_samples: int = 10
     confidence_scale: int = 50
     stability_threshold: float = 0.3
+    # Forgetting window: 0 = cumulative (lifetime) statistics; > 0 = compute the
+    # correlation over the last ``window`` observations only, so a relationship
+    # that dies mid-stream decays instead of being propped up by old data. Left
+    # at 0 by default to preserve the calibrated recovery numbers; set it for
+    # nonstationary streams where stale edges must age out.
+    window: int = 0
 
 
 @dataclass

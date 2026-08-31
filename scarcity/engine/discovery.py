@@ -136,6 +136,7 @@ class Hypothesis(abc.ABC):
 
         # optional regime tracker; subclasses assign self._regime_tracker = RegimeTracker()
         self._regime_tracker: Optional[RegimeTracker] = None
+        self._regime_break: bool = False   # set by _update_regime_tracker
 
     @abc.abstractmethod
     def fit_step(self, row: Dict[str, float]) -> None:
@@ -185,10 +186,16 @@ class Hypothesis(abc.ABC):
         """
         pass
 
-    def _update_regime_tracker(self, residual: float) -> None:
-        """Subclasses call this in fit_step() with their prediction residual."""
+    def _update_regime_tracker(self, residual: float) -> bool:
+        """Subclasses call this in fit_step() with their prediction residual.
+
+        Returns True when a structural break is detected, and records it on
+        ``self._regime_break`` so callers can act on it (the break signal was
+        previously computed and discarded)."""
         if self._regime_tracker is not None:
-            self._regime_tracker.update(residual)
+            self._regime_break = self._regime_tracker.update(residual)
+            return self._regime_break
+        return False
 
     def _regime_consistency(self) -> float:
         """

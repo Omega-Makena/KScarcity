@@ -744,15 +744,27 @@ class CorrelationalHypothesis(Hypothesis):
         if n < cfg.min_samples:
             return _not_ready(n)
 
-        var1 = self.M2_1 / n
-        var2 = self.M2_2 / n
-        covar = self.cov / n
-        denom = np.sqrt(max(0.0, var1 * var2))
-        self.r = float(np.clip(covar / (denom + 1e-10), -1.0, 1.0))
+        window = getattr(cfg, "window", 0)
+        if window and len(self.buffer1) >= min(window, cfg.min_samples):
+            # Windowed (forgetting) correlation: recent observations only, so a
+            # relationship that has stopped holding decays out of the estimate.
+            X = np.array(self.buffer1)[-window:]
+            Y = np.array(self.buffer2)[-window:]
+            n_eff = len(X)
+            sx, sy = float(X.std()), float(Y.std())
+            self.r = float(np.clip(np.cov(X, Y)[0, 1] / (sx * sy + 1e-10), -1.0, 1.0)) \
+                if sx > 1e-10 and sy > 1e-10 else 0.0
+        else:
+            n_eff = n
+            var1 = self.M2_1 / n
+            var2 = self.M2_2 / n
+            covar = self.cov / n
+            denom = np.sqrt(max(0.0, var1 * var2))
+            self.r = float(np.clip(covar / (denom + 1e-10), -1.0, 1.0))
 
-        if n > 2:
-            t = self.r * np.sqrt(n - 2) / np.sqrt(max(1e-10, 1.0 - self.r ** 2))
-            self.p_value = _t_pvalue(t, n - 2)
+        if n_eff > 2:
+            t = self.r * np.sqrt(n_eff - 2) / np.sqrt(max(1e-10, 1.0 - self.r ** 2))
+            self.p_value = _t_pvalue(t, n_eff - 2)
         else:
             self.p_value = 1.0
 

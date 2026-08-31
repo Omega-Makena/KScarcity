@@ -167,18 +167,28 @@ class OnlineDiscoveryEngine:
         
     def initialize(self, schema: Dict[str, Any]) -> None:
         """
-        Sets up the engine based on the data schema.
+        Set up the engine for full relationship discovery over the schema.
 
-        Initializes the grouper with variable names and populates the hypothesis
-        pool with an initial set of priors.
-        - If the variable count is small (< 10), it initializes a dense set of
-          pairwise correlational and functional hypotheses (brute-force start).
-        - Always adds baseline Temporal Lag (autoregressive) and Equilibrium
-          hypotheses for every variable.
+        Delegates to :meth:`initialize_v2`, which populates the pool with all
+        fifteen relationship types (including the Granger-based causal type). The
+        former lightweight initialization created only correlational, functional,
+        autoregressive-temporal, and equilibrium hypotheses — silently omitting
+        causal and the other advanced types — which is a footgun for anyone
+        following the public API and expecting causal discovery. Full discovery is
+        the right default.
+
+        For very wide schemas where the O(n^2) causal pairs are too costly, call
+        ``initialize_v2(schema, use_causal=False)`` instead.
 
         Args:
             schema: The data schema dictionary defining fields and types.
         """
+        self.initialize_v2(schema)
+
+    def _initialize_basic(self, schema: Dict[str, Any]) -> None:
+        """Legacy lightweight initialization (correlational / functional / AR /
+        equilibrium only). Retained for reference; not the default — see
+        :meth:`initialize`."""
         fields = schema.get('fields', [])
         var_names = [f['name'] for f in fields] if fields else []
 
@@ -186,11 +196,9 @@ class OnlineDiscoveryEngine:
             logger.warning("No variables found in schema.")
             return
 
-        # Build name→index mapping (used by get_candidate_paths bridge)
         self._var_index = {name: idx for idx, name in enumerate(var_names)}
-
         self.grouper.initialize(var_names)
-        
+
         if len(var_names) < 10:
             import itertools
             for a, b in itertools.combinations(var_names, 2):
