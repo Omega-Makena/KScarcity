@@ -496,6 +496,12 @@ debt-to-GDP).
   and telemetry that bridge federation outputs into meta-learning priors.
 - **Runtime** (`runtime/`) — the event bus and telemetry that every subsystem
   communicates through.
+- **Experiment & provenance** (`experiment/`) — a first-class reproducible record
+  of every run (seed, git commit + dirty flag, hardware, runtime, peak memory,
+  metrics, warnings, failures) via the `experiment(...)` context manager, plus
+  per-edge provenance so the knowledge graph is auditable: `explain_edge(engine,
+  a, b)` answers "why does Scarcity believe a → b?" with the discovery metrics,
+  calibration p/q-values, first-detected time, and any causal analysis.
 
 ---
 
@@ -560,6 +566,7 @@ See [CONFIG_REFERENCE](CONFIG_REFERENCE.md) for the full list.
 | `stream/` | ~1,600 | Windowing, sharding, caching, replay |
 | `runtime/` | ~700 | Event bus and telemetry |
 | `governor/` | ~600 | Resource sensing and the resource profile |
+| `experiment/` | ~500 | Reproducible experiment records + knowledge-graph provenance (auditable edges) |
 | `analytics/` | ~200 | Terrain / analysis helpers |
 
 Key single files: `engine/engine_v2.py` (`OnlineDiscoveryEngine`),
