@@ -382,15 +382,29 @@ flowchart TB
     VAL --> PL[placebo treatment]
     VAL --> RCC[random common cause]
     VAL --> SUB[data subset]
+    ATE --> SENS[Sensitivity — unobserved confounding<br/>robustness value, partial R²]
 ```
 
-The nine estimands run in one parallel call. The **refutation suite is
-standalone** — reimplemented on backdoor/FWL adjustment rather than DoWhy's
-`refute_estimate` (whose signature drift broke across releases), so it is
-version-independent: placebo (permute treatment, effect collapses),
-random-common-cause (an irrelevant confounder does not move the effect), and
-data-subset (the effect is stable across subsets). Significance uses a fast
-permutation placebo whose FWL estimate equals the do-calculus linear ATE.
+The nine estimands run in one parallel call. Two independent validity layers sit
+on top of the estimate:
+
+**Refuters — robustness to perturbation.** A **standalone** suite, reimplemented
+on backdoor/FWL adjustment rather than DoWhy's `refute_estimate` (whose signature
+drift broke across releases), so it is version-independent: placebo (permute
+treatment, effect collapses), random-common-cause (an irrelevant confounder does
+not move the effect), and data-subset (the effect is stable across subsets).
+Significance uses a fast permutation placebo whose FWL estimate equals the
+do-calculus linear ATE.
+
+**Sensitivity — robustness to what was never measured.** The refuters cannot
+address the defining threat to any observational estimate: a confounder you did
+not measure. The Cinelli–Hazlett (2020) omitted-variable-bias analysis
+(`sensitivity.py`) quantifies it exactly for the linear backdoor effect — the
+**Robustness Value** (the minimum strength, as a partial R² with *both* treatment
+and outcome, an unmeasured confounder would need to nullify the effect) and the
+treatment's own partial R² with the outcome as a benchmark. Formulas are pinned
+to the canonical sensemakr Darfur benchmark; it runs as an always-on check
+(`refuter_results["sensitivity"]`), independent of the simulation budget.
 
 ---
 
@@ -541,7 +555,7 @@ See [CONFIG_REFERENCE](CONFIG_REFERENCE.md) for the full list.
 | `federation/` | ~5,900 | Secure aggregation (real crypto), central DP, gossip, hierarchical federation |
 | `synthetic/` | ~3,100 | Synthetic data generators and benchmark scenarios |
 | `meta/` | ~2,600 | Meta-learning optimizer and cross-domain memory |
-| `causal/` | ~1,700 | Offline do-calculus arm (DoWhy/EconML) + standalone refuters |
+| `causal/` | ~1,700 | Offline do-calculus arm (DoWhy/EconML) + standalone refuters + OVB sensitivity |
 | `fmi/` | ~1,700 | Federation–Meta Interface |
 | `stream/` | ~1,600 | Windowing, sharding, caching, replay |
 | `runtime/` | ~700 | Event bus and telemetry |
