@@ -6,16 +6,24 @@ script scores the GPU streaming engine's own graph, raw vs calibrated
 (get_knowledge_graph(calibrated=True): analytic F-test p-value + BH-FDR), on two
 footings:
 
-  real data     precision/recall/F1 + FPR vs the schema's pairwise ground truth
-  global null   each column independently shuffled -> every emitted edge is a true
-                false positive; this is the gate's real false-positive rate
+  real data     connectivity-aware score (scoring.py): adjacency recall on the
+                planted edges, honest precision, and indep_fpr = false edges over
+                only the truly d-separated pairs (indirect dependencies are
+                neither rewarded nor punished)
+  global null   each column independently shuffled -> an iid reference where every
+                emitted edge is a false positive
 
-Reading it: the calibrated gate's quality is the GLOBAL-NULL FPR (should collapse
-to ~0). The real-data "FPR" is inflated by genuine *indirect* correlations the
-generator induces (X->M->Y makes X and Y correlate) which a pairwise-adjacency
-ground truth miscounts as false — a scoring artifact, not an engine error. So
-read global-null FPR for gate quality and recall for coverage; real-data
-precision is a lower bound distorted by transitive dependence.
+HONEST READING (this is the corrected story). The global-null FPR collapses to 0
+under calibration, but that is misleading on its own: shuffling destroys
+autocorrelation. On the REAL (autocorrelated) stream the calibrated gate still
+posts false edges on genuinely-independent pairs (indep_fpr ~0.3), because two
+independent autocorrelated series show spurious correlation that an analytic
+iid-null F-test over-rejects -- and the engine tests many typed/lagged
+hypotheses per pair, each another chance to fire. So the analytic online gate is
+a real improvement over the raw confidence threshold and controls iid nulls, but
+it does NOT match the offline permutation calibrator (BLOCK/PHASE nulls) on
+autocorrelated data. The two-stage design stands: online = fast provisional
+graph; offline calibrator = authoritative significance.
 
 Usage:
   python benchmark/scripts/online_recovery.py --n 1500 --seeds 0 1 2
@@ -35,7 +43,7 @@ if str(_ROOT) not in sys.path:
 from benchmark.synthetic.benchmark_generator import create_benchmark_generator
 from scarcity.engine.gpu_engine import GPUDiscoveryEngine
 sys.path.insert(0, str(_ROOT / "benchmark" / "scripts"))
-from discovery_baselines import ground_truth
+from scoring import build_dependency_sets, score_connectivity
 
 
 def _pairs(kg):
@@ -47,16 +55,6 @@ def _pairs(kg):
     return s
 
 
-def _score(pred, gt, all_pairs):
-    tp, fp, fn = len(pred & gt), len(pred - gt), len(gt - pred)
-    nulls = all_pairs - gt
-    P = tp / (tp + fp) if tp + fp else 0.0
-    R = tp / (tp + fn) if tp + fn else 0.0
-    F = 2 * P * R / (P + R) if P + R else 0.0
-    fpr = len(pred & nulls) / len(nulls) if nulls else 0.0
-    return dict(precision=P, recall=R, f1=F, fpr=fpr, n=len(pred))
-
-
 def _stream(engine, rows, cols):
     for i in range(len(rows)):
         engine.process_row({c: float(rows[i, k]) for k, c in enumerate(cols)})
@@ -66,7 +64,7 @@ def run_seed(schema_path, seed, n):
     gen = create_benchmark_generator(schema_path, seed)
     df = gen.generate(n)
     cols = list(gen.variables)
-    gt = ground_truth(gen.schema)
+    direct, dependent, independent = build_dependency_sets(gen.schema, cols)
     all_pairs = {frozenset(p) for p in itertools.combinations(cols, 2)}
 
     e = GPUDiscoveryEngine(device="cpu")
@@ -75,7 +73,7 @@ def run_seed(schema_path, seed, n):
     raw = _pairs([h for h in e.get_knowledge_graph(top_k=600) if h["metrics"]["confidence"] >= 0.55])
     cal = _pairs(e.get_knowledge_graph(top_k=600, calibrated=True, q=0.05))
 
-    # global-null replica: independent column shuffle
+    # global-null replica: independent column shuffle (iid reference)
     rng = np.random.default_rng(seed + 777)
     shuf = df.values.copy()
     for j in range(shuf.shape[1]):
@@ -83,13 +81,11 @@ def run_seed(schema_path, seed, n):
     en = GPUDiscoveryEngine(device="cpu")
     en.initialize_v2({"fields": [{"name": c} for c in cols]}, use_causal=True)
     _stream(en, shuf, cols)
-    null_raw = _pairs([h for h in en.get_knowledge_graph(top_k=600) if h["metrics"]["confidence"] >= 0.55])
     null_cal = _pairs(en.get_knowledge_graph(top_k=600, calibrated=True, q=0.05))
 
     return {
-        "raw": _score(raw, gt, all_pairs),
-        "calibrated": _score(cal, gt, all_pairs),
-        "global_null_fpr_raw": len(null_raw) / len(all_pairs),
+        "raw": score_connectivity(raw, direct, dependent, independent),
+        "calibrated": score_connectivity(cal, direct, dependent, independent),
         "global_null_fpr_calibrated": len(null_cal) / len(all_pairs),
     }
 
@@ -103,28 +99,24 @@ def main():
 
     rows = [run_seed(args.schema, s, args.n) for s in args.seeds]
 
-    def avg(path):
-        return float(np.mean([_dig(r, path) for r in rows]))
+    def avg(g, k):
+        return float(np.mean([r[g][k] for r in rows]))
 
     print(f"\nOnline-engine knowledge-graph recovery  (n={args.n}, seeds={args.seeds})")
-    print("=" * 70)
-    print(f"{'graph':>12} {'precision':>10} {'recall':>8} {'F1':>7} {'realFPR':>8} {'nullFPR':>8}")
-    print("-" * 70)
+    print("=" * 74)
+    print(f"{'graph':>12} {'adj_recall':>11} {'honest_prec':>12} {'indep_fpr':>10} {'indirect':>9}")
+    print("-" * 74)
     for g in ("raw", "calibrated"):
-        P = avg([g, "precision"]); R = avg([g, "recall"]); F = avg([g, "f1"]); fpr = avg([g, "fpr"])
-        nfpr = float(np.mean([r[f"global_null_fpr_{g}"] for r in rows]))
-        print(f"{g:>12} {P:>10.3f} {R:>8.3f} {F:>7.3f} {fpr:>8.3f} {nfpr:>8.3f}")
-    print("=" * 70)
-    print("nullFPR = false-edge rate on a global-null replica = the gate's true "
-          "quality;\nrealFPR is inflated by genuine indirect correlations (scoring "
-          "artifact, see #5).")
+        print(f"{g:>12} {avg(g,'adjacency_recall'):>11.3f} {avg(g,'honest_precision'):>12.3f} "
+              f"{avg(g,'indep_fpr'):>10.3f} {avg(g,'indirect_hits'):>9.1f}")
+    nfpr = float(np.mean([r['global_null_fpr_calibrated'] for r in rows]))
+    print("-" * 74)
+    print(f"iid reference: calibrated FPR on a global-null (shuffled) replica = {nfpr:.3f}")
+    print("indep_fpr is over truly d-separated pairs; the gap between it (~0.3) and the")
+    print("iid reference (~0) is autocorrelation-driven spurious regression the analytic")
+    print("gate can't remove -> the offline permutation calibrator stays authoritative.")
+    print("=" * 74)
     print(json.dumps(rows))
-
-
-def _dig(d, path):
-    for k in path:
-        d = d[k]
-    return d
 
 
 if __name__ == "__main__":
