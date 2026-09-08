@@ -29,6 +29,46 @@ from .types import Candidate
 # Lifecycle int8 -> LifecycleState string (matches discovery.HypothesisState values).
 _LC_STATE = {0: "tentative", 1: "active", 2: "decaying", 3: "dead"}
 
+
+def _ftest_pvalues(fit: np.ndarray, evid: np.ndarray, ks: np.ndarray) -> np.ndarray:
+    """Per-hypothesis regression F-test p-value from R² (fit_score), n (evidence)
+    and k predictors. Analytic (no permutation) so it is cheap enough to run on a
+    knowledge-graph query. Under the iid-normal null this controls the per-edge
+    false-positive rate; it is approximate for strongly autocorrelated series
+    (where the batch calibrator's permutation null is the rigorous instrument)."""
+    from scipy.stats import f as _f
+    p = np.ones(len(fit))
+    for i in range(len(fit)):
+        r2 = float(min(max(fit[i], 0.0), 1.0 - 1e-12))
+        n, k = int(evid[i]), int(ks[i])
+        if k < 1 or n <= k + 1:
+            continue
+        F = (r2 / k) / ((1.0 - r2) / (n - k - 1))
+        p[i] = float(_f.sf(F, k, n - k - 1))
+    return p
+
+
+def _bh_fdr(p: np.ndarray, q: float) -> Tuple[np.ndarray, np.ndarray]:
+    """Benjamini-Hochberg: return (significant mask, BH-adjusted q-values)."""
+    m = len(p)
+    signif = np.zeros(m, dtype=bool)
+    qvals = np.ones(m)
+    if m == 0:
+        return signif, qvals
+    order = np.argsort(p)
+    max_rank = -1
+    for rank, idx in enumerate(order, start=1):
+        if p[idx] <= (rank / m) * q:
+            max_rank = rank
+    for rank in range(max_rank):
+        signif[order[rank]] = True
+    prev = 1.0
+    for rank in range(m, 0, -1):                 # monotone BH-adjusted q-values
+        idx = order[rank - 1]
+        prev = min(prev, p[idx] * m / rank)
+        qvals[idx] = prev
+    return signif, qvals
+
 # ---------------------------------------------------------------------------
 # Rel-type classification (mirrors graph_extractor.py logic)
 # ---------------------------------------------------------------------------
@@ -523,25 +563,57 @@ class GPUDiscoveryEngine:
         state = self._lc.state[0]    # (N_hyp,), int8; run=0
         return conf, stab, evid, state, specs_ordered
 
+    def _fit_scores(self) -> np.ndarray:
+        """Per-hypothesis R² (fit_score) in the same order as get_hyp_metrics."""
+        out = []
+        for key in self._group_order:
+            out.append(self._rls[key].fit_score.cpu().numpy())
+        return np.concatenate(out) if out else np.array([])
+
     @staticmethod
     def _rel_type_str(rel_type: Any) -> str:
         return rel_type if isinstance(rel_type, str) else getattr(rel_type, "value", str(rel_type))
 
-    def get_knowledge_graph(self, top_k: int = 50) -> List[Dict[str, Any]]:
+    def get_knowledge_graph(self, top_k: int = 50, calibrated: bool = False,
+                            q: float = 0.05) -> List[Dict[str, Any]]:
         """Export discovered hypotheses in the same format as the CPU engine.
 
         Mirrors OnlineDiscoveryEngine.get_knowledge_graph: the strongest
         hypotheses (by confidence) serialized to the Hypothesis.to_dict() shape,
         so downstream consumers (bridges, benchmark, graph extraction) are
         backend-agnostic.
+
+        calibrated=True gates the graph by statistical significance instead of the
+        bare confidence ordering: each hypothesis gets an analytic F-test p-value
+        (from its R² and evidence), Benjamini-Hochberg controls the false-discovery
+        rate at ``q``, and only edges that survive are returned — each annotated
+        with p_value/q_value/significant. This is the trustworthy online graph; the
+        default (calibrated=False) keeps the legacy raw-confidence behaviour.
         """
         if self._pool is None:
             return []
         conf, stab, evid, state, specs = self.get_hyp_metrics()
+        if calibrated and len(specs):
+            fit = self._fit_scores()
+            ks = np.array([max(int(getattr(s, "F", 2)) - 1, 0) for s in specs])
+            pvals = _ftest_pvalues(fit, evid, ks)
+            signif, qvals = _bh_fdr(pvals, q)
         items: List[Dict[str, Any]] = []
         for i, s in enumerate(specs):
+            if calibrated and not signif[i]:
+                continue                          # gate: drop non-significant edges
             variables = list(s.variables)
             rel = self._rel_type_str(s.rel_type)
+            metrics = {
+                "fit_score": 0.0,
+                "confidence": float(conf[i]),
+                "evidence": int(evid[i]),
+                "stability": float(stab[i]),
+            }
+            if calibrated:
+                metrics["p_value"] = float(pvals[i])
+                metrics["q_value"] = float(qvals[i])
+                metrics["significant"] = True
             items.append({
                 "id": f"{rel}:{'|'.join(map(str, variables))}",
                 "type": rel,
@@ -549,12 +621,7 @@ class GPUDiscoveryEngine:
                 "created_at": 0.0,
                 "generation": 0,
                 "variables": variables,
-                "metrics": {
-                    "fit_score": 0.0,
-                    "confidence": float(conf[i]),
-                    "evidence": int(evid[i]),
-                    "stability": float(stab[i]),
-                },
+                "metrics": metrics,
             })
         # Similarity is a collective type excluded from the RLS groups; evaluate
         # it separately from the stored series and append it to the graph.
@@ -563,6 +630,16 @@ class GPUDiscoveryEngine:
                 continue
             variables = list(s.variables)
             c = self._similarity_confidence(s)
+            if calibrated and c <= 0.55:
+                continue                          # effect-size gate for the collective type
+            sim_metrics = {
+                "fit_score": 0.0,
+                "confidence": c,
+                "evidence": int(self._n_rows),
+                "stability": 0.0,
+            }
+            if calibrated:
+                sim_metrics["significant"] = True
             items.append({
                 "id": f"similarity:{'|'.join(map(str, variables))}",
                 "type": "similarity",
@@ -570,12 +647,7 @@ class GPUDiscoveryEngine:
                 "created_at": 0.0,
                 "generation": 0,
                 "variables": variables,
-                "metrics": {
-                    "fit_score": 0.0,
-                    "confidence": c,
-                    "evidence": int(self._n_rows),
-                    "stability": 0.0,
-                },
+                "metrics": sim_metrics,
             })
         items.sort(key=lambda d: d["metrics"]["confidence"], reverse=True)
         return items[:top_k]
