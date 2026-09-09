@@ -776,17 +776,23 @@ class OnlineDiscoveryEngine:
                     h.alpha_success += abs(delta) * 5.0
                 break
 
-    def get_knowledge_graph(self) -> List[Dict[str, Any]]:
+    def get_knowledge_graph(self, top_k: int = 50, calibrated: bool = False,
+                            q: float = 0.05) -> List[Dict[str, Any]]:
         """
         Exports the current best understanding of the system as a Knowledge Graph.
 
-        Retrieves the top-k strongest hypotheses from the pool and serializes them.
-        This represents the "truth" learned by the system so far.
+        Under the tensor backend (vectorized=True, the default when torch is
+        present) the evidence lives in the internal GPUDiscoveryEngine and the
+        Python pool is never updated -- so this MUST delegate there, otherwise it
+        would return the pool frozen at its initialization state. Only the pure
+        Python backend (vectorized=False) reads the local pool.
 
-        Returns:
-            A list of dictionaries, each representing a discovered relationship/edge.
+        calibrated=True gates the graph by significance (autocorrelation-robust
+        partial-t + BH-FDR); it is available only under the tensor backend.
         """
-        strongest = self.hypotheses.get_strongest(top_k=50)
+        if self._vec_engine is not None:
+            return self._vec_engine.get_knowledge_graph(top_k=top_k, calibrated=calibrated, q=q)
+        strongest = self.hypotheses.get_strongest(top_k=top_k)
         return [h.to_dict() for h in strongest]
 
     def get_candidate_paths(self, top_k: int = 30) -> List[Candidate]:
@@ -812,42 +818,34 @@ class OnlineDiscoveryEngine:
 
         var_index = getattr(self, '_var_index', {})
         candidates: List[Candidate] = []
-        strongest = self.hypotheses.get_strongest(top_k=top_k)
 
-        for hyp in strongest:
-            if len(hyp.variables) < 2:
-                continue
-            if getattr(hyp, 'confidence', 0.0) < 0.25:
-                continue
+        # Source from whichever backend holds the evidence: under the tensor
+        # backend the Python pool is frozen at init, so read its knowledge graph.
+        if self._vec_engine is not None:
+            items = [(h["variables"], h["type"], h["metrics"].get("confidence", 0.0))
+                     for h in self._vec_engine.get_knowledge_graph(top_k=top_k)]
+        else:
+            items = [(h.variables, h.rel_type.value, getattr(h, "confidence", 0.0))
+                     for h in self.hypotheses.get_strongest(top_k=top_k)]
 
-            # Map variable names to integer indices
+        for variables, rel_type, conf in items:
+            if len(variables) < 2 or conf < 0.25:
+                continue
             try:
-                var_indices = tuple(
-                    var_index[v] for v in hyp.variables[:2]
-                    if v in var_index
-                )
+                var_indices = tuple(var_index[v] for v in variables[:2] if v in var_index)
             except KeyError:
                 continue
             if len(var_indices) < 2:
                 continue
 
-            # Deterministic path_id from (vars, rel_type)
-            path_key = f"{var_indices}:{hyp.rel_type.value}"
-            path_id = hashlib.md5(path_key.encode()).hexdigest()[:16]
-
+            path_id = hashlib.md5(f"{var_indices}:{rel_type}".encode()).hexdigest()[:16]
             try:
-                cand = Candidate(
-                    path_id=path_id,
-                    vars=var_indices,
-                    lags=(0, 0),
-                    ops=('identity', 'identity'),
-                    root=var_indices[0],
-                    depth=1,
-                    domain=0,
-                    gen_reason=f'discovery:{hyp.rel_type.value}',
-                )
-                candidates.append(cand)
+                candidates.append(Candidate(
+                    path_id=path_id, vars=var_indices, lags=(0, 0),
+                    ops=('identity', 'identity'), root=var_indices[0],
+                    depth=1, domain=0, gen_reason=f'discovery:{rel_type}',
+                ))
             except Exception as exc:
-                logger.debug(f"Could not build Candidate for {hyp.meta.id}: {exc}")
+                logger.debug(f"Could not build Candidate for {var_indices}: {exc}")
 
         return candidates
