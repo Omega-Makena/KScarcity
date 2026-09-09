@@ -61,6 +61,13 @@ _PRED_IDX = {
     # everything else: the first predictor slot (a), index 1
 }
 
+# Types whose evidence is NOT a single regression coefficient but a bespoke
+# statistic (Sobel indirect path, one-way ANOVA, conditional effect size, boolean
+# rule accuracy). For these the predictor partial-t is the wrong test — e.g. a
+# mediated relationship's DIRECT coefficient is ~0 by construction — so the
+# calibrated gate uses their own effect-size-gated confidence as significance.
+_SPECIAL_STAT = frozenset({"mediating", "structural", "probabilistic", "logical"})
+
 
 def _bh_fdr(p: np.ndarray, q: float) -> Tuple[np.ndarray, np.ndarray]:
     """Benjamini-Hochberg: return (significant mask, BH-adjusted q-values)."""
@@ -706,6 +713,14 @@ class GPUDiscoveryEngine:
         conf, stab, evid, state, specs = self.get_hyp_metrics()
         if calibrated and len(specs):
             pvals, pr2 = self._coef_stats()       # autocorrelation-robust partial-t + effect size
+            # Special-statistic types are not evidenced by the predictor coefficient;
+            # use their own effect-size-gated confidence (from _group_confidence) as
+            # the significance so they are not spuriously gated out.
+            for i, s in enumerate(specs):
+                if self._rel_type_str(s.rel_type) in _SPECIAL_STAT:
+                    c = float(conf[i])
+                    pvals[i] = max(1e-12, 1.0 - c)
+                    pr2[i] = c
             signif, qvals = _bh_fdr(pvals, q)
         items: List[Dict[str, Any]] = []
         for i, s in enumerate(specs):
