@@ -37,8 +37,18 @@ from scarcity.experiment.record import (
 )
 
 
-def set_seeds(seed: int) -> None:
-    """Seed every RNG the engine might touch (stdlib, numpy, torch)."""
+def set_seeds(seed: int, deterministic: bool = True) -> None:
+    """Seed every RNG the engine might touch (stdlib, numpy, torch) and, when
+    ``deterministic`` is set, enforce deterministic kernels so a run is
+    reproducible across repetitions and hardware — not just seeded.
+
+    Seeding alone leaves the GPU path nondeterministic: CUDA reductions/atomics
+    and cuBLAS GEMM pick nondeterministic orders unless the deterministic mode and
+    CUBLAS_WORKSPACE_CONFIG are set. The CPU path is already deterministic, so this
+    is a no-op there beyond the flag. use_deterministic_algorithms is set
+    warn_only so an op lacking a deterministic kernel degrades to a warning rather
+    than raising mid-stream.
+    """
     random.seed(seed)
     os.environ["PYTHONHASHSEED"] = str(seed)
     try:
@@ -51,6 +61,20 @@ def set_seeds(seed: int) -> None:
         torch.manual_seed(seed)
         if torch.cuda.is_available():
             torch.cuda.manual_seed_all(seed)
+        if deterministic:
+            # cuBLAS needs this (set before CUDA init) for deterministic GEMM.
+            os.environ.setdefault("CUBLAS_WORKSPACE_CONFIG", ":4096:8")
+            try:
+                torch.use_deterministic_algorithms(True, warn_only=True)
+            except TypeError:
+                torch.use_deterministic_algorithms(True)
+            except Exception:
+                pass
+            try:
+                torch.backends.cudnn.deterministic = True
+                torch.backends.cudnn.benchmark = False
+            except Exception:
+                pass
     except Exception:
         pass
 
