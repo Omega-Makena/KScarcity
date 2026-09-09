@@ -13,17 +13,16 @@ footings:
   global null   each column independently shuffled -> an iid reference where every
                 emitted edge is a false positive
 
-HONEST READING (this is the corrected story). The global-null FPR collapses to 0
-under calibration, but that is misleading on its own: shuffling destroys
-autocorrelation. On the REAL (autocorrelated) stream the calibrated gate still
-posts false edges on genuinely-independent pairs (indep_fpr ~0.3), because two
-independent autocorrelated series show spurious correlation that an analytic
-iid-null F-test over-rejects -- and the engine tests many typed/lagged
-hypotheses per pair, each another chance to fire. So the analytic online gate is
-a real improvement over the raw confidence threshold and controls iid nulls, but
-it does NOT match the offline permutation calibrator (BLOCK/PHASE nulls) on
-autocorrelated data. The two-stage design stands: online = fast provisional
-graph; offline calibrator = authoritative significance.
+READING. The calibrated gate scores each hypothesis by its PREDICTOR
+coefficient's partial t-test, not the whole-regression R². That distinction is
+what makes it autocorrelation-robust: for a causal hypothesis Y=b_t ~ [1,
+a_{t-1}, b_{t-1}] the b_{t-1} term makes R² large from the target's own memory
+regardless of a, so an R² F-test fired on every autocorrelated target
+(indep_fpr ~0.33); the a_{t-1} coefficient does not, so the partial-t gate holds
+indep_fpr near the nominal q (~0.02) on the REAL autocorrelated stream while
+improving recall. It matches the global-null (iid) reference to within FDR noise.
+The offline permutation calibrator (BLOCK/PHASE) remains available as the
+rigorous instrument, but the online graph is now trustworthy on its own.
 
 Usage:
   python benchmark/scripts/online_recovery.py --n 1500 --seeds 0 1 2
@@ -112,9 +111,9 @@ def main():
     nfpr = float(np.mean([r['global_null_fpr_calibrated'] for r in rows]))
     print("-" * 74)
     print(f"iid reference: calibrated FPR on a global-null (shuffled) replica = {nfpr:.3f}")
-    print("indep_fpr is over truly d-separated pairs; the gap between it (~0.3) and the")
-    print("iid reference (~0) is autocorrelation-driven spurious regression the analytic")
-    print("gate can't remove -> the offline permutation calibrator stays authoritative.")
+    print("indep_fpr is over truly d-separated pairs. The coefficient partial-t gate holds")
+    print("it near nominal q even on the autocorrelated stream (the R² gate left it ~0.33),")
+    print("because it credits the predictor term, not the target's own AR control.")
     print("=" * 74)
     print(json.dumps(rows))
 

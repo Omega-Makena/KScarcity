@@ -48,6 +48,20 @@ def _ftest_pvalues(fit: np.ndarray, evid: np.ndarray, ks: np.ndarray) -> np.ndar
     return p
 
 
+# Coefficient index carrying the cross-variable "signal" per type — the term whose
+# significance actually evidences the edge, as opposed to an intercept or the
+# target's own autoregressive control term. Testing THIS coefficient (a partial
+# t-test) instead of the whole-regression R² is what makes the online gate
+# autocorrelation-robust: for a causal hypothesis Y=b_t ~ [1, a_{t-1}, b_{t-1}],
+# the b_{t-1} term inflates R² from the target's own memory regardless of a, so an
+# R² F-test fires on every autocorrelated target; the a_{t-1} coefficient does not.
+_PRED_IDX = {
+    "graph": 0,                                   # cos(a) coefficient
+    "synergistic": 3, "moderating": 3,            # interaction term a*b
+    # everything else: the first predictor slot (a), index 1
+}
+
+
 def _bh_fdr(p: np.ndarray, q: float) -> Tuple[np.ndarray, np.ndarray]:
     """Benjamini-Hochberg: return (significant mask, BH-adjusted q-values)."""
     m = len(p)
@@ -570,6 +584,60 @@ class GPUDiscoveryEngine:
             out.append(self._rls[key].fit_score.cpu().numpy())
         return np.concatenate(out) if out else np.array([])
 
+    def _lag1_autocorr(self) -> np.ndarray:
+        """Lag-1 autocorrelation per column from the stored buffer (for the
+        effective-sample-size correction). Shape (N_vars,)."""
+        if self._data is None or self._n_rows < 3:
+            return np.zeros(self._N)
+        d = self._data[0, :self._n_rows].cpu().numpy()
+        d = d - d.mean(axis=0, keepdims=True)
+        denom = (d * d).sum(axis=0)
+        num = (d[:-1] * d[1:]).sum(axis=0)
+        with np.errstate(divide="ignore", invalid="ignore"):
+            r1 = np.where(denom > 1e-12, num / denom, 0.0)
+        return np.clip(np.nan_to_num(r1), -0.99, 0.99)
+
+    def _coef_pvalues(self) -> np.ndarray:
+        """Per-hypothesis p-value from the PREDICTOR coefficient's partial t-test,
+        in the same order as get_hyp_metrics, with an effective-sample-size
+        correction for autocorrelation. Two robustness layers:
+
+        1. Testing the predictor coefficient (not the whole-regression R²) credits
+           only the cross-variable term, not the target's own autoregressive
+           control -- so it does not fire on every autocorrelated target.
+        2. The t-statistic's degrees of freedom are shrunk by
+           n_eff/n = (1 - r1_a r1_y)/(1 + r1_a r1_y) (Bayley-Hammersley), so a
+           spurious contemporaneous correlation between two strongly autocorrelated
+           but independent series is not over-rejected.
+
+        coef_significance(j) returns 2*Phi(|t_j|)-1; recover |t|, shrink by
+        sqrt(n_eff/n), and map back to a two-sided p-value.
+        """
+        from scipy.stats import norm
+        groups = self._pool.stream_groups()
+        r1 = self._lag1_autocorr()
+        n = max(int(self._n_rows), 2)
+        out = []
+        for key in self._group_order:
+            r = self._rls[key]
+            specs = groups[key]
+            cache: Dict[int, np.ndarray] = {}
+            ps = np.ones(len(specs))
+            for i, s in enumerate(specs):
+                j = min(_PRED_IDX.get(self._rel_type_str(s.rel_type), 1), r.F - 1)
+                if j not in cache:
+                    cache[j] = r.coef_significance(j).cpu().numpy()
+                cs = min(max(float(cache[j][i]), 0.0), 1.0 - 1e-12)
+                t = norm.ppf((cs + 1.0) / 2.0)                 # |t| from 2*Phi(|t|)-1
+                ca, cy = getattr(s, "col_a", -1), getattr(s, "col_y", -1)
+                fac = 1.0
+                if 0 <= ca < self._N and 0 <= cy < self._N:
+                    rr = r1[ca] * r1[cy]
+                    fac = max((1.0 - rr) / (1.0 + rr), 1e-3)   # n_eff / n
+                ps[i] = max(1e-12, float(2.0 * norm.sf(abs(t) * np.sqrt(fac))))
+            out.append(ps)
+        return np.concatenate(out) if out else np.array([])
+
     @staticmethod
     def _rel_type_str(rel_type: Any) -> str:
         return rel_type if isinstance(rel_type, str) else getattr(rel_type, "value", str(rel_type))
@@ -584,19 +652,20 @@ class GPUDiscoveryEngine:
         backend-agnostic.
 
         calibrated=True gates the graph by statistical significance instead of the
-        bare confidence ordering: each hypothesis gets an analytic F-test p-value
-        (from its R² and evidence), Benjamini-Hochberg controls the false-discovery
-        rate at ``q``, and only edges that survive are returned — each annotated
-        with p_value/q_value/significant. This is the trustworthy online graph; the
-        default (calibrated=False) keeps the legacy raw-confidence behaviour.
+        bare confidence ordering: each hypothesis gets a p-value from its PREDICTOR
+        coefficient's partial t-test (autocorrelation-robust — it credits only the
+        cross-variable term, not the target's own autoregressive control, so it does
+        not fire on every autocorrelated target the way a whole-regression R² F-test
+        does), Benjamini-Hochberg controls the false-discovery rate at ``q``, and
+        only survivors are returned — annotated with p_value/q_value/significant.
+        This is the trustworthy online graph; calibrated=False keeps the legacy
+        raw-confidence behaviour.
         """
         if self._pool is None:
             return []
         conf, stab, evid, state, specs = self.get_hyp_metrics()
         if calibrated and len(specs):
-            fit = self._fit_scores()
-            ks = np.array([max(int(getattr(s, "F", 2)) - 1, 0) for s in specs])
-            pvals = _ftest_pvalues(fit, evid, ks)
+            pvals = self._coef_pvalues()          # autocorrelation-robust partial-t
             signif, qvals = _bh_fdr(pvals, q)
         items: List[Dict[str, Any]] = []
         for i, s in enumerate(specs):
