@@ -676,7 +676,7 @@ class GPUDiscoveryEngine:
     def _rel_type_str(rel_type: Any) -> str:
         return rel_type if isinstance(rel_type, str) else getattr(rel_type, "value", str(rel_type))
 
-    def get_knowledge_graph(self, top_k: int = 50, calibrated: bool = False,
+    def get_knowledge_graph(self, top_k: int = 50, calibrated: bool = True,
                             q: float = 0.05, min_partial_r2: float = 0.0) -> List[Dict[str, Any]]:
         """Export discovered hypotheses in the same format as the CPU engine.
 

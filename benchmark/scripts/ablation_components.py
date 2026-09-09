@@ -111,7 +111,7 @@ def _known_stream(n, seed):
 
 def _edge_conf(engine, a, b):
     try:
-        kg = engine.get_knowledge_graph(top_k=200)
+        kg = engine.get_knowledge_graph(top_k=200, calibrated=False)
     except TypeError:
         kg = engine.get_knowledge_graph()          # CPU engine takes no top_k
     best = 0.0

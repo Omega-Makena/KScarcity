@@ -69,7 +69,7 @@ def run_seed(schema_path, seed, n):
     e = GPUDiscoveryEngine(device="cpu")
     e.initialize_v2({"fields": [{"name": c} for c in cols]}, use_causal=True)
     _stream(e, df.values, cols)
-    raw = _pairs([h for h in e.get_knowledge_graph(top_k=600) if h["metrics"]["confidence"] >= 0.55])
+    raw = _pairs([h for h in e.get_knowledge_graph(top_k=600, calibrated=False) if h["metrics"]["confidence"] >= 0.55])
     cal = _pairs(e.get_knowledge_graph(top_k=600, calibrated=True, q=0.05))
 
     # global-null replica: independent column shuffle (iid reference)

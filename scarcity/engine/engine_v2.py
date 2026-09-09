@@ -783,7 +783,7 @@ class OnlineDiscoveryEngine:
                     h.alpha_success += abs(delta) * 5.0
                 break
 
-    def get_knowledge_graph(self, top_k: int = 50, calibrated: bool = False,
+    def get_knowledge_graph(self, top_k: int = 50, calibrated: bool = True,
                             q: float = 0.05, min_partial_r2: float = 0.0) -> List[Dict[str, Any]]:
         """
         Exports the current best understanding of the system as a Knowledge Graph.

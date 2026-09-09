@@ -37,7 +37,7 @@ def test_calibrated_kg_keeps_true_edge_and_controls_null_fpr():
     seeds = range(6)
     for s in seeds:
         e = _run(s)
-        raw = _pairs([h for h in e.get_knowledge_graph(top_k=200)
+        raw = _pairs([h for h in e.get_knowledge_graph(top_k=200, calibrated=False)
                       if h["metrics"]["confidence"] >= 0.55])
         cal = _pairs(e.get_knowledge_graph(top_k=200, calibrated=True, q=0.05))
         assert xy in cal                       # true edge always retained
@@ -60,11 +60,14 @@ def test_calibrated_edges_carry_significance_annotations():
         assert m["q_value"] <= 0.05 + 1e-9       # survivors are below the BH threshold
 
 
-def test_default_graph_unchanged():
-    """calibrated=False keeps the legacy raw-confidence behaviour (no p-values)."""
+def test_default_is_calibrated_and_raw_is_opt_out():
+    """The graph is calibrated BY DEFAULT (annotated with p-values); calibrated=False
+    still returns the legacy raw-confidence graph (no p-values)."""
     e = _run(0)
-    kg = e.get_knowledge_graph(top_k=50)
-    assert kg and "p_value" not in kg[0]["metrics"]
+    default_kg = e.get_knowledge_graph(top_k=50)
+    assert default_kg and all("p_value" in h["metrics"] for h in default_kg)
+    raw_kg = e.get_knowledge_graph(top_k=50, calibrated=False)
+    assert raw_kg and "p_value" not in raw_kg[0]["metrics"]
 
 
 def test_rls_stable_at_large_n_no_nan():

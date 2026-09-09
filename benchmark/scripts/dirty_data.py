@@ -97,7 +97,7 @@ def _corrupt(arr, rng, kind, sev):
 
 def _edge_conf(engine, a, b):
     best = 0.0
-    for h in engine.get_knowledge_graph(top_k=200):
+    for h in engine.get_knowledge_graph(top_k=200, calibrated=False):
         if set(h["variables"]) == {a, b}:
             best = max(best, h["metrics"]["confidence"])
     return best
