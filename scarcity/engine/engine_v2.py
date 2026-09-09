@@ -33,7 +33,7 @@ from .relationships import (
     ProbabilisticHypothesis,
     StructuralHypothesis,
 )
-from .relationship_config import CorrelationalConfig
+from .relationship_config import CorrelationalConfig, TemporalConfig, FunctionalConfig
 from .relationships_extended import (
     MediatingHypothesis,
     ModeratingHypothesis,
@@ -247,9 +247,19 @@ class OnlineDiscoveryEngine:
         
         # 1. For each variable: Temporal (AR) and Equilibrium
         bs = self.buffer_size
+        # Uniform forgetting: when forgetting_window>0 it sets the effective window
+        # for EVERY type, not just correlational. Buffer-based estimators window by
+        # sizing their buffer to it; RLS estimators (temporal/functional) map it to
+        # a forgetting factor lambda=1-1/window. forgetting_window=0 keeps the
+        # cumulative defaults unchanged.
+        fw = self.forgetting_window
+        eff_bs = fw if fw > 0 else bs
+        lam = min(max(1.0 - 1.0 / fw, 0.90), 0.9999) if fw > 0 else None
+        _tcfg = TemporalConfig(forgetting_factor=lam) if lam is not None else None
+        _fcfg = FunctionalConfig(forgetting_factor=lam) if lam is not None else None
         for v in var_names:
-            self.hypotheses.add(TemporalHypothesis(v, lag=2, buffer_size=bs))
-            self.hypotheses.add(EquilibriumHypothesis(v, buffer_size=bs))
+            self.hypotheses.add(TemporalHypothesis(v, lag=2, buffer_size=eff_bs, config=_tcfg))
+            self.hypotheses.add(EquilibriumHypothesis(v, buffer_size=eff_bs))
 
         # 2. For variable pairs — all pairs, no artificial cap
         import itertools
@@ -269,38 +279,35 @@ class OnlineDiscoveryEngine:
         for a, b in pairs:
             # Correlational — both directions: each is a distinct predictor for shock propagation.
             # Corr(a,b) uses a to predict b; Corr(b,a) uses b to predict a.
-            _cbuf = max(bs, self.forgetting_window)
             self.hypotheses.add(CorrelationalHypothesis(
-                a, b, buffer_size=_cbuf,
-                config=CorrelationalConfig(window=self.forgetting_window)))
+                a, b, buffer_size=eff_bs, config=CorrelationalConfig(window=fw)))
             self.hypotheses.add(CorrelationalHypothesis(
-                b, a, buffer_size=_cbuf,
-                config=CorrelationalConfig(window=self.forgetting_window)))
+                b, a, buffer_size=eff_bs, config=CorrelationalConfig(window=fw)))
 
             # Functional (linear regression, both directions)
-            self.hypotheses.add(FunctionalHypothesis(a, b, degree=1, buffer_size=bs))
-            self.hypotheses.add(FunctionalHypothesis(b, a, degree=1, buffer_size=bs))
+            self.hypotheses.add(FunctionalHypothesis(a, b, degree=1, buffer_size=eff_bs, config=_fcfg))
+            self.hypotheses.add(FunctionalHypothesis(b, a, degree=1, buffer_size=eff_bs, config=_fcfg))
 
             # Causal/Granger (both directions)
             if use_causal:
-                self.hypotheses.add(CausalHypothesis(a, b, lag=causal_lag, buffer_size=bs))
-                self.hypotheses.add(CausalHypothesis(b, a, lag=causal_lag, buffer_size=bs))
+                self.hypotheses.add(CausalHypothesis(a, b, lag=causal_lag, buffer_size=eff_bs))
+                self.hypotheses.add(CausalHypothesis(b, a, lag=causal_lag, buffer_size=eff_bs))
             # Note: Competitive, Probabilistic, Structural, Graph are added by _explore_step()
             # for pairs where the above three types show strong signal, keeping init < capacity.
 
         # 4. Triple-variable hypotheses
         for a, b, c in triplets:
-            self.hypotheses.add(CompositionalHypothesis([a, b], c, buffer_size=bs))
-            self.hypotheses.add(SynergisticHypothesis(a, b, c, buffer_size=bs))
-            self.hypotheses.add(MediatingHypothesis(a, b, c, buffer_size=bs))
-            self.hypotheses.add(ModeratingHypothesis(a, b, c, buffer_size=bs))
-            self.hypotheses.add(LogicalHypothesis(a, b, c, buffer_size=bs))
+            self.hypotheses.add(CompositionalHypothesis([a, b], c, buffer_size=eff_bs))
+            self.hypotheses.add(SynergisticHypothesis(a, b, c, buffer_size=eff_bs))
+            self.hypotheses.add(MediatingHypothesis(a, b, c, buffer_size=eff_bs))
+            self.hypotheses.add(ModeratingHypothesis(a, b, c, buffer_size=eff_bs))
+            self.hypotheses.add(LogicalHypothesis(a, b, c, buffer_size=eff_bs))
 
         # 5. Similarity hypothesis across a small variable subset
         if len(var_names) >= 3:
             subset = var_names[: min(5, len(var_names))]
             self.hypotheses.add(SimilarityHypothesis(subset, n_clusters=min(3, len(subset)),
-                                                     buffer_size=bs))
+                                                     buffer_size=eff_bs))
         
         logger.info(f"Initialized {len(self.hypotheses.population)} hypotheses (V2)")
 
