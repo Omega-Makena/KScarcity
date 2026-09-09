@@ -613,37 +613,71 @@ class GPUDiscoveryEngine:
         coef_significance(j) returns 2*Phi(|t_j|)-1; recover |t|, shrink by
         sqrt(n_eff/n), and map back to a two-sided p-value.
         """
+        p_out, r2_out = self._coef_stats()
+        return p_out
+
+    def _coef_stats(self) -> Tuple[np.ndarray, np.ndarray]:
+        """Return (p_values, partial_r2) per hypothesis, in get_hyp_metrics order.
+
+        partial_r2 = t_eff^2 / (t_eff^2 + dof_eff) is the predictor's
+        autocorrelation-adjusted incremental variance explained -- a practical
+        effect size distinct from statistical significance, so a real-but-trivial
+        edge at large n can be gated out even when its p-value is tiny.
+        """
         from scipy.stats import norm
         groups = self._pool.stream_groups()
         r1 = self._lag1_autocorr()
-        n = max(int(self._n_rows), 2)
-        out = []
+        ps_out, pr2_out = [], []
         for key in self._group_order:
             r = self._rls[key]
             specs = groups[key]
-            cache: Dict[int, np.ndarray] = {}
+            # raw t-stat per coefficient, straight from the RLS state (not the
+            # saturating coef_significance): t = |W_j| / sqrt(sigma2 * P[j,j]).
+            n_rls = r.n.to(r.dtype).clamp(min=1.0)
+            dof0 = (n_rls - float(r.F)).clamp(min=1.0)
+            sigma2 = (r.sse / dof0).clamp(min=0.0)
+            tcache: Dict[int, np.ndarray] = {}
+
+            def _traw(j: int) -> np.ndarray:
+                if j not in tcache:
+                    var_coef = (sigma2 * r.P[:, j, j]).clamp(min=1e-12)
+                    tcache[j] = (r.W[:, j].abs() / var_coef.sqrt()).cpu().numpy()
+                return tcache[j]
+
+            n_np = n_rls.cpu().numpy()
             ps = np.ones(len(specs))
+            pr2 = np.zeros(len(specs))
             for i, s in enumerate(specs):
                 j = min(_PRED_IDX.get(self._rel_type_str(s.rel_type), 1), r.F - 1)
-                if j not in cache:
-                    cache[j] = r.coef_significance(j).cpu().numpy()
-                cs = min(max(float(cache[j][i]), 0.0), 1.0 - 1e-12)
-                t = norm.ppf((cs + 1.0) / 2.0)                 # |t| from 2*Phi(|t|)-1
+                t_raw = float(_traw(j)[i])
+                if not np.isfinite(t_raw):
+                    continue                                    # p=1, pr2=0
                 ca, cy = getattr(s, "col_a", -1), getattr(s, "col_y", -1)
                 fac = 1.0
                 if 0 <= ca < self._N and 0 <= cy < self._N:
                     rr = r1[ca] * r1[cy]
-                    fac = max((1.0 - rr) / (1.0 + rr), 1e-3)   # n_eff / n
-                ps[i] = max(1e-12, float(2.0 * norm.sf(abs(t) * np.sqrt(fac))))
-            out.append(ps)
-        return np.concatenate(out) if out else np.array([])
+                    fac = max((1.0 - rr) / (1.0 + rr), 1e-3)    # n_eff / n
+                t_eff = abs(t_raw) * np.sqrt(fac)
+                ps[i] = max(1e-12, float(2.0 * norm.sf(t_eff)))
+                # Effect size = partial R^2 = t^2/(t^2 + dof). The forgetting RLS
+                # sees ~tau = 1/(1-lam) effective samples, so pair t (which already
+                # reflects that memory) with tau as the dof -> an n-stable partial R^2
+                # that converges to the true squared partial correlation rather than
+                # shrinking as the raw row count grows.
+                tau = 1.0 / max(1.0 - float(r.lam), 1e-3)
+                pr2[i] = float(t_eff * t_eff / (t_eff * t_eff + tau))
+            ps_out.append(ps)
+            pr2_out.append(pr2)
+        if not ps_out:
+            return np.array([]), np.array([])
+        return np.concatenate(ps_out), np.concatenate(pr2_out)
 
     @staticmethod
     def _rel_type_str(rel_type: Any) -> str:
         return rel_type if isinstance(rel_type, str) else getattr(rel_type, "value", str(rel_type))
 
     def get_knowledge_graph(self, top_k: int = 50, calibrated: bool = False,
-                            q: float = 0.05) -> List[Dict[str, Any]]:
+                            q: float = 0.05, min_partial_r2: float = 0.0) -> List[Dict[str, Any]]:
         """Export discovered hypotheses in the same format as the CPU engine.
 
         Mirrors OnlineDiscoveryEngine.get_knowledge_graph: the strongest
@@ -660,17 +694,25 @@ class GPUDiscoveryEngine:
         only survivors are returned — annotated with p_value/q_value/significant.
         This is the trustworthy online graph; calibrated=False keeps the legacy
         raw-confidence behaviour.
+
+        min_partial_r2>0 adds a practical-significance gate: an edge must also
+        explain at least that fraction of the predictor's (autocorrelation-adjusted)
+        residual variance, so a statistically-significant but trivially-small effect
+        at large n is filtered out — the discovery-layer analogue of the §5.7
+        "real but sub-threshold, so don't act on it" discipline.
         """
         if self._pool is None:
             return []
         conf, stab, evid, state, specs = self.get_hyp_metrics()
         if calibrated and len(specs):
-            pvals = self._coef_pvalues()          # autocorrelation-robust partial-t
+            pvals, pr2 = self._coef_stats()       # autocorrelation-robust partial-t + effect size
             signif, qvals = _bh_fdr(pvals, q)
         items: List[Dict[str, Any]] = []
         for i, s in enumerate(specs):
             if calibrated and not signif[i]:
-                continue                          # gate: drop non-significant edges
+                continue                          # gate 1: statistical significance
+            if calibrated and pr2[i] < min_partial_r2:
+                continue                          # gate 2: practical (effect-size) significance
             variables = list(s.variables)
             rel = self._rel_type_str(s.rel_type)
             metrics = {
@@ -682,6 +724,7 @@ class GPUDiscoveryEngine:
             if calibrated:
                 metrics["p_value"] = float(pvals[i])
                 metrics["q_value"] = float(qvals[i])
+                metrics["partial_r2"] = float(pr2[i])
                 metrics["significant"] = True
             items.append({
                 "id": f"{rel}:{'|'.join(map(str, variables))}",

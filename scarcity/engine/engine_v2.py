@@ -784,7 +784,7 @@ class OnlineDiscoveryEngine:
                 break
 
     def get_knowledge_graph(self, top_k: int = 50, calibrated: bool = False,
-                            q: float = 0.05) -> List[Dict[str, Any]]:
+                            q: float = 0.05, min_partial_r2: float = 0.0) -> List[Dict[str, Any]]:
         """
         Exports the current best understanding of the system as a Knowledge Graph.
 
@@ -798,7 +798,8 @@ class OnlineDiscoveryEngine:
         partial-t + BH-FDR); it is available only under the tensor backend.
         """
         if self._vec_engine is not None:
-            return self._vec_engine.get_knowledge_graph(top_k=top_k, calibrated=calibrated, q=q)
+            return self._vec_engine.get_knowledge_graph(
+                top_k=top_k, calibrated=calibrated, q=q, min_partial_r2=min_partial_r2)
         strongest = self.hypotheses.get_strongest(top_k=top_k)
         return [h.to_dict() for h in strongest]
 

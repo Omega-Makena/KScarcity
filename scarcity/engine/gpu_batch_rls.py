@@ -41,6 +41,12 @@ def get_device(prefer_gpu: bool = True) -> str:
 # Core batched RLS step (free function, usable independently)
 # ---------------------------------------------------------------------------
 
+# Windup cap on the RLS covariance trace — ~5 orders of magnitude above the
+# initial trace (10*F), so it bounds runaway forgetting-RLS growth without
+# affecting normal operation.
+_P_TRACE_MAX: float = 1.0e6
+
+
 def rls_step_batch(
     P: torch.Tensor,   # (M, F, F)
     W: torch.Tensor,   # (M, F)
@@ -73,6 +79,16 @@ def rls_step_batch(
     # covariance update: P_new = (P - K ⊗ Px) / lam
     KPx = torch.einsum("mi,mj->mij", K, Px)
     P_new = (P - KPx) / lam
+    # Windup guard. Forgetting RLS divides P by lam every step, so on a converged,
+    # low-excitation model the covariance inflates unboundedly until it loses
+    # symmetry/positive-definiteness and diverges to NaN (observed by ~n=2-4k).
+    # Keep P symmetric (numerical hygiene) and bound its trace so it stays finite
+    # and stable; the cap is ~5 orders above the initial trace, so it only acts on
+    # runaway models and never touches normal operation.
+    P_new = 0.5 * (P_new + P_new.transpose(-1, -2))
+    trace = torch.diagonal(P_new, dim1=-2, dim2=-1).sum(-1)          # (M,)
+    scale = torch.clamp(_P_TRACE_MAX / trace.clamp(min=1e-12), max=1.0)
+    P_new = P_new * scale.unsqueeze(-1).unsqueeze(-1)
     return W_new, P_new, res
 
 

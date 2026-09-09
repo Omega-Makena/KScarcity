@@ -67,6 +67,56 @@ def test_default_graph_unchanged():
     assert kg and "p_value" not in kg[0]["metrics"]
 
 
+def test_rls_stable_at_large_n_no_nan():
+    """Covariance windup guard: the RLS must stay finite over a long stream
+    (previously went NaN by ~n=4000) and still recover the true edge."""
+    rng = np.random.default_rng(0)
+    n = 6000
+    x = rng.normal(size=n)
+    y = 0.9 * x + 0.3 * rng.normal(size=n)
+    z = rng.normal(size=n)
+    e = GPUDiscoveryEngine(device="cpu")
+    e.initialize_v2({"fields": [{"name": c} for c in ("x", "y", "z")]}, use_causal=True)
+    for t in range(n):
+        e.process_row({"x": float(x[t]), "y": float(y[t]), "z": float(z[t])})
+    p, pr2 = e._coef_stats()
+    assert np.isfinite(p).all() and np.isfinite(pr2).all(), "RLS produced non-finite stats"
+    kg = e.get_knowledge_graph(top_k=200, calibrated=True, q=0.05)
+    assert frozenset(("x", "y")) in {frozenset(h["variables"]) for h in kg}
+
+
+def test_effect_size_gate_filters_trivial_but_significant():
+    """min_partial_r2 removes a real-but-weak edge while keeping a strong one, and
+    the effect size is ~stable in n (converges to the true squared correlation)."""
+    def run(n, thr):
+        rng = np.random.default_rng(0)
+        x = rng.normal(size=n)
+        y = 0.9 * x + 0.3 * rng.normal(size=n)         # strong, rho^2 ~ 0.9
+        m = 0.35 * x + rng.normal(size=n)              # moderate, rho^2 ~ 0.11
+        e = GPUDiscoveryEngine(device="cpu")
+        e.initialize_v2({"fields": [{"name": c} for c in ("x", "y", "m")]}, use_causal=True)
+        for t in range(n):
+            e.process_row({"x": float(x[t]), "y": float(y[t]), "m": float(m[t])})
+        kg = e.get_knowledge_graph(top_k=200, calibrated=True, q=0.05, min_partial_r2=thr)
+        two = [h for h in kg if len(h["variables"]) == 2]
+        pairs = {frozenset(h["variables"]) for h in two}
+        pr2 = {frozenset(h["variables"]): h["metrics"].get("partial_r2", 0.0) for h in two}
+        return pairs, pr2
+
+    pairs0, pr2 = run(2500, 0.0)
+    assert frozenset(("x", "y")) in pairs0 and frozenset(("x", "m")) in pairs0
+    assert pr2[frozenset(("x", "y"))] > 0.5           # strong
+    assert pr2[frozenset(("x", "m"))] < 0.3           # moderate
+
+    pairs_gated, _ = run(2500, 0.3)
+    assert frozenset(("x", "y")) in pairs_gated        # strong survives
+    assert frozenset(("x", "m")) not in pairs_gated    # trivial filtered
+
+    # n-stability: strong edge's effect size does not drift with the row count
+    es = [run(n, 0.0)[1][frozenset(("x", "y"))] for n in (1000, 5000)]
+    assert abs(es[0] - es[1]) < 0.1, f"effect size not n-stable: {es}"
+
+
 def _ar1(rng, n, phi=0.7, scale=1.0):
     v = np.zeros(n)
     for t in range(1, n):
