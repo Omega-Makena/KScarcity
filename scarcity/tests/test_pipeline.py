@@ -1,7 +1,6 @@
 """End-to-end epistemic pipeline: a discovered edge climbs the ladder via real analyses."""
 import numpy as np
 import pandas as pd
-import pytest
 
 from scarcity.engine.gpu_engine import GPUDiscoveryEngine
 from scarcity.pipeline import EpistemicPipeline

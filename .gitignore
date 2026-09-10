@@ -18,3 +18,6 @@ build/
 dist/
 *.whl
 *.tar.gz
+artifacts/runs/
+benchmark/reports/outputs/
+streamlit_widget_log.txt

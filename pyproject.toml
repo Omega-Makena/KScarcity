@@ -105,6 +105,16 @@ exclude = [
   "tests*"
 ]
 
+[tool.ruff.lint]
+# Keep pyflakes (F) bug-detection on; ignore the stylistic line-composition and
+# naming rules the codebase deliberately uses (guard-clause one-liners, compact
+# math-style names) and the mildest lint (unused locals).
+ignore = ["E701", "E702", "E741", "E731", "E402", "F841"]
+
+[tool.ruff.lint.per-file-ignores]
+# __init__.py files intentionally re-export names (the public API surface).
+"**/__init__.py" = ["F401"]
+
 [tool.pytest.ini_options]
 # Scope collection to the scarcity package: the repo also contains unrelated
 # subsystems (kshiked, e2e scripts) whose test modules require optional deps not

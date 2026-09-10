@@ -22,11 +22,11 @@ simply stops climbing.
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import Dict, List, Optional
+from typing import List, Optional
 
 import numpy as np
 
-from scarcity.epistemic import EpistemicLadder, Rung
+from scarcity.epistemic import EpistemicLadder
 from scarcity.causal.sensitivity import _adjusted_t_stat, robustness_value, _t_critical
 
 _DIRECTIONAL = {"causal", "temporal", "functional", "probabilistic", "graph"}

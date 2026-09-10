@@ -219,7 +219,7 @@ def diffusion_sketch(
     
     # Validate input
     if np.any(np.isnan(Z)) or np.any(np.isinf(Z)):
-        logger.warning(f"DFS: NaN/Inf in input, zeroing")
+        logger.warning("DFS: NaN/Inf in input, zeroing")
         Z = np.nan_to_num(Z, nan=0.0, posinf=0.0, neginf=0.0)
         fallbacks |= 1
     
@@ -355,7 +355,7 @@ def diffusion_sketch(
     
     # Validate output
     if np.any(np.isnan(R_output)) or np.any(np.isinf(R_output)):
-        logger.warning(f"DFS: NaN/Inf after diffusion, using fallback")
+        logger.warning("DFS: NaN/Inf after diffusion, using fallback")
         R_output = Z.astype(np.float32)
         fallbacks |= 4
     
@@ -544,7 +544,7 @@ def relational_attention(
     
     # Validate input
     if np.any(np.isnan(H_nodes)) or np.any(np.isinf(H_nodes)):
-        logger.warning(f"RAT: NaN/Inf in input, zeroing")
+        logger.warning("RAT: NaN/Inf in input, zeroing")
         H_nodes = np.nan_to_num(H_nodes, nan=0.0, posinf=0.0, neginf=0.0)
         fallbacks |= 1
     
@@ -630,7 +630,7 @@ def relational_attention(
     
     # Validate output
     if np.any(np.isnan(R)) or np.any(np.isinf(R)):
-        logger.warning(f"RAT: NaN/Inf after attention, using fallback")
+        logger.warning("RAT: NaN/Inf after attention, using fallback")
         R = np.mean(H, axis=0, keepdims=True) if return_sequence else np.mean(H, axis=0)
         fallbacks |= 4
     
@@ -681,7 +681,7 @@ def signed_message_passing(
     
     # Validate input
     if np.any(np.isnan(x)) or np.any(np.isinf(x)):
-        logger.warning(f"SMP: NaN/Inf in input, zeroing")
+        logger.warning("SMP: NaN/Inf in input, zeroing")
         x = np.nan_to_num(x, nan=0.0, posinf=0.0, neginf=0.0)
         fallbacks |= 1
     
@@ -759,7 +759,7 @@ def signed_message_passing(
     
     # Validate output
     if np.any(np.isnan(x_t)) or np.any(np.isinf(x_t)):
-        logger.warning(f"SMP: NaN/Inf after propagation, using fallback")
+        logger.warning("SMP: NaN/Inf after propagation, using fallback")
         x_t = x_nodes
         fallbacks |= 4
     
@@ -910,7 +910,7 @@ def community_aware_pooling(
     
     # Validate input
     if np.any(np.isnan(H_nodes)) or np.any(np.isinf(H_nodes)):
-        logger.warning(f"CAP: NaN/Inf in input, zeroing")
+        logger.warning("CAP: NaN/Inf in input, zeroing")
         H_nodes = np.nan_to_num(H_nodes, nan=0.0, posinf=0.0, neginf=0.0)
         fallbacks |= 1
     
@@ -1052,7 +1052,7 @@ def community_aware_pooling(
     
     # Validate output
     if np.any(np.isnan(R)) or np.any(np.isinf(R)):
-        logger.warning(f"CAP: NaN/Inf after pooling, using fallback")
+        logger.warning("CAP: NaN/Inf after pooling, using fallback")
         R = np.mean(H, axis=0, keepdims=True)
         fallbacks |= 8
     
@@ -1201,7 +1201,7 @@ def hyperedge_reducer(
     
     # Validate output
     if np.any(np.isnan(R)) or np.any(np.isinf(R)):
-        logger.warning(f"HER: NaN/Inf after reduction, using fallback")
+        logger.warning("HER: NaN/Inf after reduction, using fallback")
         R = np.mean([z for z in latents_valid], axis=0)
         R = R[:drg_sketch_dim] if len(R) > drg_sketch_dim else np.pad(R, (0, drg_sketch_dim - len(R)))
         fallbacks |= 16

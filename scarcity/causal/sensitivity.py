@@ -30,7 +30,7 @@ df = 783 -> partial R^2 = 0.022, RV = 0.139, RV_alpha=0.05 = 0.076).
 from __future__ import annotations
 
 import math
-from typing import Dict, List, Optional, Sequence
+from typing import Dict, Optional, Sequence
 
 import numpy as np
 import pandas as pd

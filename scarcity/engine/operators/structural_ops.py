@@ -65,7 +65,7 @@ def temporal_fusion(
     
     # Validate inputs
     if np.any(np.isnan(X_sel)) or np.any(np.isinf(X_sel)):
-        logger.warning(f"TFU: NaN/Inf detected in input, zeroing")
+        logger.warning("TFU: NaN/Inf detected in input, zeroing")
         X_sel = np.nan_to_num(X_sel, nan=0.0, posinf=0.0, neginf=0.0)
         fallbacks |= 1
     
@@ -109,7 +109,7 @@ def temporal_fusion(
     
     # Validate fusion output
     if np.any(np.isnan(Y)) or np.any(np.isinf(Y)):
-        logger.warning(f"TFU: NaN/Inf after fusion, using fallback")
+        logger.warning("TFU: NaN/Inf after fusion, using fallback")
         Y = 0.5 * (conv_short + conv_medium)
         fallbacks |= 4
     
@@ -314,7 +314,7 @@ def cross_align(
     
     # Validate output
     if np.any(np.isnan(output)) or np.any(np.isinf(output)):
-        logger.warning(f"XAL: NaN/Inf after alignment, using fallback")
+        logger.warning("XAL: NaN/Inf after alignment, using fallback")
         output = X_pair
         fallbacks |= 2
     
@@ -407,7 +407,7 @@ def lowrank_mix(
     
     # Validate input
     if np.any(np.isnan(H)) or np.any(np.isinf(H)):
-        logger.warning(f"LRM: NaN/Inf in input, zeroing")
+        logger.warning("LRM: NaN/Inf in input, zeroing")
         H = np.nan_to_num(H, nan=0.0, posinf=0.0, neginf=0.0)
         fallbacks |= 1
     
@@ -503,7 +503,7 @@ def lowrank_mix(
     
     # Validate output
     if np.any(np.isnan(Z)) or np.any(np.isinf(Z)):
-        logger.warning(f"LRM: NaN/Inf in output, using fallback")
+        logger.warning("LRM: NaN/Inf in output, using fallback")
         Z = H[:, :actual_rank] if actual_rank <= H.shape[1] else H
         Z = rmsnorm(Z)
         fallbacks |= 64
@@ -558,7 +558,7 @@ def sparse_interact(
     
     # Validate input
     if np.any(np.isnan(X_or_Z)) or np.any(np.isinf(X_or_Z)):
-        logger.warning(f"SIN: NaN/Inf in input, zeroing")
+        logger.warning("SIN: NaN/Inf in input, zeroing")
         X_or_Z = np.nan_to_num(X_or_Z, nan=0.0, posinf=0.0, neginf=0.0)
         fallbacks |= 1
     
@@ -603,7 +603,7 @@ def sparse_interact(
     
     if len(pairs) == 0:
         # Fallback: no pairs, return input
-        logger.warning(f"SIN: No pairs selected, returning input")
+        logger.warning("SIN: No pairs selected, returning input")
         Z_gated = X_or_Z[:, :min(d_hash, d_v)]
         if Z_gated.shape[1] < d_hash:
             # Pad with zeros
@@ -663,7 +663,7 @@ def sparse_interact(
     
     # Validate output
     if np.any(np.isnan(Z_norm)) or np.any(np.isinf(Z_norm)):
-        logger.warning(f"SIN: NaN/Inf after gating, using fallback")
+        logger.warning("SIN: NaN/Inf after gating, using fallback")
         Z_norm = np.zeros((W, d_hash), dtype=np.float32)
         fallbacks |= 4
     
@@ -713,7 +713,7 @@ def structural_pool(
     
     # Validate input
     if np.any(np.isnan(X_grouped)) or np.any(np.isinf(X_grouped)):
-        logger.warning(f"SPool: NaN/Inf in input, zeroing")
+        logger.warning("SPool: NaN/Inf in input, zeroing")
         X_grouped = np.nan_to_num(X_grouped, nan=0.0, posinf=0.0, neginf=0.0)
         fallbacks |= 1
     
@@ -777,7 +777,7 @@ def structural_pool(
     
     # Validate output
     if np.any(np.isnan(Z)) or np.any(np.isinf(Z)):
-        logger.warning(f"SPool: NaN/Inf after pooling, using fallback")
+        logger.warning("SPool: NaN/Inf after pooling, using fallback")
         Z = np.mean(X_grouped, axis=1, keepdims=True)
         fallbacks |= 8
     
@@ -826,7 +826,7 @@ def regime_gate(
     
     # Validate input
     if np.any(np.isnan(Z)) or np.any(np.isinf(Z)):
-        logger.warning(f"RGate: NaN/Inf in input, zeroing")
+        logger.warning("RGate: NaN/Inf in input, zeroing")
         Z = np.nan_to_num(Z, nan=0.0, posinf=0.0, neginf=0.0)
         fallbacks |= 1
     
@@ -852,7 +852,7 @@ def regime_gate(
     
     # Validate output
     if np.any(np.isnan(Z_gated)) or np.any(np.isinf(Z_gated)):
-        logger.warning(f"RGate: NaN/Inf after gating, using fallback")
+        logger.warning("RGate: NaN/Inf after gating, using fallback")
         Z_gated = Z
         fallbacks |= 4
     
@@ -898,7 +898,7 @@ def denoise_lite(
     
     # Validate input
     if np.any(np.isnan(Z)) or np.any(np.isinf(Z)):
-        logger.warning(f"DNL: NaN/Inf in input, zeroing")
+        logger.warning("DNL: NaN/Inf in input, zeroing")
         Z = np.nan_to_num(Z, nan=0.0, posinf=0.0, neginf=0.0)
         fallbacks |= 1
     
@@ -933,7 +933,7 @@ def denoise_lite(
     
     # Validate output
     if np.any(np.isnan(output)) or np.any(np.isinf(output)):
-        logger.warning(f"DNL: NaN/Inf after denoising, using fallback")
+        logger.warning("DNL: NaN/Inf after denoising, using fallback")
         output = Z.astype(np.float32)
         fallbacks |= 4
     

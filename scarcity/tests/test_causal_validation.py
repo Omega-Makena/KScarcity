@@ -6,7 +6,6 @@ verdicts on data with a known effect.
 """
 import numpy as np
 import pandas as pd
-import pytest
 
 from scarcity.causal.validation import (
     Validator,

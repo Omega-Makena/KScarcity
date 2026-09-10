@@ -9,7 +9,8 @@ Outputs:
   - benchmark_results/generator_validation.csv
 """
 
-import os, json
+import os
+import json
 import numpy as np
 import pandas as pd
 from scipy import stats
@@ -313,7 +314,7 @@ hyp_df.to_csv(hyp_path, index=False)
 print(f"\nRaw Hypotheses ({hyp_path}):", flush=True)
 print(f"  Total alive: {len(hyp_df)}", flush=True)
 print(f"  Active: {hyp_df['is_active'].sum()}", flush=True)
-print(f"  By state:", flush=True)
+print("  By state:", flush=True)
 print(hyp_df['state'].value_counts().to_string(), flush=True)
 
 # Focus: for each ground-truth relationship, find matching hypotheses
@@ -374,14 +375,14 @@ for rel in schema['relationships']:
         print(f"  -> Engine: {best['engine_type']:20s} conf={best['conf']:.4f} "
               f"fit={best['fit']:.4f} stab={best['stab']:.4f} state={best['state']}", flush=True)
         if best['conf'] < 0.10:
-            print(f"     !! KILLED: conf < 0.10 (kill threshold)", flush=True)
+            print("     !! KILLED: conf < 0.10 (kill threshold)", flush=True)
         elif best['conf'] < 0.70:
-            print(f"     !! STUCK TENTATIVE: conf < 0.70 (promotion threshold)", flush=True)
+            print("     !! STUCK TENTATIVE: conf < 0.70 (promotion threshold)", flush=True)
         if best['stab'] < 0.60:
-            print(f"     !! LOW STABILITY: stab < 0.60", flush=True)
+            print("     !! LOW STABILITY: stab < 0.60", flush=True)
     else:
         print(f"\n  GT: {rt:15s} | vars={gt_vars}", flush=True)
-        print(f"  -> NO TYPE MATCH FOUND in engine", flush=True)
+        print("  -> NO TYPE MATCH FOUND in engine", flush=True)
 
 print(f"\n{'='*70}", flush=True)
 print("Diagnostics complete.", flush=True)

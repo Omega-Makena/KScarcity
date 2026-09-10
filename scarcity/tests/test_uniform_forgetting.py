@@ -6,7 +6,6 @@ break the stale edge must decay for functional/causal edges too, while the
 cumulative default (forgetting_window=0) keeps them.
 """
 import numpy as np
-import pytest
 
 from scarcity.engine.engine_v2 import OnlineDiscoveryEngine
 

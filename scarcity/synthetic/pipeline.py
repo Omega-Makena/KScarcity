@@ -245,7 +245,7 @@ class SyntheticPipeline:
         if "policy_event_id" in df_tweets.columns:
             policy_df = df_tweets[df_tweets["policy_event_id"].notna()]
             if len(policy_df) > 0:
-                print(f"\nPolicy event coverage:")
+                print("\nPolicy event coverage:")
                 for eid, group in policy_df.groupby("policy_event_id"):
                     phases = group["policy_phase"].value_counts().to_dict()
                     stances = group["stance_score"].apply(

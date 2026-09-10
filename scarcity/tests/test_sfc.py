@@ -87,7 +87,7 @@ class TestSFCEconomyDynamics:
         # Rate should be higher with higher inflation
         print(f"Low inflation (2%) → Rate: {rate_low:.3f}")
         print(f"High inflation (15%) → Rate: {rate_high:.3f}")
-        assert rate_high >= rate_low, f"Rate should increase with inflation"
+        assert rate_high >= rate_low, "Rate should increase with inflation"
     
     def test_unemployment_follows_okun(self):
         """Unemployment falls with GDP growth and rises with GDP contraction (Okun's Law direction).

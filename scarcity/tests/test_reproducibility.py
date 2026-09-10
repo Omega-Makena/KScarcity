@@ -1,7 +1,6 @@
 """Reproducibility (#5): a seeded run is bit-reproducible, and set_seeds enforces
 deterministic kernels (so the guarantee holds on GPU, not just CPU)."""
 import numpy as np
-import pytest
 
 from scarcity.experiment.runner import set_seeds
 from scarcity.engine.gpu_engine import GPUDiscoveryEngine

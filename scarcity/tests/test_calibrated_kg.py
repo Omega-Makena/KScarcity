@@ -5,7 +5,6 @@ calibrated graph (analytic F-test p-value + Benjamini-Hochberg) must keep true
 edges while driving the null false-edge rate to ~q.
 """
 import numpy as np
-import pytest
 
 from scarcity.engine.gpu_engine import GPUDiscoveryEngine
 
