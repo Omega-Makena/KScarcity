@@ -189,9 +189,10 @@ prediction so each component does what it does best.
 - **Skeptical Bayesian prior** (α=0.1, β=1.0 → ~9% initial belief) — hypotheses must *earn* confidence.
 - **Lifecycle as natural selection** — `TENTATIVE → ACTIVE → DECAYING → DEAD`, with a graveyard of killed hypotheses.
 - **Regime-break detection** — Page's CUSUM penalizes relationships that only hold in one regime.
-- **Exponential forgetting** (λ=0.99, ~100-step memory) — the engine *tracks* regime change instead of being anchored by old data.
-- **False-discovery control** — Benjamini–Hochberg FDR at q=0.05 deflates spurious findings from testing many type × variable-pair combinations.
-- **Calibration-safe signal** — null/noise data converges to ~5% confidence, below the promotion threshold, so noise does not get reported as structure.
+- **Exponential forgetting** (λ=0.99, ~100-step memory), now applied **uniformly across all 15 types** (tunable via `forgetting_window`) — the engine *tracks* regime change instead of being anchored by old data.
+- **Calibrated graph by default** — `get_knowledge_graph()` returns the significance-gated graph out of the box: an **autocorrelation-robust** per-hypothesis test (predictor partial-t with an effective-sample-size correction, and each type scored by its own statistic — Sobel, ANOVA, etc.) under **Benjamini–Hochberg** FDR at q=0.05. Pass `calibrated=False` for the raw graph.
+- **Effect-size gate** (`min_partial_r2`) — an optional practical-significance floor so a real-but-trivial edge at large n can be filtered, not just the statistically-insignificant ones.
+- **Calibration-safe signal** — null/noise data converges below the promotion threshold; on a globally-shuffled replica the calibrated gate's false-edge rate collapses to ~0.
 
 Because a relationship moving to `DECAYING`/`DEAD` *is itself a signal*, the same engine
 serves discovery, drift/anomaly detection, and regime monitoring.
@@ -216,6 +217,17 @@ All 15 types stay active in `small_dataset_mode=True` (annual series, N=20–50)
 - Counterfactual Jacobian perturbation — "what-if" causal analysis
 - Multi-hop causal BFS — discovers indirect chains (A→B→C)
 - Graph-informed forecasting handoff — top-K parents (by confidence) passed to Prophet/ARIMA with lag-1 to prevent future leakage
+
+**Hardening, benchmarks & reproducibility (2026):**
+- **GPU streaming ~16× faster** — vectorized feature/confidence extraction, batched RLS; the 34-var synthetic benchmark runs in ~2 min/run (recovery F1=1.0) with a numerically-stable covariance guard for long streams.
+- **End-to-end epistemic pipeline** (`scarcity/pipeline.py`) — a discovered edge climbs a ladder through real analyses: DISCOVERED → HYPOTHESIZED → PREDICTIVE (held-out) → IDENTIFIED (backdoor set) → ESTIMATED (effect + CI) → ROBUST (placebo + Cinelli–Hazlett OVB sensitivity).
+- **Benchmark suite** — ablation, scaling, drift, dirty-data, online-FDR (LORD++), discovery baselines (Pearson/Spearman/MI/Granger/PC), baselines × failure-modes, threshold-sensitivity, and online-engine recovery. Reproduce everything with `python benchmark/scripts/run_all.py` (see `benchmark/RESULTS.md`).
+- **Reproducibility** — `set_seeds()` enforces deterministic kernels (seeds + `use_deterministic_algorithms` + cuBLAS config); the experiment layer records seed, git commit, hardware and runtime per run.
+
+**Honest scope (what the numbers do and don't say):**
+- Synthetic recovery F1 is decided by the **offline calibrator** (permutation + BH); the **online** graph is autocorrelation-robust and precision-first (it recovers fewer, higher-confidence edges) — the two-stage split is deliberate.
+- On the adversarial failure-mode battery, Scarcity is the only method that clears every scenario (typed contemporaneous **and** lagged coverage); on plain pairwise F1 a directed test (Granger) or constraint-based method (PC) is competitive.
+- Real-data validation to date is **macroeconomics** (World Bank, via predictive backtest) and **HFT microstructure** (via causal ATE); other domains are synthetic oracles by design (no sourceable ground truth).
 
 ---
 
